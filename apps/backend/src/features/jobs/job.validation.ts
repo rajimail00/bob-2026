@@ -1,18 +1,29 @@
 import { z } from "zod";
 import { PAYMENT_PREFERENCES, RECURRENCE_OPTIONS } from "./job.model.js";
 
+const MAX_PHOTOS = 5;
+const MAX_VIDEOS = 2;
+
 export const createJobSchema = z.object({
   categoryId: z.string().min(1, "Choose a category"),
   title: z.string().trim().min(3).max(120),
   description: z.string().trim().min(10, "Add a few more details").max(1000),
-  media: z.array(z.object({ url: z.string().url(), type: z.enum(["photo", "video"]) })).default([]),
+  media: z
+    .array(z.object({ url: z.string().url(), type: z.enum(["photo", "video"]) }))
+    .default([])
+    .refine((items) => items.filter((m) => m.type === "photo").length <= MAX_PHOTOS, {
+      message: `Up to ${MAX_PHOTOS} photos allowed`,
+    })
+    .refine((items) => items.filter((m) => m.type === "video").length <= MAX_VIDEOS, {
+      message: `Up to ${MAX_VIDEOS} videos allowed`,
+    }),
   location: z.object({
     lng: z.number().min(-180).max(180),
     lat: z.number().min(-90).max(90),
   }),
   address: z.string().trim().min(1, "Address is required"),
   date: z.coerce.date(),
-  peopleNeeded: z.number().int().min(1).max(20).default(1),
+  peopleNeeded: z.number().int().min(1).max(15).default(1),
   budget: z.number().min(0),
   recurrence: z.enum(RECURRENCE_OPTIONS).default("none"),
   isEmergency: z.boolean().default(false),

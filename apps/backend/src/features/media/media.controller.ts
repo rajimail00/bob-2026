@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { AppError } from "../../lib/errors.js";
 import { isCloudinaryConfigured, uploadBuffer } from "../../lib/cloudinary.js";
 
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 export const mediaController = {
   async upload(req: Request, res: Response) {
@@ -13,7 +13,7 @@ export const mediaController = {
       throw AppError.badRequest("Attach a photo or video as `file`.");
     }
     if (req.file.size > MAX_UPLOAD_BYTES) {
-      throw AppError.badRequest("File is too large (max 25MB).");
+      throw AppError.badRequest("File is too large (max 10MB).");
     }
 
     const isVideo = req.file.mimetype.startsWith("video/");
