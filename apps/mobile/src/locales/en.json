@@ -1,0 +1,51 @@
+{
+  "common": {
+    "continue": "Continue",
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "logout": "Log out",
+    "retry": "Try again",
+    "loading": "Loading…",
+    "genericError": "Something went wrong. Please try again."
+  },
+  "auth": {
+    "welcome": "Welcome to BOB",
+    "tagline": "Get help nearby, or offer yours.",
+    "login": "Login",
+    "register": "Register",
+    "continueAsGuest": "Continue as guest",
+    "emailLabel": "Email address",
+    "passwordLabel": "Password",
+    "loginTitle": "Log in",
+    "registerTitle": "Register",
+    "or": "or",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "verifyTitle": "Verify",
+    "verifySubtitle": "Enter the code we emailed you",
+    "resendCode": "Resend code",
+    "createProfileTitle": "Create profile",
+    "firstNameLabel": "First name",
+    "lastNameLabel": "Last name",
+    "errors": {
+      "emailRequired": "Enter your email address",
+      "emailInvalid": "Enter a valid email address",
+      "passwordRequired": "Enter your password",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "codeInvalid": "Enter the 6-digit code",
+      "firstNameRequired": "Enter your first name",
+      "lastNameRequired": "Enter your last name"
+    }
+  },
+  "home": {
+    "map": "Map",
+    "list": "List",
+    "searchPlaceholder": "Search",
+    "emptyTitle": "No jobs nearby yet",
+    "emptyBody": "Try widening your search radius or clearing filters.",
+    "errorTitle": "Couldn't load jobs",
+    "budget": "Budget",
+    "people": "People"
+  }
+}

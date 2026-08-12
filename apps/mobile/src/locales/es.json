@@ -1,0 +1,51 @@
+{
+  "common": {
+    "continue": "Continuar",
+    "back": "Atrás",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "logout": "Cerrar sesión",
+    "retry": "Reintentar",
+    "loading": "Cargando…",
+    "genericError": "Algo salió mal. Inténtalo de nuevo."
+  },
+  "auth": {
+    "welcome": "Bienvenido a BOB",
+    "tagline": "Consigue ayuda cerca de ti, u ofrece la tuya.",
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "continueAsGuest": "Continuar como invitado",
+    "emailLabel": "Correo electrónico",
+    "passwordLabel": "Contraseña",
+    "loginTitle": "Iniciar sesión",
+    "registerTitle": "Registrarse",
+    "or": "o",
+    "noAccount": "¿No tienes cuenta?",
+    "haveAccount": "¿Ya tienes una cuenta?",
+    "verifyTitle": "Verificar",
+    "verifySubtitle": "Introduce el código que te enviamos por correo",
+    "resendCode": "Reenviar código",
+    "createProfileTitle": "Crear perfil",
+    "firstNameLabel": "Nombre",
+    "lastNameLabel": "Apellido",
+    "errors": {
+      "emailRequired": "Introduce tu correo electrónico",
+      "emailInvalid": "Introduce un correo electrónico válido",
+      "passwordRequired": "Introduce tu contraseña",
+      "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+      "codeInvalid": "Introduce el código de 6 dígitos",
+      "firstNameRequired": "Introduce tu nombre",
+      "lastNameRequired": "Introduce tu apellido"
+    }
+  },
+  "home": {
+    "map": "Mapa",
+    "list": "Lista",
+    "searchPlaceholder": "Buscar",
+    "emptyTitle": "Aún no hay trabajos cerca",
+    "emptyBody": "Amplía el radio de búsqueda o elimina los filtros.",
+    "errorTitle": "No se pudieron cargar los trabajos",
+    "budget": "Presupuesto",
+    "people": "Personas"
+  }
+}

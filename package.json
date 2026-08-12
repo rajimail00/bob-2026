@@ -1,0 +1,23 @@
+{
+  "name": "bob-2026",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "backend:dev": "npm run dev -w apps/backend",
+    "backend:build": "npm run build -w apps/backend",
+    "backend:typecheck": "npm run typecheck -w apps/backend",
+    "backend:test": "npm run test -w apps/backend",
+    "mobile:start": "npm run start -w apps/mobile",
+    "mobile:typecheck": "npm run typecheck -w apps/mobile"
+  },
+  "overrides": {
+    "react-test-renderer": "19.1.0"
+  },
+  "devDependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@types/react": "~19.1.10"
+  }
+}

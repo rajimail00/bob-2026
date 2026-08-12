@@ -1,0 +1,60 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { jobsApi, type CreateJobInput, type JobListParams } from "../api/jobs.api";
+
+export function useJobs(params: JobListParams) {
+  return useQuery({
+    queryKey: ["jobs", "list", params],
+    queryFn: () => jobsApi.list(params),
+  });
+}
+
+export function useJob(id: string | undefined) {
+  return useQuery({
+    queryKey: ["jobs", "detail", id],
+    queryFn: () => jobsApi.getById(id as string),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCategories() {
+  return useQuery({
+    queryKey: ["categories", "list"],
+    queryFn: () => jobsApi.listCategories(),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useCreateJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateJobInput) => jobsApi.create(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
+export function useCompleteJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => jobsApi.complete(id),
+    onSuccess: async (_data, id) => {
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", id] });
+    },
+  });
+}
+
+export function useMyPostedJobs() {
+  return useQuery({
+    queryKey: ["jobs", "mine", "posted"],
+    queryFn: () => jobsApi.listMinePosted(),
+  });
+}
+
+export function useMyAssignedJobs() {
+  return useQuery({
+    queryKey: ["jobs", "mine", "assigned"],
+    queryFn: () => jobsApi.listMineAssigned(),
+  });
+}

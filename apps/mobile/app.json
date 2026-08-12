@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "BOB",
+    "slug": "bob-app",
+    "scheme": "bob",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "backgroundColor": "#4F8266"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "BOB uses your location to attach it to the job you're posting."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "BOB uses your photos to attach them to the job you're posting.",
+          "cameraPermission": "BOB uses your camera to take photos and videos for the job you're posting.",
+          "microphonePermission": "BOB uses your microphone to record video for the job you're posting."
+        }
+      ]
+    ],
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bobapp.mobile"
+    },
+    "android": {
+      "package": "com.bobapp.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4F8266"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "apiUrl": "http://192.168.1.40:4000/api/v1"
+    }
+  }
+}

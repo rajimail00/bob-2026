@@ -1,0 +1,51 @@
+{
+  "common": {
+    "continue": "Weiter",
+    "back": "Zurück",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "logout": "Abmelden",
+    "retry": "Erneut versuchen",
+    "loading": "Wird geladen…",
+    "genericError": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+  },
+  "auth": {
+    "welcome": "Willkommen bei BOB",
+    "tagline": "Hol dir Hilfe in deiner Nähe oder biete deine an.",
+    "login": "Login",
+    "register": "Registrieren",
+    "continueAsGuest": "Als Gast fortfahren",
+    "emailLabel": "E-Mail-Adresse",
+    "passwordLabel": "Passwort",
+    "loginTitle": "Anmelden",
+    "registerTitle": "Registrieren",
+    "or": "oder",
+    "noAccount": "Noch keinen Account?",
+    "haveAccount": "Schon registriert?",
+    "verifyTitle": "Verifizieren",
+    "verifySubtitle": "Gib den Code ein, den wir dir per E-Mail geschickt haben",
+    "resendCode": "Code erneut senden",
+    "createProfileTitle": "Profil erstellen",
+    "firstNameLabel": "Vorname",
+    "lastNameLabel": "Nachname",
+    "errors": {
+      "emailRequired": "Gib deine E-Mail-Adresse ein",
+      "emailInvalid": "Gib eine gültige E-Mail-Adresse ein",
+      "passwordRequired": "Gib dein Passwort ein",
+      "passwordTooShort": "Das Passwort muss mindestens 8 Zeichen haben",
+      "codeInvalid": "Gib den 6-stelligen Code ein",
+      "firstNameRequired": "Gib deinen Vornamen ein",
+      "lastNameRequired": "Gib deinen Nachnamen ein"
+    }
+  },
+  "home": {
+    "map": "Karte",
+    "list": "Liste",
+    "searchPlaceholder": "Suche",
+    "emptyTitle": "Noch keine Aufträge in der Nähe",
+    "emptyBody": "Erweitere den Suchradius oder entferne Filter.",
+    "errorTitle": "Aufträge konnten nicht geladen werden",
+    "budget": "Budget",
+    "people": "Personen"
+  }
+}

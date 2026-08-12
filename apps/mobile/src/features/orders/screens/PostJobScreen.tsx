@@ -1,0 +1,461 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useFocusEffect } from "@react-navigation/native";
+import { Image } from "react-native";
+import * as Location from "expo-location";
+import { useCallback, useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { XStack, YStack } from "tamagui";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { PillTabs } from "@/components/ui/PillTabs";
+import { Screen } from "@/components/ui/Screen";
+import { Text } from "@/components/ui/Text";
+import { LoadingState } from "@/components/ui/states/LoadingState";
+import { CategoryTile } from "@/features/home/components/CategoryTile";
+import { useCategories, useCreateJob } from "@/features/home/hooks/useJobs";
+import type { UploadedMedia } from "@/features/media/api/media.api";
+import { getApiErrorMessage } from "@/lib/apiClient";
+import type { SupportedLocale } from "@/lib/i18n";
+import { MediaPicker } from "../components/MediaPicker";
+import { StepDots } from "../components/StepDots";
+import { postJobSchema, type PostJobFormValues } from "../validation/postJob.schema";
+
+const STEP_COUNT = 5;
+const RECURRENCE_OPTIONS = ["none", "daily", "weekly", "monthly"] as const;
+const PAYMENT_OPTIONS = ["cash", "paypal", "both"] as const;
+
+type LocationState =
+  | { status: "loading" }
+  | { status: "granted"; coords: { lng: number; lat: number } }
+  | { status: "denied" };
+
+export function PostJobScreen() {
+  const { t, i18n } = useTranslation();
+  const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
+  const categoriesQuery = useCategories();
+  const createJob = useCreateJob();
+
+  const [step, setStep] = useState(0);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [location, setLocation] = useState<LocationState>({ status: "loading" });
+  const [published, setPublished] = useState(false);
+  const [media, setMedia] = useState<UploadedMedia[]>([]);
+
+  const requestLocation = useCallback(async () => {
+    setLocation({ status: "loading" });
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== "granted") {
+      setLocation({ status: "denied" });
+      return;
+    }
+    const position = await Location.getCurrentPositionAsync({});
+    setLocation({
+      status: "granted",
+      coords: { lng: position.coords.longitude, lat: position.coords.latitude },
+    });
+  }, []);
+
+  // The Post tab stays mounted across tab switches, so a stale "denied" state would otherwise
+  // never get re-checked after the user grants permission (in-app or via OS settings) and comes back.
+  const locationStatusRef = useRef(location.status);
+  locationStatusRef.current = location.status;
+  useFocusEffect(
+    useCallback(() => {
+      if (locationStatusRef.current !== "granted") {
+        void requestLocation();
+      }
+    }, [requestLocation])
+  );
+
+  const {
+    control,
+    handleSubmit,
+    trigger,
+    watch,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<PostJobFormValues>({
+    resolver: zodResolver(postJobSchema),
+    defaultValues: {
+      categoryId: "",
+      title: "",
+      description: "",
+      address: "",
+      date: new Date(),
+      peopleNeeded: 1,
+      budget: 0,
+      recurrence: "none",
+      isEmergency: false,
+      paymentPreference: "cash",
+    },
+  });
+
+  const values = watch();
+
+  const STEP_FIELDS: (keyof PostJobFormValues)[][] = [
+    ["categoryId"],
+    ["title", "description"],
+    ["address", "peopleNeeded", "budget"],
+    ["recurrence", "paymentPreference"],
+    [],
+  ];
+
+  const goNext = async () => {
+    const isValid = await trigger(STEP_FIELDS[step]);
+    if (isValid) setStep((s) => Math.min(s + 1, STEP_COUNT - 1));
+  };
+  const goBack = () => setStep((s) => Math.max(s - 1, 0));
+
+  const onSubmit = handleSubmit(async (formValues) => {
+    setSubmitError(null);
+    if (location.status !== "granted") {
+      setSubmitError("We need your location to post a job. Enable location access and try again.");
+      return;
+    }
+    try {
+      await createJob.mutateAsync({
+        categoryId: formValues.categoryId,
+        title: formValues.title,
+        description: formValues.description,
+        media,
+        location: location.coords,
+        address: formValues.address,
+        date: formValues.date.toISOString(),
+        peopleNeeded: formValues.peopleNeeded,
+        budget: formValues.budget,
+        recurrence: formValues.recurrence,
+        isEmergency: formValues.isEmergency,
+        paymentPreference: formValues.paymentPreference,
+      });
+      setPublished(true);
+    } catch (err) {
+      setSubmitError(getApiErrorMessage(err, t("common.genericError")));
+    }
+  });
+
+  if (published) {
+    return (
+      <Screen>
+        <YStack flex={1} alignItems="center" justifyContent="center" gap="$4">
+          <Text variant="h2" textAlign="center">
+            Your job is online!
+          </Text>
+          <Button
+            onPress={() => {
+              setPublished(false);
+              setStep(0);
+              setMedia([]);
+              reset();
+            }}
+          >
+            Post another job
+          </Button>
+        </YStack>
+      </Screen>
+    );
+  }
+
+  if (categoriesQuery.isLoading) return <LoadingState label={t("common.loading")} />;
+
+  return (
+    <Screen scroll>
+      <YStack gap="$5" paddingTop="$4">
+        <StepDots total={STEP_COUNT} current={step} />
+
+        {step === 0 ? (
+          <YStack gap="$4">
+            <Text variant="h3">What do you need help with?</Text>
+            <Controller
+              control={control}
+              name="categoryId"
+              render={({ field }) => (
+                <XStack flexWrap="wrap" gap="$2">
+                  {(categoriesQuery.data ?? []).map((category) => (
+                    <CategoryTile
+                      key={category._id}
+                      category={category}
+                      label={category.name[locale] ?? category.name.en}
+                      isSelected={field.value === category._id}
+                      onPress={() => field.onChange(category._id)}
+                    />
+                  ))}
+                </XStack>
+              )}
+            />
+            {errors.categoryId ? (
+              <Text variant="small" color="$danger">
+                {errors.categoryId.message}
+              </Text>
+            ) : null}
+          </YStack>
+        ) : null}
+
+        {step === 1 ? (
+          <YStack gap="$4">
+            <Text variant="h3">Describe the job</Text>
+            <YStack gap="$2">
+              <Text variant="label">Photos &amp; videos (optional)</Text>
+              <MediaPicker media={media} onChange={setMedia} />
+            </YStack>
+            <Controller
+              control={control}
+              name="title"
+              render={({ field }) => (
+                <Input
+                  label="Title"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.title?.message}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <Input
+                  label="Description"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  multiline
+                  numberOfLines={4}
+                  style={{ height: 110, textAlignVertical: "top" }}
+                  error={errors.description?.message}
+                />
+              )}
+            />
+          </YStack>
+        ) : null}
+
+        {step === 2 ? (
+          <YStack gap="$4">
+            <Text variant="h3">When and where?</Text>
+            <YStack gap="$2">
+              <Text variant="label">Date</Text>
+              <PillTabs
+                options={[
+                  { value: "today", label: "Today" },
+                  { value: "tomorrow", label: "Tomorrow" },
+                ]}
+                value={
+                  new Date(values.date).toDateString() === new Date(Date.now() + 86400000).toDateString()
+                    ? "tomorrow"
+                    : "today"
+                }
+                onChange={(v) => {
+                  const d = v === "tomorrow" ? new Date(Date.now() + 86400000) : new Date();
+                  setValue("date", d);
+                }}
+              />
+            </YStack>
+            <Controller
+              control={control}
+              name="address"
+              render={({ field }) => (
+                <Input
+                  label="Address"
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  error={errors.address?.message}
+                />
+              )}
+            />
+            {location.status === "denied" ? (
+              <YStack gap="$2">
+                <Text variant="small" color="$danger">
+                  Location access is off — turn it on in settings to post a job.
+                </Text>
+                <Button variant="outline" onPress={() => void requestLocation()}>
+                  I've enabled it — retry
+                </Button>
+              </YStack>
+            ) : null}
+            <Controller
+              control={control}
+              name="peopleNeeded"
+              render={({ field }) => (
+                <Input
+                  label="People needed"
+                  keyboardType="number-pad"
+                  value={String(field.value)}
+                  onChangeText={(v) => field.onChange(Number(v.replace(/[^0-9]/g, "")) || 1)}
+                  error={errors.peopleNeeded?.message}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="budget"
+              render={({ field }) => (
+                <Input
+                  label="Budget (€)"
+                  keyboardType="number-pad"
+                  value={field.value ? String(field.value) : ""}
+                  onChangeText={(v) => field.onChange(Number(v.replace(/[^0-9]/g, "")) || 0)}
+                  error={errors.budget?.message}
+                />
+              )}
+            />
+          </YStack>
+        ) : null}
+
+        {step === 3 ? (
+          <YStack gap="$5">
+            <Text variant="h3">Options</Text>
+            <YStack gap="$2">
+              <Text variant="label">How often?</Text>
+              <XStack flexWrap="wrap" gap="$2">
+                {RECURRENCE_OPTIONS.map((option) => {
+                  const isSelected = values.recurrence === option;
+                  return (
+                    <XStack
+                      key={option}
+                      borderRadius="$pill"
+                      borderWidth={1.5}
+                      borderColor={isSelected ? "$primary" : "$borderColor"}
+                      backgroundColor={isSelected ? "$primary" : "$backgroundStrong"}
+                      paddingHorizontal="$4"
+                      paddingVertical="$2"
+                      onPress={() => setValue("recurrence", option)}
+                    >
+                      <Text variant="small" fontWeight="600" color={isSelected ? "$primaryText" : "$color"}>
+                        {option}
+                      </Text>
+                    </XStack>
+                  );
+                })}
+              </XStack>
+            </YStack>
+
+            <YStack gap="$2">
+              <Text variant="label">Payment method</Text>
+              <XStack flexWrap="wrap" gap="$2">
+                {PAYMENT_OPTIONS.map((option) => {
+                  const isSelected = values.paymentPreference === option;
+                  return (
+                    <Controller
+                      key={option}
+                      control={control}
+                      name="paymentPreference"
+                      render={({ field }) => (
+                        <XStack
+                          borderRadius="$pill"
+                          borderWidth={1.5}
+                          borderColor={isSelected ? "$primary" : "$borderColor"}
+                          backgroundColor={isSelected ? "$primary" : "$backgroundStrong"}
+                          paddingHorizontal="$4"
+                          paddingVertical="$2"
+                          onPress={() => field.onChange(option)}
+                        >
+                          <Text variant="small" fontWeight="600" color={isSelected ? "$primaryText" : "$color"}>
+                            {option}
+                          </Text>
+                        </XStack>
+                      )}
+                    />
+                  );
+                })}
+              </XStack>
+            </YStack>
+
+            <Controller
+              control={control}
+              name="isEmergency"
+              render={({ field }) => (
+                <XStack
+                  justifyContent="space-between"
+                  alignItems="center"
+                  onPress={() => field.onChange(!field.value)}
+                >
+                  <Text variant="body">This is an emergency</Text>
+                  <XStack
+                    width={48}
+                    height={28}
+                    borderRadius={14}
+                    backgroundColor={field.value ? "$primary" : "$neutral200"}
+                    padding={2}
+                    justifyContent={field.value ? "flex-end" : "flex-start"}
+                  >
+                    <YStack width={24} height={24} borderRadius={12} backgroundColor="$backgroundStrong" />
+                  </XStack>
+                </XStack>
+              )}
+            />
+          </YStack>
+        ) : null}
+
+        {step === 4 ? (
+          <YStack gap="$3">
+            <Text variant="h3">Review</Text>
+            {media.length > 0 ? (
+              <XStack gap="$2">
+                {media.map((item) =>
+                  item.type === "photo" ? (
+                    <Image key={item.url} source={{ uri: item.url }} style={{ width: 64, height: 64, borderRadius: 8 }} />
+                  ) : (
+                    <YStack
+                      key={item.url}
+                      width={64}
+                      height={64}
+                      borderRadius={8}
+                      backgroundColor="$neutral800"
+                      alignItems="center"
+                      justifyContent="center"
+                    >
+                      <Text variant="caption" color="white">
+                        Video
+                      </Text>
+                    </YStack>
+                  )
+                )}
+              </XStack>
+            ) : null}
+            <Text variant="body">{values.title}</Text>
+            <Text variant="body" muted>
+              {values.description}
+            </Text>
+            <Text variant="caption">{values.address}</Text>
+            <Text variant="caption">
+              €{values.budget} · {values.peopleNeeded} people · {values.paymentPreference}
+            </Text>
+          </YStack>
+        ) : null}
+
+        {submitError ? (
+          <YStack gap="$2">
+            <Text variant="small" color="$danger">
+              {submitError}
+            </Text>
+            {location.status === "denied" ? (
+              <Button variant="outline" onPress={() => void requestLocation()}>
+                I've enabled it — retry
+              </Button>
+            ) : null}
+          </YStack>
+        ) : null}
+
+        <XStack gap="$3">
+          {step > 0 ? (
+            <Button variant="outline" onPress={goBack}>
+              {t("common.back")}
+            </Button>
+          ) : null}
+          {step < STEP_COUNT - 1 ? (
+            <Button onPress={goNext} fullWidth={step === 0}>
+              {t("common.continue")}
+            </Button>
+          ) : (
+            <Button onPress={onSubmit} loading={createJob.isPending} fullWidth>
+              Publish
+            </Button>
+          )}
+        </XStack>
+      </YStack>
+    </Screen>
+  );
+}
