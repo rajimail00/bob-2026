@@ -57,4 +57,8 @@ export const jobRepository = {
   listAssignedTo(workerId: string) {
     return JobModel.find({ assignedWorkerId: workerId }).sort({ createdAt: -1 }).populate("categoryId");
   },
+
+  deleteById(id: string) {
+    return JobModel.deleteOne({ _id: id });
+  },
 };

@@ -14,6 +14,7 @@ import { useMyPostedJobs } from "@/features/home/hooks/useJobs";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { getApiErrorMessage } from "@/lib/apiClient";
 import type { OrdersStackParamList } from "@/navigation/types";
+import { PostedJobRow } from "../components/PostedJobRow";
 
 type Props = NativeStackScreenProps<OrdersStackParamList, "OrdersList">;
 type Tab = "posted" | "applied";
@@ -55,7 +56,7 @@ export function OrdersScreen({ navigation }: Props) {
             keyExtractor={(job) => job._id}
             renderItem={({ item }) => (
               <YStack paddingHorizontal="$4" paddingBottom="$3">
-                <JobCard job={item} onPress={() => navigation.navigate("JobDetail", { jobId: item._id })} />
+                <PostedJobRow job={item} onPress={() => navigation.navigate("JobDetail", { jobId: item._id })} />
               </YStack>
             )}
             contentContainerStyle={{ paddingBottom: 24 }}

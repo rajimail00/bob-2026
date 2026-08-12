@@ -31,4 +31,8 @@ export const applicationRepository = {
       { $set: { status: "rejected" } }
     );
   },
+
+  deleteForJob(jobId: string) {
+    return ApplicationModel.deleteMany({ jobId });
+  },
 };

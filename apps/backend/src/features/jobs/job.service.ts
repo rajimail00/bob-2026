@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { AppError } from "../../lib/errors.js";
+import { applicationRepository } from "../applications/application.repository.js";
 import { jobRepository } from "./job.repository.js";
 import type { CreateJobInput, ListJobsQuery } from "./job.validation.js";
 
@@ -65,5 +66,17 @@ export const jobService = {
     job.status = "completed";
     await job.save();
     return job;
+  },
+
+  async remove(jobId: string, clientId: string) {
+    const job = await this.assertOwner(jobId, clientId);
+    if (job.status === "assigned" || job.status === "completed") {
+      throw AppError.conflict(
+        "This job has an assigned worker and can't be deleted. Cancel or complete it first."
+      );
+    }
+
+    await applicationRepository.deleteForJob(jobId);
+    await jobRepository.deleteById(jobId);
   },
 };

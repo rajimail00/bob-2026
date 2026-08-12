@@ -45,6 +45,16 @@ export function useCompleteJob() {
   });
 }
 
+export function useDeleteJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => jobsApi.remove(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
 export function useMyPostedJobs() {
   return useQuery({
     queryKey: ["jobs", "mine", "posted"],

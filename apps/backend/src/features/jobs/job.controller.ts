@@ -41,4 +41,11 @@ export const jobController = {
     const job = await jobService.complete(id, req.auth.userId);
     res.status(200).json({ job });
   },
+
+  async remove(req: Request, res: Response) {
+    if (!req.auth) throw AppError.unauthorized();
+    const { id } = jobIdParamsSchema.parse(req.params);
+    await jobService.remove(id, req.auth.userId);
+    res.status(204).send();
+  },
 };

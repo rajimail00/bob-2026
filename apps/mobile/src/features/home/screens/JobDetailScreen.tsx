@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { Image } from "react-native";
+import { Alert, Image } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -16,7 +16,7 @@ import { useAuthStore } from "@/features/auth/store/authStore";
 import { RatingForm } from "@/features/reviews/components/RatingForm";
 import { getApiErrorMessage } from "@/lib/apiClient";
 import type { SupportedLocale } from "@/lib/i18n";
-import { useCompleteJob, useJob } from "../hooks/useJobs";
+import { useCompleteJob, useDeleteJob, useJob } from "../hooks/useJobs";
 
 const STATUS_TONE = {
   active: "active",
@@ -28,7 +28,7 @@ const STATUS_TONE = {
 
 interface Props {
   route: { params: { jobId: string } };
-  navigation: { navigate: (screen: string, params?: { jobId: string }) => void };
+  navigation: { navigate: (screen: string, params?: { jobId: string }) => void; goBack: () => void };
 }
 
 export function JobDetailScreen({ route, navigation }: Props) {
@@ -42,7 +42,9 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const myApplicationsQuery = useMyApplications();
   const selectApplicant = useSelectApplicant(jobId);
   const completeJob = useCompleteJob();
+  const deleteJob = useDeleteJob();
   const [completeError, setCompleteError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showRatingForm, setShowRatingForm] = useState(false);
 
   if (jobQuery.isLoading) return <LoadingState label={t("common.loading")} />;
@@ -126,6 +128,26 @@ export function JobDetailScreen({ route, navigation }: Props) {
             showRatingForm={showRatingForm}
             onStartRating={() => setShowRatingForm(true)}
             jobId={jobId}
+            onDelete={() => {
+              Alert.alert("Delete this job?", `"${job.title}" will be removed and can't be recovered.`, [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: async () => {
+                    setDeleteError(null);
+                    try {
+                      await deleteJob.mutateAsync(jobId);
+                      navigation.goBack();
+                    } catch (err) {
+                      setDeleteError(getApiErrorMessage(err, t("common.genericError")));
+                    }
+                  },
+                },
+              ]);
+            }}
+            isDeleting={deleteJob.isPending}
+            deleteError={deleteError}
           />
         ) : (
           <WorkerActions
@@ -156,6 +178,9 @@ function OwnerActions({
   showRatingForm,
   onStartRating,
   jobId,
+  onDelete,
+  isDeleting,
+  deleteError,
 }: {
   jobStatus: string;
   applicants: ReturnType<typeof useJobApplicants>["data"];
@@ -168,6 +193,9 @@ function OwnerActions({
   showRatingForm: boolean;
   onStartRating: () => void;
   jobId: string;
+  onDelete: () => void;
+  isDeleting: boolean;
+  deleteError: string | null;
 }) {
   if (jobStatus === "active") {
     return (
@@ -190,6 +218,15 @@ function OwnerActions({
             No applicants yet.
           </Text>
         )}
+
+        {deleteError ? (
+          <Text variant="small" color="$danger">
+            {deleteError}
+          </Text>
+        ) : null}
+        <Button variant="destructive" onPress={onDelete} loading={isDeleting}>
+          Delete job
+        </Button>
       </YStack>
     );
   }

@@ -46,6 +46,10 @@ export const jobsApi = {
     return data.job;
   },
 
+  async remove(id: string) {
+    await apiClient.delete(`/jobs/${id}`);
+  },
+
   async listMinePosted() {
     const { data } = await apiClient.get<{ jobs: Job[] }>("/jobs/mine/posted");
     return data.jobs;

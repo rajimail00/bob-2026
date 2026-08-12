@@ -78,4 +78,92 @@ describe("jobs", () => {
     const res = await request(app).get("/api/v1/jobs/64b64b64b64b64b64b64b64b");
     expect(res.status).toBe(404);
   });
+
+  it("lets the owner delete an active job, cascading its applications", async () => {
+    const owner = await createVerifiedClient("owner-delete@example.com");
+    const applicant = await createVerifiedClient("applicant-delete@example.com");
+    await request(app)
+      .post("/api/v1/auth/worker-profile")
+      .set("Authorization", `Bearer ${applicant.accessToken}`)
+      .send({ categories: [categoryId], serviceHours: "standard" });
+
+    const createRes = await request(app)
+      .post("/api/v1/jobs")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({
+        categoryId,
+        title: "Need a plant sitter",
+        description: "Water my plants twice a week while I'm away.",
+        location: { lng: 13.405, lat: 52.52 },
+        address: "Schwalbacherstr. 42, Berlin",
+        date: new Date().toISOString(),
+        budget: 50,
+      });
+    const jobId = createRes.body.job._id as string;
+
+    await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${applicant.accessToken}`)
+      .send({ message: "I can help!" });
+
+    const strangerDelete = await request(app)
+      .delete(`/api/v1/jobs/${jobId}`)
+      .set("Authorization", `Bearer ${applicant.accessToken}`);
+    expect(strangerDelete.status).toBe(403);
+
+    const deleteRes = await request(app)
+      .delete(`/api/v1/jobs/${jobId}`)
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+    expect(deleteRes.status).toBe(204);
+
+    const getRes = await request(app).get(`/api/v1/jobs/${jobId}`);
+    expect(getRes.status).toBe(404);
+
+    const applicantsRes = await request(app)
+      .get(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+    // The job itself is gone, so the ownership check that gates this list now 404s too.
+    expect(applicantsRes.status).toBe(404);
+  });
+
+  it("blocks deleting a job once it has an assigned worker", async () => {
+    const owner = await createVerifiedClient("owner-delete2@example.com");
+    const worker = await createVerifiedClient("worker-delete2@example.com");
+    await request(app)
+      .post("/api/v1/auth/worker-profile")
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ categories: [categoryId], serviceHours: "standard" });
+
+    const createRes = await request(app)
+      .post("/api/v1/jobs")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({
+        categoryId,
+        title: "Need a mover",
+        description: "Help moving boxes from the second floor to the truck.",
+        location: { lng: 13.405, lat: 52.52 },
+        address: "Schwalbacherstr. 42, Berlin",
+        date: new Date().toISOString(),
+        budget: 80,
+      });
+    const jobId = createRes.body.job._id as string;
+
+    const applyRes = await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ message: "I can help!" });
+    await request(app)
+      .patch(`/api/v1/applications/${applyRes.body.application._id}/select`)
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+
+    const deleteRes = await request(app)
+      .delete(`/api/v1/jobs/${jobId}`)
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+    expect(deleteRes.status).toBe(409);
+  });
+
+  it("requires auth to delete a job", async () => {
+    const res = await request(app).delete("/api/v1/jobs/64b64b64b64b64b64b64b64b");
+    expect(res.status).toBe(401);
+  });
 });
