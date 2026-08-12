@@ -17,6 +17,9 @@ interface MediaPickerProps {
   onChange: (media: UploadedMedia[]) => void;
 }
 
+function isOversized(fileSize: number | undefined): boolean {
+  return Boolean(fileSize && fileSize > MAX_FILE_BYTES);
+}
 
 /** Photo/video capture + Cloudinary upload for the post-a-job wizard's media step. */
 export function MediaPicker({ media, onChange }: MediaPickerProps) {
@@ -28,11 +31,54 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
   const canAddPhoto = photoCount < MAX_PHOTOS;
   const canAddVideo = videoCount < MAX_VIDEOS;
 
-  const capture = async (kind: "photo" | "video") => {
+  const pickFromLibrary = async (kind: "photo" | "video") => {
+    setError(null);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setError("Photo library access is off — enable it in settings to add photos or videos.");
+        return;
+      }
+
+      const remaining = kind === "photo" ? MAX_PHOTOS - photoCount : MAX_VIDEOS - videoCount;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: kind === "photo" ? ["images"] : ["videos"],
+        quality: 0.7,
+        allowsMultipleSelection: kind === "photo",
+        selectionLimit: remaining,
+      });
+      if (result.canceled || result.assets.length === 0) return;
+
+      const oversized = result.assets.some((a) => isOversized(a.fileSize));
+      if (oversized) {
+        setError("One of those files is over 10MB — please choose a shorter video or a smaller photo.");
+        return;
+      }
+
+      setIsUploading(true);
+      // Accumulate locally and commit once at the end — calling onChange per item would each
+      // close over the same stale `media` prop from this render and clobber one another.
+      const uploaded: UploadedMedia[] = [];
+      for (const asset of result.assets.slice(0, remaining)) {
+        // eslint-disable-next-line no-await-in-loop -- uploads must stay in order; this list is at most a handful of items
+        uploaded.push(await uploadMedia(asset.uri, kind));
+      }
+      onChange([...media, ...uploaded]);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Couldn't add that file. Please try again."));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const captureWithCamera = async (kind: "photo" | "video") => {
     setError(null);
 
     // Every native-module call below can throw — on Expo Go a native-side failure here (denied
     // permission mid-flow, codec issue, etc.) has to be caught here or it takes the whole app down.
+    // Note: on lower-memory Android devices, opening the system Camera app can cause the OS to
+    // kill Expo Go's process outright to reclaim RAM — that's a full process death, not a JS error,
+    // and no try/catch here can prevent it. "Choose from library" below avoids that failure mode.
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
@@ -48,7 +94,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
       if (result.canceled || !result.assets[0]) return;
 
       const asset = result.assets[0];
-      if (asset.fileSize && asset.fileSize > MAX_FILE_BYTES) {
+      if (isOversized(asset.fileSize)) {
         setError("That file is over 10MB — please choose a shorter video or a smaller photo.");
         return;
       }
@@ -120,56 +166,29 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
           >
             <ActivityIndicator color="#4F8266" />
           </YStack>
-        ) : (
-          <>
-            {canAddPhoto ? (
-              <YStack
-                width={THUMB_SIZE}
-                height={THUMB_SIZE}
-                borderRadius={10}
-                borderWidth={1.5}
-                borderColor="$borderColor"
-                borderStyle="dashed"
-                alignItems="center"
-                justifyContent="center"
-                gap="$1"
-                onPress={() => capture("photo")}
-                accessibilityRole="button"
-                accessibilityLabel="Add photo"
-              >
-                <Ionicons name="camera-outline" size={24} color="#4F8266" />
-                <Text variant="caption">
-                  Photo {photoCount}/{MAX_PHOTOS}
-                </Text>
-              </YStack>
-            ) : null}
-            {canAddVideo ? (
-              <YStack
-                width={THUMB_SIZE}
-                height={THUMB_SIZE}
-                borderRadius={10}
-                borderWidth={1.5}
-                borderColor="$borderColor"
-                borderStyle="dashed"
-                alignItems="center"
-                justifyContent="center"
-                gap="$1"
-                onPress={() => capture("video")}
-                accessibilityRole="button"
-                accessibilityLabel="Add video"
-              >
-                <Ionicons name="videocam-outline" size={24} color="#4F8266" />
-                <Text variant="caption">
-                  Video {videoCount}/{MAX_VIDEOS}
-                </Text>
-              </YStack>
-            ) : null}
-          </>
-        )}
+        ) : null}
       </XStack>
 
+      {!isUploading ? (
+        <YStack gap="$2">
+          {canAddPhoto ? (
+            <XStack gap="$2">
+              <PickerButton icon="images-outline" label={`Photo from gallery (${photoCount}/${MAX_PHOTOS})`} onPress={() => pickFromLibrary("photo")} />
+              <PickerButton icon="camera-outline" label="Use camera" onPress={() => captureWithCamera("photo")} compact />
+            </XStack>
+          ) : null}
+          {canAddVideo ? (
+            <XStack gap="$2">
+              <PickerButton icon="film-outline" label={`Video from gallery (${videoCount}/${MAX_VIDEOS})`} onPress={() => pickFromLibrary("video")} />
+              <PickerButton icon="videocam-outline" label="Use camera" onPress={() => captureWithCamera("video")} compact />
+            </XStack>
+          ) : null}
+        </YStack>
+      ) : null}
+
       <Text variant="caption" muted>
-        Up to {MAX_PHOTOS} photos and {MAX_VIDEOS} videos, 10MB each.
+        Up to {MAX_PHOTOS} photos and {MAX_VIDEOS} videos, 10MB each. Gallery is recommended — the
+        camera can restart the app on some devices.
       </Text>
 
       {error ? (
@@ -178,5 +197,41 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
         </Text>
       ) : null}
     </YStack>
+  );
+}
+
+function PickerButton({
+  icon,
+  label,
+  onPress,
+  compact,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <XStack
+      flex={compact ? undefined : 1}
+      borderRadius="$md"
+      borderWidth={1.5}
+      borderColor="$borderColor"
+      backgroundColor="$backgroundStrong"
+      paddingHorizontal="$3"
+      paddingVertical="$3"
+      alignItems="center"
+      gap="$2"
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={18} color="#4F8266" />
+      {!compact ? (
+        <Text variant="small" numberOfLines={1}>
+          {label}
+        </Text>
+      ) : null}
+    </XStack>
   );
 }
