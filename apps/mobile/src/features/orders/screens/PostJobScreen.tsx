@@ -1,9 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFocusEffect } from "@react-navigation/native";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Image, Platform, ScrollView } from "react-native";
-import * as Location from "expo-location";
-import { useCallback, useRef, useState } from "react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,6 +18,7 @@ import { useCategories, useCreateJob } from "@/features/home/hooks/useJobs";
 import type { UploadedMedia } from "@/features/media/api/media.api";
 import { getApiErrorMessage } from "@/lib/apiClient";
 import type { SupportedLocale } from "@/lib/i18n";
+import { useCurrentLocation } from "@/lib/useCurrentLocation";
 import { LocationPickerMap } from "../components/LocationPickerMap";
 import { MediaPicker } from "../components/MediaPicker";
 import { StepDots } from "../components/StepDots";
@@ -30,49 +29,18 @@ const MAX_PEOPLE = 15;
 const RECURRENCE_OPTIONS = ["none", "daily", "weekly", "monthly"] as const;
 const PAYMENT_OPTIONS = ["cash", "paypal", "both"] as const;
 
-type LocationState =
-  | { status: "loading" }
-  | { status: "granted"; coords: { lng: number; lat: number } }
-  | { status: "denied" };
-
 export function PostJobScreen() {
   const { t, i18n } = useTranslation();
   const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
   const categoriesQuery = useCategories();
   const createJob = useCreateJob();
+  const { location, requestLocation, setLocation } = useCurrentLocation();
 
   const [step, setStep] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [location, setLocation] = useState<LocationState>({ status: "loading" });
   const [published, setPublished] = useState(false);
   const [media, setMedia] = useState<UploadedMedia[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const requestLocation = useCallback(async () => {
-    setLocation({ status: "loading" });
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== "granted") {
-      setLocation({ status: "denied" });
-      return;
-    }
-    const position = await Location.getCurrentPositionAsync({});
-    setLocation({
-      status: "granted",
-      coords: { lng: position.coords.longitude, lat: position.coords.latitude },
-    });
-  }, []);
-
-  // The Post tab stays mounted across tab switches, so a stale "denied" state would otherwise
-  // never get re-checked after the user grants permission (in-app or via OS settings) and comes back.
-  const locationStatusRef = useRef(location.status);
-  locationStatusRef.current = location.status;
-  useFocusEffect(
-    useCallback(() => {
-      if (locationStatusRef.current !== "granted") {
-        void requestLocation();
-      }
-    }, [requestLocation])
-  );
 
   const {
     control,
