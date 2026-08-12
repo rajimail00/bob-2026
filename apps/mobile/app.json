@@ -48,7 +48,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "apiUrl": "http://192.168.1.40:4000/api/v1"
+      "apiUrl": "https://bobbk-api.cifarsystems.com/api/v1"
     }
   }
 }
