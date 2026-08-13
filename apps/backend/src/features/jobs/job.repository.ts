@@ -5,7 +5,10 @@ export const jobRepository = {
   async list(query: ListJobsQuery) {
     const filter: Record<string, unknown> = { status: "active" };
 
-    if (query.categoryId) filter.categoryId = query.categoryId;
+    if (query.categoryId) {
+      const ids = query.categoryId.split(",").filter(Boolean);
+      filter.categoryId = ids.length > 1 ? { $in: ids } : ids[0];
+    }
     if (query.peopleNeeded) filter.peopleNeeded = { $gte: query.peopleNeeded };
     if (query.minBudget !== undefined || query.maxBudget !== undefined) {
       filter.budget = {

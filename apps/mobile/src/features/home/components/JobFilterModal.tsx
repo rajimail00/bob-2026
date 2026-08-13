@@ -1,6 +1,6 @@
 import Slider from "@react-native-community/slider";
 import { useTranslation } from "react-i18next";
-import { Modal } from "react-native";
+import { Modal, ScrollView } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
 import { NumberStepper } from "@/components/ui/NumberStepper";
@@ -13,7 +13,7 @@ const MAX_BUDGET = 1000;
 const MAX_PEOPLE = 15;
 
 export interface JobFilters {
-  categoryId: string | null;
+  categoryIds: string[];
   minBudget: number;
   maxBudget: number;
   peopleNeeded: number | null;
@@ -32,89 +32,96 @@ export function JobFilterModal({ visible, onClose, categories, filters, onChange
   const { i18n } = useTranslation();
   const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
 
+  const toggleCategory = (categoryId: string) => {
+    const isSelected = filters.categoryIds.includes(categoryId);
+    onChange({
+      ...filters,
+      categoryIds: isSelected
+        ? filters.categoryIds.filter((id) => id !== categoryId)
+        : [...filters.categoryIds, categoryId],
+    });
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <YStack flex={1} justifyContent="flex-end" backgroundColor="rgba(0,0,0,0.35)">
-        <YStack backgroundColor="$background" borderTopLeftRadius="$lg" borderTopRightRadius="$lg" padding="$4" gap="$5" maxHeight="85%">
-          <XStack justifyContent="space-between" alignItems="center">
+        <YStack backgroundColor="$background" borderTopLeftRadius="$lg" borderTopRightRadius="$lg" maxHeight="85%">
+          <XStack justifyContent="space-between" alignItems="center" padding="$4" paddingBottom="$2">
             <Text variant="h3">Filters</Text>
             <Text variant="body" color="$primary" onPress={onClose}>
               Done
             </Text>
           </XStack>
 
-          <YStack gap="$3">
-            <Text variant="label">Category</Text>
-            <XStack flexWrap="wrap" gap="$2">
-              {categories.map((category) => (
-                <CategoryTile
-                  key={category._id}
-                  category={category}
-                  label={category.name[locale] ?? category.name.en}
-                  isSelected={filters.categoryId === category._id}
-                  onPress={() =>
-                    onChange({
-                      ...filters,
-                      categoryId: filters.categoryId === category._id ? null : category._id,
-                    })
-                  }
+          <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 20 }}>
+            <YStack gap="$3">
+              <Text variant="label">Category (select any number)</Text>
+              <XStack flexWrap="wrap" gap="$2">
+                {categories.map((category) => (
+                  <CategoryTile
+                    key={category._id}
+                    category={category}
+                    label={category.name[locale] ?? category.name.en}
+                    isSelected={filters.categoryIds.includes(category._id)}
+                    onPress={() => toggleCategory(category._id)}
+                  />
+                ))}
+              </XStack>
+            </YStack>
+
+            <YStack gap="$3" marginTop="$5">
+              <XStack justifyContent="space-between">
+                <Text variant="label">Budget</Text>
+                <Text variant="caption">
+                  €{filters.minBudget} – €{filters.maxBudget}
+                </Text>
+              </XStack>
+              <YStack gap="$1">
+                <Text variant="caption" muted>
+                  Min
+                </Text>
+                <Slider
+                  minimumValue={0}
+                  maximumValue={MAX_BUDGET}
+                  step={5}
+                  value={filters.minBudget}
+                  onSlidingComplete={(v) => onChange({ ...filters, minBudget: Math.min(v, filters.maxBudget) })}
+                  minimumTrackTintColor="#4F8266"
+                  maximumTrackTintColor="#DDE3DA"
+                  thumbTintColor="#4F8266"
                 />
-              ))}
-            </XStack>
-          </YStack>
+              </YStack>
+              <YStack gap="$1">
+                <Text variant="caption" muted>
+                  Max
+                </Text>
+                <Slider
+                  minimumValue={0}
+                  maximumValue={MAX_BUDGET}
+                  step={5}
+                  value={filters.maxBudget}
+                  onSlidingComplete={(v) => onChange({ ...filters, maxBudget: Math.max(v, filters.minBudget) })}
+                  minimumTrackTintColor="#4F8266"
+                  maximumTrackTintColor="#DDE3DA"
+                  thumbTintColor="#4F8266"
+                />
+              </YStack>
+            </YStack>
 
-          <YStack gap="$3">
-            <XStack justifyContent="space-between">
-              <Text variant="label">Budget</Text>
-              <Text variant="caption">
-                €{filters.minBudget} – €{filters.maxBudget}
-              </Text>
-            </XStack>
-            <YStack gap="$1">
-              <Text variant="caption" muted>
-                Min
-              </Text>
-              <Slider
-                minimumValue={0}
-                maximumValue={MAX_BUDGET}
-                step={5}
-                value={filters.minBudget}
-                onSlidingComplete={(v) => onChange({ ...filters, minBudget: Math.min(v, filters.maxBudget) })}
-                minimumTrackTintColor="#4F8266"
-                maximumTrackTintColor="#DDE3DA"
-                thumbTintColor="#4F8266"
+            <YStack gap="$2" marginTop="$5">
+              <Text variant="label">People needed</Text>
+              <NumberStepper
+                value={filters.peopleNeeded ?? 1}
+                onChange={(v) => onChange({ ...filters, peopleNeeded: v })}
+                min={1}
+                max={MAX_PEOPLE}
               />
             </YStack>
-            <YStack gap="$1">
-              <Text variant="caption" muted>
-                Max
-              </Text>
-              <Slider
-                minimumValue={0}
-                maximumValue={MAX_BUDGET}
-                step={5}
-                value={filters.maxBudget}
-                onSlidingComplete={(v) => onChange({ ...filters, maxBudget: Math.max(v, filters.minBudget) })}
-                minimumTrackTintColor="#4F8266"
-                maximumTrackTintColor="#DDE3DA"
-                thumbTintColor="#4F8266"
-              />
-            </YStack>
-          </YStack>
 
-          <YStack gap="$2">
-            <Text variant="label">People needed</Text>
-            <NumberStepper
-              value={filters.peopleNeeded ?? 1}
-              onChange={(v) => onChange({ ...filters, peopleNeeded: v })}
-              min={1}
-              max={MAX_PEOPLE}
-            />
-          </YStack>
-
-          <Button variant="destructive" onPress={onClear}>
-            Clear filters
-          </Button>
+            <Button variant="destructive" onPress={onClear} marginTop="$5">
+              Clear filters
+            </Button>
+          </ScrollView>
         </YStack>
       </YStack>
     </Modal>

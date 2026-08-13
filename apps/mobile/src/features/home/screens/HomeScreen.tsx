@@ -16,7 +16,6 @@ import { getApiErrorMessage } from "@/lib/apiClient";
 import { distanceKm, formatDistanceKm } from "@/lib/geo";
 import { useCurrentLocation } from "@/lib/useCurrentLocation";
 import type { HomeStackParamList } from "@/navigation/types";
-import { CategoryFilterRow } from "../components/CategoryFilterRow";
 import { JobCard } from "../components/JobCard";
 import { JobFilterModal, type JobFilters } from "../components/JobFilterModal";
 import { JobMapView } from "../components/JobMapView";
@@ -27,7 +26,7 @@ type ViewMode = "map" | "list";
 
 const MIN_RADIUS_KM = 1;
 const MAX_RADIUS_KM = 50;
-const DEFAULT_FILTERS: JobFilters = { categoryId: null, minBudget: 0, maxBudget: 1000, peopleNeeded: null };
+const DEFAULT_FILTERS: JobFilters = { categoryIds: [], minBudget: 0, maxBudget: 1000, peopleNeeded: null };
 
 export function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();
@@ -41,7 +40,7 @@ export function HomeScreen({ navigation }: Props) {
   const categoriesQuery = useCategories();
   const jobsQuery = useJobs({
     search: search || undefined,
-    categoryId: filters.categoryId ?? undefined,
+    categoryId: filters.categoryIds.length > 0 ? filters.categoryIds.join(",") : undefined,
     minBudget: filters.minBudget > 0 ? filters.minBudget : undefined,
     maxBudget: filters.maxBudget < 1000 ? filters.maxBudget : undefined,
     peopleNeeded: filters.peopleNeeded ?? undefined,
@@ -52,7 +51,7 @@ export function HomeScreen({ navigation }: Props) {
 
   const jobs = jobsQuery.data?.items ?? [];
   const activeFilterCount =
-    (filters.categoryId ? 1 : 0) +
+    filters.categoryIds.length +
     (filters.minBudget > 0 || filters.maxBudget < 1000 ? 1 : 0) +
     (filters.peopleNeeded ? 1 : 0);
 
@@ -105,14 +104,6 @@ export function HomeScreen({ navigation }: Props) {
           value={viewMode}
           onChange={setViewMode}
         />
-
-        {categoriesQuery.data ? (
-          <CategoryFilterRow
-            categories={categoriesQuery.data}
-            selectedId={filters.categoryId}
-            onSelect={(categoryId) => setFilters((f) => ({ ...f, categoryId }))}
-          />
-        ) : null}
 
         {location.status === "granted" ? (
           <XStack alignItems="center" gap="$2">

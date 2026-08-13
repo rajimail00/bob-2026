@@ -35,6 +35,7 @@ export const listJobsQuerySchema = z.object({
   lng: z.coerce.number().min(-180).max(180).optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),
   radiusKm: z.coerce.number().min(1).max(200).default(18),
+  /** Comma-separated category ids for multi-select filtering, e.g. "id1,id2". A single id works too. */
   categoryId: z.string().optional(),
   minBudget: z.coerce.number().min(0).optional(),
   maxBudget: z.coerce.number().min(0).optional(),
