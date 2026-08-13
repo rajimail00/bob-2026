@@ -43,6 +43,7 @@ export function PostedJobRow({ job, onPress }: PostedJobRowProps) {
         onPress={onPress}
         onDelete={job.status === "active" ? confirmDelete : undefined}
         isDeleting={deleteJob.isPending}
+        badge={{ icon: "notifications", count: job.pendingApplicantsCount ?? 0 }}
       />
       {error ? (
         <Text variant="small" color="$danger">

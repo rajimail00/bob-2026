@@ -23,17 +23,25 @@ function formatBudget(amount: number) {
   return `${amount}€`;
 }
 
+interface JobCardBadge {
+  icon: keyof typeof Ionicons.glyphMap;
+  count: number;
+}
+
 interface JobCardProps {
   job: Job;
   onPress?: () => void;
   distance?: string;
   onDelete?: () => void;
   isDeleting?: boolean;
+  /** Small notification badge over the thumbnail's top-left corner — new applicants (bell) on
+   * posted jobs, or unread messages (chat bubble) on jobs the viewer applied to. */
+  badge?: JobCardBadge;
 }
 
 /** The compact, icon-row job card used in every list/map/grid context. Full detail lives on
  * the job detail screen — this card is deliberately minimal. */
-export function JobCard({ job, onPress, distance, onDelete, isDeleting }: JobCardProps) {
+export function JobCard({ job, onPress, distance, onDelete, isDeleting, badge }: JobCardProps) {
   const { i18n } = useTranslation();
   const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
   const thumbnail = job.media?.[0];
@@ -58,6 +66,30 @@ export function JobCard({ job, onPress, distance, onDelete, isDeleting }: JobCar
             </XStack>
           ) : null}
         </YStack>
+      ) : null}
+
+      {badge && badge.count > 0 ? (
+        <XStack
+          position="absolute"
+          top="$2"
+          left="$2"
+          minWidth={26}
+          height={26}
+          borderRadius={13}
+          paddingHorizontal="$1.5"
+          backgroundColor="$backgroundStrong"
+          alignItems="center"
+          justifyContent="center"
+          gap="$1"
+          shadowColor="#000"
+          shadowOpacity={0.15}
+          shadowRadius={4}
+        >
+          <Ionicons name={badge.icon} size={13} color="#4F8266" />
+          <Text variant="small" fontWeight="700" color="$danger">
+            {badge.count}
+          </Text>
+        </XStack>
       ) : null}
 
       {onDelete ? (

@@ -1,7 +1,9 @@
 import { AppError } from "../../lib/errors.js";
+import { notifyUser } from "../../lib/socket.js";
 import { authRepository } from "../auth/auth.repository.js";
 import { jobRepository } from "../jobs/job.repository.js";
 import { jobService } from "../jobs/job.service.js";
+import { messageService } from "../messages/message.service.js";
 import { applicationRepository } from "./application.repository.js";
 import type { CreateApplicationInput } from "./application.validation.js";
 
@@ -20,12 +22,16 @@ export const applicationService = {
     const existing = await applicationRepository.findByJobAndWorker(jobId, workerId);
     if (existing) throw AppError.conflict("You've already applied to this job.");
 
-    return applicationRepository.create({
+    const application = await applicationRepository.create({
       jobId,
       workerId,
       message: input.message,
       voiceNoteUrl: input.voiceNoteUrl,
     });
+
+    notifyUser(job.clientId.toString(), "application:new", { jobId, applicationId: application._id.toString() });
+
+    return application;
   },
 
   async listForJob(jobId: string, requesterId: string) {
@@ -33,8 +39,16 @@ export const applicationService = {
     return applicationRepository.listForJob(jobId);
   },
 
-  listMine(workerId: string) {
-    return applicationRepository.listForWorker(workerId);
+  async listMine(workerId: string) {
+    const applications = await applicationRepository.listForWorker(workerId);
+    const unreadCounts = await messageService.countUnreadForWorkerJobs(
+      applications.map((application) => application.jobId._id.toString()),
+      workerId
+    );
+    return applications.map((application) => ({
+      ...application.toObject(),
+      unreadMessageCount: unreadCounts[application.jobId._id.toString()] ?? 0,
+    }));
   },
 
   async select(applicationId: string, requesterId: string) {

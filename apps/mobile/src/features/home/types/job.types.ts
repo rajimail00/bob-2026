@@ -39,6 +39,8 @@ interface JobBase {
   status: JobStatus;
   assignedWorkerId?: string;
   createdAt: string;
+  /** Only present on the "my posted jobs" list — applicants awaiting a decision. */
+  pendingApplicantsCount?: number;
 }
 
 /** Shape returned by list/geo-search and "my jobs" endpoints — clientId is not populated. */

@@ -24,4 +24,5 @@ export interface MyApplication {
   voiceNoteUrl?: string;
   status: ApplicationStatus;
   createdAt: string;
+  unreadMessageCount: number;
 }

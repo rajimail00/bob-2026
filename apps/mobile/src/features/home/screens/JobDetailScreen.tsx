@@ -5,15 +5,20 @@ import { Alert } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { PillTabs } from "@/components/ui/PillTabs";
 import { Screen } from "@/components/ui/Screen";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { Text } from "@/components/ui/Text";
+import { EmptyState } from "@/components/ui/states/EmptyState";
 import { ErrorState } from "@/components/ui/states/ErrorState";
 import { LoadingState } from "@/components/ui/states/LoadingState";
-import { ApplicantCard } from "@/features/applications/components/ApplicantCard";
+import { ApplicantCarousel } from "@/features/applications/components/ApplicantCarousel";
 import { ApplyForm } from "@/features/applications/components/ApplyForm";
+import type { Application } from "@/features/applications/types/application.types";
 import { useJobApplicants, useMyApplications, useSelectApplicant } from "@/features/applications/hooks/useApplications";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { ConversationRow } from "@/features/messages/components/ConversationRow";
+import { useJobConversations } from "@/features/messages/hooks/useJobConversations";
 import { RatingForm } from "@/features/reviews/components/RatingForm";
 import { getApiErrorMessage } from "@/lib/apiClient";
 import type { SupportedLocale } from "@/lib/i18n";
@@ -31,7 +36,7 @@ const STATUS_TONE = {
 
 interface Props {
   route: { params: { jobId: string } };
-  navigation: { navigate: (screen: string, params?: { jobId: string }) => void; goBack: () => void };
+  navigation: { navigate: (screen: string, params?: { jobId: string; workerId?: string }) => void; goBack: () => void };
 }
 
 export function JobDetailScreen({ route, navigation }: Props) {
@@ -41,7 +46,8 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const user = useAuthStore((s) => s.user);
 
   const jobQuery = useJob(jobId);
-  const applicantsQuery = useJobApplicants(jobQuery.data && jobQuery.data.clientId._id === user?.id ? jobId : undefined);
+  const isOwnerView = Boolean(jobQuery.data && jobQuery.data.clientId._id === user?.id);
+  const applicantsQuery = useJobApplicants(isOwnerView ? jobId : undefined);
   const myApplicationsQuery = useMyApplications();
   const selectApplicant = useSelectApplicant(jobId);
   const completeJob = useCompleteJob();
@@ -66,6 +72,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const isAssignedWorker = Boolean(user?.id && job.assignedWorkerId === user.id);
   const hasWorkerProfile = Boolean(user?.workerProfile);
   const alreadyApplied = (myApplicationsQuery.data ?? []).some((a) => a.jobId._id === jobId);
+  const pendingApplicantsCount = (applicantsQuery.data ?? []).filter((a) => a.status === "pending").length;
 
   return (
     <Screen scroll>
@@ -76,7 +83,10 @@ export function JobDetailScreen({ route, navigation }: Props) {
           <Text variant="label" color="$brand600">
             {job.categoryId.name[locale] ?? job.categoryId.name.en}
           </Text>
-          <StatusPill label={job.status} tone={STATUS_TONE[job.status]} />
+          <XStack alignItems="center" gap="$2">
+            {isOwner && pendingApplicantsCount > 0 ? <NotificationBell count={pendingApplicantsCount} /> : null}
+            <StatusPill label={job.status} tone={STATUS_TONE[job.status]} />
+          </XStack>
         </XStack>
 
         <Text variant="h2">{job.title}</Text>
@@ -99,19 +109,26 @@ export function JobDetailScreen({ route, navigation }: Props) {
           <IconValue icon="time-outline" value={`Posted ${new Date(job.createdAt).toLocaleDateString(locale)}`} muted />
         </Card>
 
-        {(isOwner || isAssignedWorker) && job.status !== "active" ? (
-          <Button variant="outline" onPress={() => navigation.navigate("Chat", { jobId })}>
+        {(isOwner || isAssignedWorker) && job.status !== "active" && job.assignedWorkerId ? (
+          <Button
+            variant="outline"
+            onPress={() =>
+              navigation.navigate("Chat", { jobId, workerId: isOwner ? job.assignedWorkerId! : (user!.id as string) })
+            }
+          >
             Messages
           </Button>
         ) : null}
 
         {isOwner ? (
           <OwnerActions
+            jobId={jobId}
             jobStatus={job.status}
             applicants={applicantsQuery.data}
             isLoadingApplicants={applicantsQuery.isLoading}
             onSelect={(applicationId) => selectApplicant.mutate(applicationId)}
             isSelecting={selectApplicant.isPending}
+            onOpenChat={(workerId) => navigation.navigate("Chat", { jobId, workerId })}
             onComplete={async () => {
               setCompleteError(null);
               try {
@@ -124,7 +141,6 @@ export function JobDetailScreen({ route, navigation }: Props) {
             completeError={completeError}
             showRatingForm={showRatingForm}
             onStartRating={() => setShowRatingForm(true)}
-            jobId={jobId}
             onDelete={() => {
               Alert.alert("Delete this job?", `"${job.title}" will be removed and can't be recovered.`, [
                 { text: "Cancel", style: "cancel" },
@@ -163,42 +179,80 @@ export function JobDetailScreen({ route, navigation }: Props) {
   );
 }
 
+function NotificationBell({ count }: { count: number }) {
+  return (
+    <XStack position="relative" width={28} height={28} alignItems="center" justifyContent="center">
+      <Ionicons name="notifications" size={20} color="#4F8266" />
+      <XStack
+        position="absolute"
+        top={-2}
+        right={-4}
+        minWidth={16}
+        height={16}
+        borderRadius={8}
+        paddingHorizontal={3}
+        backgroundColor="$danger"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Text variant="small" color="white" fontWeight="700" fontSize={10}>
+          {count}
+        </Text>
+      </XStack>
+    </XStack>
+  );
+}
+
+type InboxTab = "applicants" | "messages";
+
 function OwnerActions({
+  jobId,
   jobStatus,
   applicants,
   isLoadingApplicants,
   onSelect,
   isSelecting,
+  onOpenChat,
   onComplete,
   isCompleting,
   completeError,
   showRatingForm,
   onStartRating,
-  jobId,
   onDelete,
   isDeleting,
   deleteError,
 }: {
+  jobId: string;
   jobStatus: string;
-  applicants: ReturnType<typeof useJobApplicants>["data"];
+  applicants: Application[] | undefined;
   isLoadingApplicants: boolean;
   onSelect: (applicationId: string) => void;
   isSelecting: boolean;
+  onOpenChat: (workerId: string) => void;
   onComplete: () => void;
   isCompleting: boolean;
   completeError: string | null;
   showRatingForm: boolean;
   onStartRating: () => void;
-  jobId: string;
   onDelete: () => void;
   isDeleting: boolean;
   deleteError: string | null;
 }) {
+  const [inboxTab, setInboxTab] = useState<InboxTab>("applicants");
+  const conversationsQuery = useJobConversations(jobId);
+
   if (jobStatus === "active") {
     return (
       <YStack gap="$3">
         <XStack justifyContent="space-between" alignItems="center">
-          <Text variant="h4">Applicants</Text>
+          <PillTabs
+            options={[
+              { value: "applicants", label: "Bewerber" },
+              { value: "messages", label: "Nachrichten" },
+            ]}
+            value={inboxTab}
+            onChange={setInboxTab}
+          />
           <XStack
             width={36}
             height={36}
@@ -213,22 +267,34 @@ function OwnerActions({
             {isDeleting ? null : <Ionicons name="trash-outline" size={16} color="#C1554B" />}
           </XStack>
         </XStack>
-        {isLoadingApplicants ? (
-          <LoadingState />
-        ) : applicants && applicants.length > 0 ? (
-          applicants.map((application) => (
-            <ApplicantCard
-              key={application._id}
-              application={application}
-              onSelect={() => onSelect(application._id)}
+
+        {inboxTab === "applicants" ? (
+          isLoadingApplicants ? (
+            <LoadingState />
+          ) : applicants && applicants.length > 0 ? (
+            <ApplicantCarousel
+              applicants={applicants}
+              onSelect={onSelect}
+              onMessage={onOpenChat}
               isSelecting={isSelecting}
-              disabled={isSelecting}
             />
-          ))
+          ) : (
+            <EmptyState title="No applicants yet" body="Candidates who apply will show up here." />
+          )
+        ) : conversationsQuery.isLoading ? (
+          <LoadingState />
+        ) : conversationsQuery.data && conversationsQuery.data.length > 0 ? (
+          <YStack gap="$2">
+            {conversationsQuery.data.map((conversation) => (
+              <ConversationRow
+                key={conversation.workerId}
+                conversation={conversation}
+                onPress={() => onOpenChat(conversation.workerId)}
+              />
+            ))}
+          </YStack>
         ) : (
-          <Text variant="body" muted>
-            No applicants yet.
-          </Text>
+          <EmptyState title="No messages yet" body="Conversations with applicants will show up here." />
         )}
 
         {deleteError ? (

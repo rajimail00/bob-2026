@@ -18,5 +18,6 @@ jobRouter.delete("/:id", requireAuth, asyncHandler(jobController.remove));
 jobRouter.post("/:id/applications", requireAuth, asyncHandler(applicationController.apply));
 jobRouter.get("/:id/applications", requireAuth, asyncHandler(applicationController.listForJob));
 jobRouter.post("/:id/reviews", requireAuth, asyncHandler(reviewController.create));
-jobRouter.get("/:id/messages", requireAuth, asyncHandler(messageController.listForJob));
-jobRouter.post("/:id/messages", requireAuth, asyncHandler(messageController.send));
+jobRouter.get("/:id/conversations", requireAuth, asyncHandler(messageController.listConversationsForJob));
+jobRouter.get("/:id/messages/:workerId", requireAuth, asyncHandler(messageController.listForConversation));
+jobRouter.post("/:id/messages/:workerId", requireAuth, asyncHandler(messageController.send));

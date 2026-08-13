@@ -34,8 +34,13 @@ export const jobService = {
     });
   },
 
-  listPostedBy(clientId: string) {
-    return jobRepository.listPostedBy(clientId);
+  async listPostedBy(clientId: string) {
+    const jobs = await jobRepository.listPostedBy(clientId);
+    const pendingCounts = await applicationRepository.countPendingGroupedByJob(jobs.map((job) => job._id.toString()));
+    return jobs.map((job) => ({
+      ...job.toObject(),
+      pendingApplicantsCount: pendingCounts[job._id.toString()] ?? 0,
+    }));
   },
 
   listAssignedTo(workerId: string) {

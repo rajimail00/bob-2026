@@ -1,5 +1,6 @@
+import { useFocusEffect } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { FlatList } from "react-native";
 import { YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
@@ -26,6 +27,14 @@ export function OrdersScreen({ navigation }: Props) {
 
   const postedQuery = useMyPostedJobs();
   const appliedQuery = useMyApplications();
+
+  useFocusEffect(
+    useCallback(() => {
+      void postedQuery.refetch();
+      void appliedQuery.refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+  );
 
   return (
     <Screen padded={false}>
@@ -89,7 +98,11 @@ export function OrdersScreen({ navigation }: Props) {
           keyExtractor={(application) => application._id}
           renderItem={({ item }) => (
             <YStack paddingHorizontal="$4" paddingBottom="$3">
-              <JobCard job={item.jobId} onPress={() => navigation.navigate("JobDetail", { jobId: item.jobId._id })} />
+              <JobCard
+                job={item.jobId}
+                onPress={() => navigation.navigate("JobDetail", { jobId: item.jobId._id })}
+                badge={{ icon: "chatbubble-ellipses", count: item.unreadMessageCount }}
+              />
             </YStack>
           )}
           contentContainerStyle={{ paddingBottom: 24 }}

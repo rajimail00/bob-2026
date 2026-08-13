@@ -10,14 +10,14 @@ export type AuthStackParamList = {
 export type HomeStackParamList = {
   HomeList: undefined;
   JobDetail: { jobId: string };
-  Chat: { jobId: string };
+  Chat: { jobId: string; workerId: string };
   WorkerProfileSetup: undefined;
 };
 
 export type OrdersStackParamList = {
   OrdersList: undefined;
   JobDetail: { jobId: string };
-  Chat: { jobId: string };
+  Chat: { jobId: string; workerId: string };
   WorkerProfileSetup: undefined;
 };
 

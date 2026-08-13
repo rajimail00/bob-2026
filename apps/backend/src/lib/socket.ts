@@ -2,15 +2,21 @@ import type { Server as HttpServer } from "node:http";
 import { Server, type Socket } from "socket.io";
 import { env } from "../config/env.js";
 import { verifyAccessToken } from "./jwt.js";
+import { jobRepository } from "../features/jobs/job.repository.js";
 import { messageService } from "../features/messages/message.service.js";
 import { createMessageSchema } from "../features/messages/message.validation.js";
 
 let io: Server | null = null;
 
-/** Broadcasts to a job's room. A no-op if Socket.IO isn't running (e.g. tests, or REST-only
- * environments) — real-time delivery is a bonus on top of the persisted message, not a dependency. */
-export function broadcastToJob(jobId: string, event: string, payload: unknown) {
-  io?.to(`job:${jobId}`).emit(event, payload);
+function conversationRoom(jobId: string, workerId: string) {
+  return `job:${jobId}:worker:${workerId}`;
+}
+
+/** Broadcasts to one applicant's conversation room. A no-op if Socket.IO isn't running (e.g.
+ * tests, or REST-only environments) — real-time delivery is a bonus on top of the persisted
+ * message, not a dependency. */
+export function broadcastToConversation(jobId: string, workerId: string, event: string, payload: unknown) {
+  io?.to(conversationRoom(jobId, workerId)).emit(event, payload);
 }
 
 interface AuthedSocket extends Socket {
@@ -46,30 +52,37 @@ export function initSocket(httpServer: HttpServer): Server {
     // Personal room for direct notifications (new applicant, job won, etc.) regardless of open chat.
     void socket.join(`user:${userId}`);
 
-    socket.on("job:join", async (jobId: string, ack?: (ok: boolean, error?: string) => void) => {
+    socket.on("job:join", async (payload: { jobId: string; workerId: string }, ack?: (ok: boolean, error?: string) => void) => {
       try {
-        await messageService.assertParticipant(jobId, userId);
-        await socket.join(`job:${jobId}`);
+        await messageService.assertParticipant(payload.jobId, payload.workerId, userId);
+        await socket.join(conversationRoom(payload.jobId, payload.workerId));
         ack?.(true);
       } catch (err) {
         ack?.(false, err instanceof Error ? err.message : "Unable to join conversation");
       }
     });
 
-    socket.on("job:leave", (jobId: string) => {
-      void socket.leave(`job:${jobId}`);
+    socket.on("job:leave", (payload: { jobId: string; workerId: string }) => {
+      void socket.leave(conversationRoom(payload.jobId, payload.workerId));
     });
 
-    socket.on("message:send", async (payload: { jobId: string; text?: string; attachmentUrl?: string }, ack?: (ok: boolean, error?: string) => void) => {
-      try {
-        const input = createMessageSchema.parse({ text: payload.text, attachmentUrl: payload.attachmentUrl });
-        const message = await messageService.send(payload.jobId, userId, input);
-        broadcastToJob(payload.jobId, "message:new", message);
-        ack?.(true);
-      } catch (err) {
-        ack?.(false, err instanceof Error ? err.message : "Couldn't send message");
+    socket.on(
+      "message:send",
+      async (
+        payload: { jobId: string; workerId: string; text?: string; attachmentUrl?: string },
+        ack?: (ok: boolean, error?: string) => void
+      ) => {
+        try {
+          const input = createMessageSchema.parse({ text: payload.text, attachmentUrl: payload.attachmentUrl });
+          const message = await messageService.send(payload.jobId, payload.workerId, userId, input);
+          broadcastToConversation(payload.jobId, payload.workerId, "message:new", message);
+          void notifyOtherParticipant(payload.jobId, payload.workerId, userId, message);
+          ack?.(true);
+        } catch (err) {
+          ack?.(false, err instanceof Error ? err.message : "Couldn't send message");
+        }
       }
-    });
+    );
   });
 
   return io;
@@ -78,4 +91,14 @@ export function initSocket(httpServer: HttpServer): Server {
 /** Emits a notification to a specific user's personal room — for use outside request/response flow. */
 export function notifyUser(userId: string, event: string, payload: unknown) {
   io?.to(`user:${userId}`).emit(event, payload);
+}
+
+/** Pushes a lightweight "you have a new message" ping to whichever side of the conversation
+ * didn't send it, so their Orders badges can update even without the chat screen open. */
+export async function notifyOtherParticipant(jobId: string, workerId: string, senderId: string, message: unknown) {
+  const job = await jobRepository.findRawById(jobId);
+  if (!job) return;
+  const clientId = job.clientId.toString();
+  const recipientId = senderId === clientId ? workerId : clientId;
+  notifyUser(recipientId, "message:notify", { jobId, workerId, message });
 }

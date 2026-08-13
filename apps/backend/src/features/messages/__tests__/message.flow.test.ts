@@ -18,7 +18,7 @@ async function createVerifiedUser(email: string) {
   return { userId: registerRes.body.userId as string, accessToken: login.body.accessToken as string };
 }
 
-async function createJobWithAssignedWorker() {
+async function createJobWithApplicant() {
   const category = await CategoryModel.create({
     slug: "cleaning",
     icon: "spray",
@@ -47,65 +47,89 @@ async function createJobWithAssignedWorker() {
     });
   const jobId = jobRes.body.job._id as string;
 
-  const applyRes = await request(app)
+  await request(app)
     .post(`/api/v1/jobs/${jobId}/applications`)
     .set("Authorization", `Bearer ${worker.accessToken}`)
     .send({ message: "I can help!" });
-
-  await request(app)
-    .patch(`/api/v1/applications/${applyRes.body.application._id}/select`)
-    .set("Authorization", `Bearer ${client.accessToken}`);
 
   return { jobId, client, worker };
 }
 
 describe("job messages", () => {
   it("blocks a stranger from reading or sending messages", async () => {
-    const { jobId } = await createJobWithAssignedWorker();
+    const { jobId, worker } = await createJobWithApplicant();
     const stranger = await createVerifiedUser("msg-stranger@example.com");
 
     const listRes = await request(app)
-      .get(`/api/v1/jobs/${jobId}/messages`)
+      .get(`/api/v1/jobs/${jobId}/messages/${worker.userId}`)
       .set("Authorization", `Bearer ${stranger.accessToken}`);
     expect(listRes.status).toBe(403);
 
     const sendRes = await request(app)
-      .post(`/api/v1/jobs/${jobId}/messages`)
+      .post(`/api/v1/jobs/${jobId}/messages/${worker.userId}`)
       .set("Authorization", `Bearer ${stranger.accessToken}`)
       .send({ text: "Hi" });
     expect(sendRes.status).toBe(403);
   });
 
   it("rejects an empty message with neither text nor attachment", async () => {
-    const { jobId, client } = await createJobWithAssignedWorker();
+    const { jobId, client, worker } = await createJobWithApplicant();
     const res = await request(app)
-      .post(`/api/v1/jobs/${jobId}/messages`)
+      .post(`/api/v1/jobs/${jobId}/messages/${worker.userId}`)
       .set("Authorization", `Bearer ${client.accessToken}`)
       .send({});
     expect(res.status).toBe(400);
   });
 
-  it("lets the client and assigned worker exchange messages", async () => {
-    const { jobId, client, worker } = await createJobWithAssignedWorker();
+  it("lets the client and an applicant exchange messages before selection", async () => {
+    const { jobId, client, worker } = await createJobWithApplicant();
 
     const fromClient = await request(app)
-      .post(`/api/v1/jobs/${jobId}/messages`)
+      .post(`/api/v1/jobs/${jobId}/messages/${worker.userId}`)
       .set("Authorization", `Bearer ${client.accessToken}`)
       .send({ text: "Hello, when can you start?" });
     expect(fromClient.status).toBe(201);
 
     const fromWorker = await request(app)
-      .post(`/api/v1/jobs/${jobId}/messages`)
+      .post(`/api/v1/jobs/${jobId}/messages/${worker.userId}`)
       .set("Authorization", `Bearer ${worker.accessToken}`)
       .send({ text: "Tomorrow morning works for me." });
     expect(fromWorker.status).toBe(201);
 
     const listRes = await request(app)
-      .get(`/api/v1/jobs/${jobId}/messages`)
+      .get(`/api/v1/jobs/${jobId}/messages/${worker.userId}`)
       .set("Authorization", `Bearer ${client.accessToken}`);
     expect(listRes.status).toBe(200);
     expect(listRes.body.messages).toHaveLength(2);
     expect(listRes.body.messages[0].text).toBe("Hello, when can you start?");
     expect(listRes.body.messages[1].text).toBe("Tomorrow morning works for me.");
+  });
+
+  it("lists conversations for the job owner with unread counts", async () => {
+    const { jobId, client, worker } = await createJobWithApplicant();
+
+    const sendRes = await request(app)
+      .post(`/api/v1/jobs/${jobId}/messages/${worker.userId}`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ text: "Hallo ich kann den Job übernehmen." });
+    expect(sendRes.status).toBe(201);
+
+    const conversationsRes = await request(app)
+      .get(`/api/v1/jobs/${jobId}/conversations`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+    expect(conversationsRes.status).toBe(200);
+    expect(conversationsRes.body.conversations).toHaveLength(1);
+    expect(conversationsRes.body.conversations[0].workerId).toBe(worker.userId);
+    expect(conversationsRes.body.conversations[0].unreadCount).toBe(1);
+
+    // Reading marks the worker's messages as seen.
+    await request(app)
+      .get(`/api/v1/jobs/${jobId}/messages/${worker.userId}`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+
+    const afterRead = await request(app)
+      .get(`/api/v1/jobs/${jobId}/conversations`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+    expect(afterRead.body.conversations[0].unreadCount).toBe(0);
   });
 });

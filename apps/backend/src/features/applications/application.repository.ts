@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { ApplicationModel } from "./application.model.js";
 
 export const applicationRepository = {
@@ -34,5 +35,14 @@ export const applicationRepository = {
 
   deleteForJob(jobId: string) {
     return ApplicationModel.deleteMany({ jobId });
+  },
+
+  async countPendingGroupedByJob(jobIds: string[]): Promise<Record<string, number>> {
+    if (jobIds.length === 0) return {};
+    const rows = await ApplicationModel.aggregate([
+      { $match: { jobId: { $in: jobIds.map((id) => new Types.ObjectId(id)) }, status: "pending" } },
+      { $group: { _id: "$jobId", count: { $sum: 1 } } },
+    ]);
+    return Object.fromEntries(rows.map((row) => [row._id.toString(), row.count as number]));
   },
 };

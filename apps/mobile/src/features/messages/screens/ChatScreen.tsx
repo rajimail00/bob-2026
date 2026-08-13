@@ -12,13 +12,13 @@ import { useJobMessages } from "../hooks/useJobMessages";
 import type { Message } from "../types/message.types";
 
 interface Props {
-  route: { params: { jobId: string } };
+  route: { params: { jobId: string; workerId: string } };
 }
 
 export function ChatScreen({ route }: Props) {
-  const { jobId } = route.params;
+  const { jobId, workerId } = route.params;
   const userId = useAuthStore((s) => s.user?.id);
-  const { data, isLoading, isError, refetch, sendMessage, isSending } = useJobMessages(jobId);
+  const { data, isLoading, isError, refetch, sendMessage, isSending } = useJobMessages(jobId, workerId);
   const [text, setText] = useState("");
 
   const onSend = async () => {
