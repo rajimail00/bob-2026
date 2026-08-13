@@ -1,7 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Alert } from "react-native";
-import { XStack, YStack } from "tamagui";
+import { YStack } from "tamagui";
 import { JobCard } from "@/features/home/components/JobCard";
 import { useDeleteJob } from "@/features/home/hooks/useJobs";
 import type { Job } from "@/features/home/types/job.types";
@@ -39,27 +38,12 @@ export function PostedJobRow({ job, onPress }: PostedJobRowProps) {
 
   return (
     <YStack gap="$2">
-      <XStack gap="$2" alignItems="flex-start">
-        <YStack flex={1}>
-          <JobCard job={job} onPress={onPress} />
-        </YStack>
-        {job.status === "active" ? (
-          <XStack
-            width={36}
-            height={36}
-            borderRadius={18}
-            backgroundColor="$dangerBg"
-            alignItems="center"
-            justifyContent="center"
-            marginTop="$1"
-            onPress={confirmDelete}
-            accessibilityRole="button"
-            accessibilityLabel="Delete job"
-          >
-            {deleteJob.isPending ? null : <Ionicons name="trash-outline" size={16} color="#C1554B" />}
-          </XStack>
-        ) : null}
-      </XStack>
+      <JobCard
+        job={job}
+        onPress={onPress}
+        onDelete={job.status === "active" ? confirmDelete : undefined}
+        isDeleting={deleteJob.isPending}
+      />
       {error ? (
         <Text variant="small" color="$danger">
           {error}

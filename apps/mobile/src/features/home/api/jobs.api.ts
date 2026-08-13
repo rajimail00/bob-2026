@@ -8,6 +8,9 @@ export interface JobListParams {
   lng?: number;
   lat?: number;
   radiusKm?: number;
+  minBudget?: number;
+  maxBudget?: number;
+  peopleNeeded?: number;
 }
 
 export interface CreateJobInput {

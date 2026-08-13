@@ -13,10 +13,12 @@ import { EmptyState } from "@/components/ui/states/EmptyState";
 import { ErrorState } from "@/components/ui/states/ErrorState";
 import { LoadingState } from "@/components/ui/states/LoadingState";
 import { getApiErrorMessage } from "@/lib/apiClient";
+import { distanceKm, formatDistanceKm } from "@/lib/geo";
 import { useCurrentLocation } from "@/lib/useCurrentLocation";
 import type { HomeStackParamList } from "@/navigation/types";
 import { CategoryFilterRow } from "../components/CategoryFilterRow";
 import { JobCard } from "../components/JobCard";
+import { JobFilterModal, type JobFilters } from "../components/JobFilterModal";
 import { JobMapView } from "../components/JobMapView";
 import { useCategories, useJobs } from "../hooks/useJobs";
 
@@ -25,25 +27,39 @@ type ViewMode = "map" | "list";
 
 const MIN_RADIUS_KM = 1;
 const MAX_RADIUS_KM = 50;
+const DEFAULT_FILTERS: JobFilters = { categoryId: null, minBudget: 0, maxBudget: 1000, peopleNeeded: null };
 
 export function HomeScreen({ navigation }: Props) {
   const { t } = useTranslation();
   const [search, setSearch] = useState("");
-  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
   const [radiusKm, setRadiusKm] = useState(18);
+  const [filters, setFilters] = useState<JobFilters>(DEFAULT_FILTERS);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const { location } = useCurrentLocation();
 
   const categoriesQuery = useCategories();
   const jobsQuery = useJobs({
     search: search || undefined,
-    categoryId: categoryId ?? undefined,
+    categoryId: filters.categoryId ?? undefined,
+    minBudget: filters.minBudget > 0 ? filters.minBudget : undefined,
+    maxBudget: filters.maxBudget < 1000 ? filters.maxBudget : undefined,
+    peopleNeeded: filters.peopleNeeded ?? undefined,
     lng: location.status === "granted" ? location.coords.lng : undefined,
     lat: location.status === "granted" ? location.coords.lat : undefined,
     radiusKm: location.status === "granted" ? radiusKm : undefined,
   });
 
   const jobs = jobsQuery.data?.items ?? [];
+  const activeFilterCount =
+    (filters.categoryId ? 1 : 0) +
+    (filters.minBudget > 0 || filters.maxBudget < 1000 ? 1 : 0) +
+    (filters.peopleNeeded ? 1 : 0);
+
+  const getDistance = (jobCoords: [number, number]) => {
+    if (location.status !== "granted") return undefined;
+    return formatDistanceKm(distanceKm(location.coords, { lng: jobCoords[0], lat: jobCoords[1] }));
+  };
 
   return (
     <Screen padded={false}>
@@ -55,20 +71,47 @@ export function HomeScreen({ navigation }: Props) {
               value={search}
               onChangeText={setSearch}
               returnKeyType="search"
+              rightElement={
+                search.length > 0 ? (
+                  <XStack onPress={() => setSearch("")} padding="$2" accessibilityRole="button" accessibilityLabel="Clear search">
+                    <Ionicons name="close-circle" size={18} color="#9AA793" />
+                  </XStack>
+                ) : undefined
+              }
             />
           </YStack>
-          <PillTabs
-            options={[
-              { value: "map", label: t("home.map") },
-              { value: "list", label: t("home.list") },
-            ]}
-            value={viewMode}
-            onChange={setViewMode}
-          />
+          <XStack
+            width={44}
+            height={44}
+            borderRadius={22}
+            borderWidth={1.5}
+            borderColor={activeFilterCount > 0 ? "$primary" : "$borderColor"}
+            backgroundColor={activeFilterCount > 0 ? "$primary" : "$backgroundStrong"}
+            alignItems="center"
+            justifyContent="center"
+            onPress={() => setIsFilterOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Filters"
+          >
+            <Ionicons name="options-outline" size={20} color={activeFilterCount > 0 ? "white" : "#4F8266"} />
+          </XStack>
         </XStack>
 
+        <PillTabs
+          options={[
+            { value: "map", label: t("home.map") },
+            { value: "list", label: t("home.list") },
+          ]}
+          value={viewMode}
+          onChange={setViewMode}
+        />
+
         {categoriesQuery.data ? (
-          <CategoryFilterRow categories={categoriesQuery.data} selectedId={categoryId} onSelect={setCategoryId} />
+          <CategoryFilterRow
+            categories={categoriesQuery.data}
+            selectedId={filters.categoryId}
+            onSelect={(categoryId) => setFilters((f) => ({ ...f, categoryId }))}
+          />
         ) : null}
 
         {location.status === "granted" ? (
@@ -114,7 +157,11 @@ export function HomeScreen({ navigation }: Props) {
           keyExtractor={(job) => job._id}
           renderItem={({ item }) => (
             <YStack paddingHorizontal="$4" paddingBottom="$3">
-              <JobCard job={item} onPress={() => navigation.navigate("JobDetail", { jobId: item._id })} />
+              <JobCard
+                job={item}
+                distance={getDistance(item.location.coordinates)}
+                onPress={() => navigation.navigate("JobDetail", { jobId: item._id })}
+              />
             </YStack>
           )}
           contentContainerStyle={{ paddingBottom: 24 }}
@@ -122,6 +169,20 @@ export function HomeScreen({ navigation }: Props) {
           onRefresh={() => jobsQuery.refetch()}
         />
       )}
+
+      {categoriesQuery.data ? (
+        <JobFilterModal
+          visible={isFilterOpen}
+          onClose={() => setIsFilterOpen(false)}
+          categories={categoriesQuery.data}
+          filters={filters}
+          onChange={setFilters}
+          onClear={() => {
+            setFilters(DEFAULT_FILTERS);
+            setIsFilterOpen(false);
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }

@@ -4,26 +4,38 @@ import { Image } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
-import type { Job } from "../types/job.types";
 import type { SupportedLocale } from "@/lib/i18n";
+import { getCategoryIcon } from "../constants/categoryIcons";
+import type { Job } from "../types/job.types";
 
-function formatDate(iso: string, locale: string) {
-  return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short" }).format(new Date(iso));
+function formatDay(iso: string, locale: string) {
+  const date = new Date(iso);
+  const isToday = date.toDateString() === new Date().toDateString();
+  if (isToday) return "Heute";
+  return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short" }).format(date);
 }
 
-function formatBudget(amount: number, locale: string) {
-  return new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(amount);
+function formatTime(iso: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
+}
+
+function formatBudget(amount: number) {
+  return `${amount}€`;
 }
 
 interface JobCardProps {
   job: Job;
   onPress?: () => void;
+  distance?: string;
+  onDelete?: () => void;
+  isDeleting?: boolean;
 }
 
-export function JobCard({ job, onPress }: JobCardProps) {
+/** The compact, icon-row job card used in every list/map/grid context. Full detail lives on
+ * the job detail screen — this card is deliberately minimal. */
+export function JobCard({ job, onPress, distance, onDelete, isDeleting }: JobCardProps) {
   const { i18n } = useTranslation();
   const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
-
   const thumbnail = job.media?.[0];
 
   return (
@@ -48,30 +60,55 @@ export function JobCard({ job, onPress }: JobCardProps) {
         </YStack>
       ) : null}
 
-      <YStack padding="$4" gap="$2">
-        <XStack justifyContent="space-between" alignItems="center">
-          <Text variant="label" color="$brand600">
-            {job.categoryId?.name?.[locale] ?? job.categoryId?.name?.en}
-          </Text>
-          <Text variant="h4">{formatBudget(job.budget, locale)}</Text>
+      {onDelete ? (
+        <XStack
+          position="absolute"
+          top="$2"
+          right="$2"
+          width={28}
+          height={28}
+          borderRadius={14}
+          backgroundColor="$backgroundStrong"
+          alignItems="center"
+          justifyContent="center"
+          onPress={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel="Delete job"
+        >
+          {isDeleting ? null : <Ionicons name="trash-outline" size={14} color="#C1554B" />}
+        </XStack>
+      ) : null}
+
+      <YStack padding="$3" gap="$2">
+        <XStack flexWrap="wrap" gap="$3" alignItems="center">
+          <IconLabel icon={getCategoryIcon(job.categoryId.slug)} label={undefined} />
+          <IconLabel icon="calendar-outline" label={formatDay(job.date, locale)} />
+          <IconLabel icon="time-outline" label={formatTime(job.date, locale)} />
+          {distance ? <IconLabel icon="location-outline" label={distance} /> : null}
+          <IconLabel icon="pricetag-outline" label={formatBudget(job.budget)} />
+          <IconLabel icon="person-outline" label={String(job.peopleNeeded)} />
         </XStack>
 
-        <Text variant="h4" numberOfLines={1}>
-          {job.title}
-        </Text>
         <Text variant="body" muted numberOfLines={2}>
           {job.description}
         </Text>
-
-        <XStack gap="$4" marginTop="$1">
-          <YStack>
-            <Text variant="caption">{formatDate(job.date, locale)}</Text>
-          </YStack>
-          <YStack>
-            <Text variant="caption">{job.address}</Text>
-          </YStack>
-        </XStack>
       </YStack>
     </Card>
+  );
+}
+
+function IconLabel({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label?: string }) {
+  return (
+    <XStack alignItems="center" gap="$1">
+      <Ionicons name={icon} size={14} color="#4F8266" />
+      {label ? (
+        <Text variant="caption" fontWeight="600">
+          {label}
+        </Text>
+      ) : null}
+    </XStack>
   );
 }
