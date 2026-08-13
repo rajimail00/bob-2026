@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import { useMemo, useState } from "react";
+import { Pressable } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
 import { XStack, YStack } from "tamagui";
 import { getCategoryIcon } from "../constants/categoryIcons";
@@ -41,6 +43,17 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
           </Marker>
         ))}
       </MapView>
+
+      {selectedJob ? (
+        <Pressable
+          onPress={() => setSelectedJobId(null)}
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+          accessibilityRole="button"
+          accessibilityLabel="Close preview"
+        >
+          <BlurView intensity={35} tint="dark" style={{ flex: 1 }} />
+        </Pressable>
+      ) : null}
 
       {selectedJob ? (
         <YStack position="absolute" left="$3" right="$3" bottom="$3">
