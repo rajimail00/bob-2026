@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Platform, ScrollView } from "react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -36,6 +37,7 @@ const PAYMENT_OPTIONS = ["cash", "paypal", "both"] as const;
 export function PostJobScreen() {
   const { t, i18n } = useTranslation();
   const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
+  const navigation = useNavigation();
   const categoriesQuery = useCategories();
   const createJob = useCreateJob();
   const { location, requestLocation, setLocation } = useCurrentLocation();
@@ -72,6 +74,17 @@ export function PostJobScreen() {
 
   const values = watch();
   const selectedCategory = categoriesQuery.data?.find((category) => category._id === values.categoryId);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("blur", () => {
+      setStep(0);
+      setSubmitError(null);
+      setPublished(false);
+      setMedia([]);
+      reset();
+    });
+    return unsubscribe;
+  }, [navigation, reset]);
 
   const STEP_FIELDS: (keyof PostJobFormValues)[][] = [
     ["categoryId"],
