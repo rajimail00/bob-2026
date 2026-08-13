@@ -37,7 +37,7 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
             key={job._id}
             coordinate={{ latitude: job.location.coordinates[1], longitude: job.location.coordinates[0] }}
             onPress={() => setSelectedJobId(job._id)}
-            anchor={{ x: 0.5, y: 0.92 }}
+            anchor={{ x: 0.5, y: 0.94 }}
           >
             <CategoryPin iconName={getCategoryIcon(job.categoryId.slug)} isSelected={job._id === selectedJobId} />
           </Marker>
@@ -88,10 +88,16 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
 function CategoryPin({ iconName, isSelected }: { iconName: keyof typeof Ionicons.glyphMap; isSelected: boolean }) {
   const bubbleSize = isSelected ? 56 : 48;
   const color = isSelected ? "$tan500" : "$primary";
+  const containerWidth = bubbleSize + 16;
+  const containerHeight = bubbleSize + 10;
+  const tailSize = 14;
 
   return (
-    <YStack width={68} height={76} alignItems="center" justifyContent="flex-start">
+    <YStack width={containerWidth} height={containerHeight} position="relative">
       <YStack
+        position="absolute"
+        top={0}
+        left={(containerWidth - bubbleSize) / 2}
         width={bubbleSize}
         height={bubbleSize}
         borderRadius={bubbleSize / 2}
@@ -108,9 +114,11 @@ function CategoryPin({ iconName, isSelected }: { iconName: keyof typeof Ionicons
         <Ionicons name={iconName} size={isSelected ? 28 : 24} color="white" />
       </YStack>
       <YStack
-        width={14}
-        height={14}
-        marginTop={-8}
+        position="absolute"
+        top={bubbleSize - tailSize / 2}
+        left={(containerWidth - tailSize) / 2}
+        width={tailSize}
+        height={tailSize}
         backgroundColor={color}
         borderBottomWidth={3}
         borderRightWidth={3}
