@@ -30,6 +30,7 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
             key={job._id}
             coordinate={{ latitude: job.location.coordinates[1], longitude: job.location.coordinates[0] }}
             onPress={() => setSelectedJobId(job._id)}
+            anchor={{ x: 0.5, y: 0.5 }}
           >
             <CategoryPin iconName={getCategoryIcon(job.categoryId.slug)} isSelected={job._id === selectedJobId} />
           </Marker>
@@ -68,17 +69,22 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
 
 function CategoryPin({ iconName, isSelected }: { iconName: keyof typeof Ionicons.glyphMap; isSelected: boolean }) {
   return (
-    <YStack
-      width={isSelected ? 40 : 34}
-      height={isSelected ? 40 : 34}
-      borderRadius={isSelected ? 20 : 10}
-      backgroundColor={isSelected ? "$tan500" : "$primary"}
-      alignItems="center"
-      justifyContent="center"
-      borderWidth={2}
-      borderColor="$backgroundStrong"
-    >
-      <Ionicons name={iconName} size={isSelected ? 20 : 16} color="white" />
+    <YStack width={52} height={52} alignItems="center" justifyContent="center">
+      <YStack
+        width={isSelected ? 46 : 40}
+        height={isSelected ? 46 : 40}
+        borderRadius={isSelected ? 23 : 12}
+        backgroundColor={isSelected ? "$tan500" : "$primary"}
+        alignItems="center"
+        justifyContent="center"
+        borderWidth={2}
+        borderColor="$backgroundStrong"
+        shadowColor="#000"
+        shadowOpacity={0.2}
+        shadowRadius={3}
+      >
+        <Ionicons name={iconName} size={isSelected ? 24 : 20} color="white" />
+      </YStack>
     </YStack>
   );
 }
