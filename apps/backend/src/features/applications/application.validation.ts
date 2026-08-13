@@ -6,6 +6,11 @@ export const createApplicationSchema = z.object({
 });
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>;
 
-export const selectApplicationParamsSchema = z.object({
+export const applicationIdParamsSchema = z.object({
   id: z.string().min(1),
 });
+
+export const respondToOfferSchema = z.object({
+  accept: z.boolean(),
+});
+export type RespondToOfferInput = z.infer<typeof respondToOfferSchema>;

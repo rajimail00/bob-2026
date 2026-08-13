@@ -119,7 +119,7 @@ describe("applications + job lifecycle", () => {
     expect(listRes.status).toBe(403);
   });
 
-  it("runs the full happy path: apply -> select -> complete -> review, and updates the worker's rating", async () => {
+  it("runs the full happy path: apply -> offer -> accept -> complete -> review, and updates the worker's rating", async () => {
     const categoryId = await createCategory();
     const client = await createVerifiedUser("client5@example.com");
     const worker = await createVerifiedUser("worker5@example.com");
@@ -139,7 +139,7 @@ describe("applications + job lifecycle", () => {
     expect(listRes.status).toBe(200);
     expect(listRes.body.applications).toHaveLength(1);
 
-    // A second worker also applies, to prove they get auto-rejected once the first is selected.
+    // A second worker also applies, to prove they get auto-rejected once the first is accepted.
     const worker2 = await createVerifiedUser("worker5b@example.com");
     await setWorkerProfile(worker2.accessToken, categoryId);
     const secondApplyRes = await request(app)
@@ -148,15 +148,32 @@ describe("applications + job lifecycle", () => {
       .send({ message: "Me too!" });
     const secondApplicationId = secondApplyRes.body.application._id as string;
 
-    const selectRes = await request(app)
-      .patch(`/api/v1/applications/${applicationId}/select`)
+    const offerRes = await request(app)
+      .patch(`/api/v1/applications/${applicationId}/offer`)
       .set("Authorization", `Bearer ${client.accessToken}`);
-    expect(selectRes.status).toBe(200);
-    expect(selectRes.body.application.status).toBe("selected");
+    expect(offerRes.status).toBe(200);
+    expect(offerRes.body.application.status).toBe("offered");
 
-    const jobAfterSelect = await request(app).get(`/api/v1/jobs/${jobId}`);
-    expect(jobAfterSelect.body.job.status).toBe("assigned");
-    expect(jobAfterSelect.body.job.assignedWorkerId).toBe(worker.userId);
+    const jobAfterOffer = await request(app).get(`/api/v1/jobs/${jobId}`);
+    expect(jobAfterOffer.body.job.status).toBe("offer_pending");
+
+    // Only the offered worker can respond.
+    const respondAsStranger = await request(app)
+      .patch(`/api/v1/applications/${applicationId}/respond`)
+      .set("Authorization", `Bearer ${worker2.accessToken}`)
+      .send({ accept: true });
+    expect(respondAsStranger.status).toBe(403);
+
+    const respondRes = await request(app)
+      .patch(`/api/v1/applications/${applicationId}/respond`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ accept: true });
+    expect(respondRes.status).toBe(200);
+    expect(respondRes.body.application.status).toBe("accepted");
+
+    const jobAfterAccept = await request(app).get(`/api/v1/jobs/${jobId}`);
+    expect(jobAfterAccept.body.job.status).toBe("assigned");
+    expect(jobAfterAccept.body.job.assignedWorkerId).toBe(worker.userId);
 
     const secondApplicantList = await request(app)
       .get(`/api/v1/jobs/${jobId}/applications`)
@@ -203,5 +220,64 @@ describe("applications + job lifecycle", () => {
       .set("Authorization", `Bearer ${client.accessToken}`)
       .send({ stars: 3 });
     expect(duplicateReview.status).toBe(409);
+  });
+
+  it("reopens the job when the worker declines an offer", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("client6@example.com");
+    const worker = await createVerifiedUser("worker6@example.com");
+    await setWorkerProfile(worker.accessToken, categoryId);
+    const jobId = await createJob(client.accessToken, categoryId);
+
+    const applyRes = await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ message: "I can help!" });
+    const applicationId = applyRes.body.application._id as string;
+
+    await request(app)
+      .patch(`/api/v1/applications/${applicationId}/offer`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+
+    const declineRes = await request(app)
+      .patch(`/api/v1/applications/${applicationId}/respond`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ accept: false });
+    expect(declineRes.status).toBe(200);
+    expect(declineRes.body.application.status).toBe("declined");
+
+    const jobAfterDecline = await request(app).get(`/api/v1/jobs/${jobId}`);
+    expect(jobAfterDecline.body.job.status).toBe("active");
+  });
+
+  it("lets either side cancel an assigned job, and reports a problem", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("client7@example.com");
+    const worker = await createVerifiedUser("worker7@example.com");
+    await setWorkerProfile(worker.accessToken, categoryId);
+    const jobId = await createJob(client.accessToken, categoryId);
+
+    const applyRes = await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ message: "I can help!" });
+    const applicationId = applyRes.body.application._id as string;
+
+    await request(app)
+      .patch(`/api/v1/applications/${applicationId}/offer`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+    await request(app)
+      .patch(`/api/v1/applications/${applicationId}/respond`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ accept: true });
+
+    const reportRes = await request(app)
+      .post(`/api/v1/jobs/${jobId}/problems`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ reason: "cancel", note: "Can't make it anymore" });
+    expect(reportRes.status).toBe(201);
+
+    const jobAfterCancel = await request(app).get(`/api/v1/jobs/${jobId}`);
+    expect(jobAfterCancel.body.job.status).toBe("cancelled");
   });
 });

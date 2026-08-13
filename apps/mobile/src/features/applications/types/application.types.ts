@@ -1,6 +1,6 @@
 import type { Job, JobClientSummary } from "@/features/home/types/job.types";
 
-export type ApplicationStatus = "pending" | "selected" | "rejected";
+export type ApplicationStatus = "pending" | "offered" | "accepted" | "declined" | "rejected";
 
 export interface ApplicationWorkerSummary extends JobClientSummary {}
 

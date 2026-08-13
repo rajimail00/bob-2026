@@ -51,15 +51,47 @@ export const applicationService = {
     }));
   },
 
-  async select(applicationId: string, requesterId: string) {
+  /** Client picks a candidate — the job is held while the worker decides. */
+  async offer(applicationId: string, requesterId: string) {
     const application = await applicationRepository.findById(applicationId);
     if (!application) throw AppError.notFound("This application no longer exists.");
+    if (application.status !== "pending") throw AppError.conflict("This application has already been decided.");
 
-    await jobService.assignWorker(application.jobId.toString(), requesterId, application.workerId.toString());
+    await jobService.markOfferPending(application.jobId.toString(), requesterId);
 
-    application.status = "selected";
+    application.status = "offered";
     await application.save();
-    await applicationRepository.rejectOtherPending(application.jobId.toString(), applicationId);
+
+    notifyUser(application.workerId.toString(), "application:offered", {
+      jobId: application.jobId.toString(),
+      applicationId: application._id.toString(),
+    });
+
+    return application;
+  },
+
+  /** Worker accepts or declines an offer. */
+  async respond(applicationId: string, workerId: string, accept: boolean) {
+    const application = await applicationRepository.findById(applicationId);
+    if (!application) throw AppError.notFound("This application no longer exists.");
+    if (application.workerId.toString() !== workerId) throw AppError.forbidden("This offer isn't yours to respond to.");
+    if (application.status !== "offered") throw AppError.conflict("This application isn't awaiting a response.");
+
+    const jobId = application.jobId.toString();
+    const clientId = (await jobRepository.findRawById(jobId))?.clientId.toString();
+
+    if (accept) {
+      await jobService.assignWorker(jobId, workerId);
+      application.status = "accepted";
+      await application.save();
+      await applicationRepository.rejectOthers(jobId, applicationId);
+      if (clientId) notifyUser(clientId, "application:accepted", { jobId, applicationId });
+    } else {
+      await jobService.reopenAfterDecline(jobId);
+      application.status = "declined";
+      await application.save();
+      if (clientId) notifyUser(clientId, "application:declined", { jobId, applicationId });
+    }
 
     return application;
   },

@@ -153,7 +153,7 @@ describe("jobs", () => {
       .set("Authorization", `Bearer ${worker.accessToken}`)
       .send({ message: "I can help!" });
     await request(app)
-      .patch(`/api/v1/applications/${applyRes.body.application._id}/select`)
+      .patch(`/api/v1/applications/${applyRes.body.application._id}/offer`)
       .set("Authorization", `Bearer ${owner.accessToken}`);
 
     const deleteRes = await request(app)

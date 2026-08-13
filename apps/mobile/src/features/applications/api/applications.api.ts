@@ -17,8 +17,15 @@ export const applicationsApi = {
     return data.applications;
   },
 
-  async select(applicationId: string) {
-    const { data } = await apiClient.patch<{ application: Application }>(`/applications/${applicationId}/select`);
+  async offer(applicationId: string) {
+    const { data } = await apiClient.patch<{ application: Application }>(`/applications/${applicationId}/offer`);
+    return data.application;
+  },
+
+  async respond(applicationId: string, accept: boolean) {
+    const { data } = await apiClient.patch<{ application: MyApplication }>(`/applications/${applicationId}/respond`, {
+      accept,
+    });
     return data.application;
   },
 };

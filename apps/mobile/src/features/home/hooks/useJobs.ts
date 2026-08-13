@@ -45,6 +45,24 @@ export function useCompleteJob() {
   });
 }
 
+export function useCancelJob() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => jobsApi.cancel(id),
+    onSuccess: async (_data, id) => {
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", id] });
+    },
+  });
+}
+
+export function useReportProblem() {
+  return useMutation({
+    mutationFn: ({ jobId, ...input }: { jobId: string; reason: "cancel" | "address_not_found" | "no_show" | "other"; note?: string }) =>
+      jobsApi.reportProblem(jobId, input),
+  });
+}
+
 export function useDeleteJob() {
   const queryClient = useQueryClient();
   return useMutation({

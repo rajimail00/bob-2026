@@ -8,15 +8,31 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { Text } from "@/components/ui/Text";
 import type { Application } from "../types/application.types";
 
+const STATUS_LABEL: Record<Application["status"], string> = {
+  pending: "",
+  offered: "Awaiting response",
+  accepted: "Accepted",
+  declined: "Declined",
+  rejected: "Not selected",
+};
+
+const STATUS_TONE: Record<Application["status"], "brand" | "neutral" | "danger"> = {
+  pending: "neutral",
+  offered: "brand",
+  accepted: "brand",
+  declined: "neutral",
+  rejected: "neutral",
+};
+
 interface ApplicantCardProps {
   application: Application;
-  onSelect: () => void;
+  onOffer: () => void;
   onMessage: () => void;
-  isSelecting: boolean;
+  isOffering: boolean;
   disabled: boolean;
 }
 
-export function ApplicantCard({ application, onSelect, onMessage, isSelecting, disabled }: ApplicantCardProps) {
+export function ApplicantCard({ application, onOffer, onMessage, isOffering, disabled }: ApplicantCardProps) {
   const worker = application.workerId;
   const name = `${worker.firstName ?? ""} ${worker.lastName ?? ""}`.trim();
 
@@ -24,10 +40,7 @@ export function ApplicantCard({ application, onSelect, onMessage, isSelecting, d
     <Card gap="$3" alignItems="center">
       {application.status !== "pending" ? (
         <XStack alignSelf="flex-end">
-          <StatusPill
-            label={application.status === "selected" ? "Selected" : "Not selected"}
-            tone={application.status === "selected" ? "brand" : "neutral"}
-          />
+          <StatusPill label={STATUS_LABEL[application.status]} tone={STATUS_TONE[application.status]} />
         </XStack>
       ) : null}
 
@@ -55,8 +68,8 @@ export function ApplicantCard({ application, onSelect, onMessage, isSelecting, d
       </XStack>
 
       {application.status === "pending" ? (
-        <Button onPress={onSelect} loading={isSelecting} disabled={disabled} fullWidth>
-          Select
+        <Button onPress={onOffer} loading={isOffering} disabled={disabled} fullWidth>
+          Offer this job
         </Button>
       ) : null}
     </Card>

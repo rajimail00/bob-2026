@@ -6,4 +6,5 @@ import { applicationController } from "./application.controller.js";
 export const applicationRouter = Router();
 
 applicationRouter.get("/mine", requireAuth, asyncHandler(applicationController.listMine));
-applicationRouter.patch("/:id/select", requireAuth, asyncHandler(applicationController.select));
+applicationRouter.patch("/:id/offer", requireAuth, asyncHandler(applicationController.offer));
+applicationRouter.patch("/:id/respond", requireAuth, asyncHandler(applicationController.respond));

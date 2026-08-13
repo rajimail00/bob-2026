@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType, type HydratedDocument } from "mongoose";
 
-export const APPLICATION_STATUSES = ["pending", "selected", "rejected"] as const;
+export const APPLICATION_STATUSES = ["pending", "offered", "accepted", "declined", "rejected"] as const;
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 
 const applicationSchema = new Schema(

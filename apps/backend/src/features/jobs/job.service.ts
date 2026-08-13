@@ -1,5 +1,6 @@
 import { Types } from "mongoose";
 import { AppError } from "../../lib/errors.js";
+import { notifyUser } from "../../lib/socket.js";
 import { applicationRepository } from "../applications/application.repository.js";
 import { jobRepository } from "./job.repository.js";
 import type { CreateJobInput, ListJobsQuery } from "./job.validation.js";
@@ -54,12 +55,35 @@ export const jobService = {
     return job;
   },
 
-  async assignWorker(jobId: string, clientId: string, workerId: string) {
+  /** The client has picked a candidate — the job is held while the worker decides. */
+  async markOfferPending(jobId: string, clientId: string) {
     const job = await this.assertOwner(jobId, clientId);
     if (job.status !== "active") throw AppError.conflict("This job is no longer accepting applicants.");
 
+    job.status = "offer_pending";
+    await job.save();
+    return job;
+  },
+
+  /** The worker accepted the offer — the job is now theirs to do. */
+  async assignWorker(jobId: string, workerId: string) {
+    const job = await jobRepository.findRawById(jobId);
+    if (!job) throw AppError.notFound("This job no longer exists.");
+    if (job.status !== "offer_pending") throw AppError.conflict("This job isn't awaiting a response.");
+
     job.status = "assigned";
     job.assignedWorkerId = new Types.ObjectId(workerId);
+    await job.save();
+    return job;
+  },
+
+  /** The worker declined — reopen the job so the client can offer it to someone else. */
+  async reopenAfterDecline(jobId: string) {
+    const job = await jobRepository.findRawById(jobId);
+    if (!job) throw AppError.notFound("This job no longer exists.");
+    if (job.status !== "offer_pending") throw AppError.conflict("This job isn't awaiting a response.");
+
+    job.status = "active";
     await job.save();
     return job;
   },
@@ -73,11 +97,33 @@ export const jobService = {
     return job;
   },
 
+  /** Either side can cancel once an offer is out or the job is in progress — e.g. the worker
+   * can't make it, or the address turned out to be wrong. */
+  async cancel(jobId: string, requesterId: string) {
+    const job = await jobRepository.findRawById(jobId);
+    if (!job) throw AppError.notFound("This job no longer exists.");
+
+    const isClient = job.clientId.toString() === requesterId;
+    const isAssignedWorker = job.assignedWorkerId?.toString() === requesterId;
+    if (!isClient && !isAssignedWorker) throw AppError.forbidden("This job doesn't belong to you.");
+    if (job.status !== "offer_pending" && job.status !== "assigned") {
+      throw AppError.conflict("This job can't be cancelled from its current state.");
+    }
+
+    job.status = "cancelled";
+    await job.save();
+
+    const otherPartyId = isClient ? job.assignedWorkerId?.toString() : job.clientId.toString();
+    if (otherPartyId) notifyUser(otherPartyId, "job:cancelled", { jobId });
+
+    return job;
+  },
+
   async remove(jobId: string, clientId: string) {
     const job = await this.assertOwner(jobId, clientId);
-    if (job.status === "assigned" || job.status === "completed") {
+    if (job.status === "assigned" || job.status === "completed" || job.status === "offer_pending") {
       throw AppError.conflict(
-        "This job has an assigned worker and can't be deleted. Cancel or complete it first."
+        "This job is in progress and can't be deleted. Cancel or complete it first."
       );
     }
 

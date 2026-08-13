@@ -26,9 +26,10 @@ export const applicationRepository = {
     return ApplicationModel.findById(id);
   },
 
-  async rejectOtherPending(jobId: string, exceptApplicationId: string) {
+  /** Once one applicant is accepted, everyone else who was still pending or offered is rejected. */
+  async rejectOthers(jobId: string, exceptApplicationId: string) {
     await ApplicationModel.updateMany(
-      { jobId, _id: { $ne: exceptApplicationId }, status: "pending" },
+      { jobId, _id: { $ne: exceptApplicationId }, status: { $in: ["pending", "offered"] } },
       { $set: { status: "rejected" } }
     );
   },

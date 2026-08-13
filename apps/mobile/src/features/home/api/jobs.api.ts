@@ -53,6 +53,15 @@ export const jobsApi = {
     await apiClient.delete(`/jobs/${id}`);
   },
 
+  async cancel(id: string) {
+    const { data } = await apiClient.post<{ job: JobDetail }>(`/jobs/${id}/cancel`);
+    return data.job;
+  },
+
+  async reportProblem(id: string, input: { reason: "cancel" | "address_not_found" | "no_show" | "other"; note?: string }) {
+    await apiClient.post(`/jobs/${id}/problems`, input);
+  },
+
   async listMinePosted() {
     const { data } = await apiClient.get<{ jobs: Job[] }>("/jobs/mine/posted");
     return data.jobs;

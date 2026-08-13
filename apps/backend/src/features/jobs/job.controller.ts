@@ -42,6 +42,13 @@ export const jobController = {
     res.status(200).json({ job });
   },
 
+  async cancel(req: Request, res: Response) {
+    if (!req.auth) throw AppError.unauthorized();
+    const { id } = jobIdParamsSchema.parse(req.params);
+    const job = await jobService.cancel(id, req.auth.userId);
+    res.status(200).json({ job });
+  },
+
   async remove(req: Request, res: Response) {
     if (!req.auth) throw AppError.unauthorized();
     const { id } = jobIdParamsSchema.parse(req.params);

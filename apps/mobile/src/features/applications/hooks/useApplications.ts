@@ -26,14 +26,26 @@ export function useMyApplications() {
   });
 }
 
-export function useSelectApplicant(jobId: string) {
+export function useOfferApplicant(jobId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (applicationId: string) => applicationsApi.select(applicationId),
+    mutationFn: (applicationId: string) => applicationsApi.offer(applicationId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["applications", "forJob", jobId] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", jobId] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "mine"] });
+    },
+  });
+}
+
+export function useRespondToOffer(jobId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ applicationId, accept }: { applicationId: string; accept: boolean }) =>
+      applicationsApi.respond(applicationId, accept),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["applications", "mine"] });
+      await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", jobId] });
     },
   });
 }

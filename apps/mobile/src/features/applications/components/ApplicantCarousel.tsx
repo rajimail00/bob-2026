@@ -6,14 +6,14 @@ import type { Application } from "../types/application.types";
 
 interface ApplicantCarouselProps {
   applicants: Application[];
-  onSelect: (applicationId: string) => void;
+  onOffer: (applicationId: string) => void;
   onMessage: (workerId: string) => void;
-  isSelecting: boolean;
+  isOffering: boolean;
 }
 
 /** Swipeable, one-candidate-at-a-time view of a job's applicants — mirrors the media carousel
  * so browsing applicants feels consistent with browsing job photos. */
-export function ApplicantCarousel({ applicants, onSelect, onMessage, isSelecting }: ApplicantCarouselProps) {
+export function ApplicantCarousel({ applicants, onOffer, onMessage, isOffering }: ApplicantCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const width = Dimensions.get("window").width - 32;
 
@@ -28,10 +28,10 @@ export function ApplicantCarousel({ applicants, onSelect, onMessage, isSelecting
           <YStack key={application._id} width={width}>
             <ApplicantCard
               application={application}
-              onSelect={() => onSelect(application._id)}
+              onOffer={() => onOffer(application._id)}
               onMessage={() => onMessage(application.workerId._id)}
-              isSelecting={isSelecting}
-              disabled={isSelecting}
+              isOffering={isOffering}
+              disabled={isOffering}
             />
           </YStack>
         ))}

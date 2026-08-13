@@ -1,6 +1,6 @@
 import { Schema, model, type InferSchemaType, type HydratedDocument } from "mongoose";
 
-export const JOB_STATUSES = ["draft", "active", "assigned", "completed", "cancelled"] as const;
+export const JOB_STATUSES = ["draft", "active", "offer_pending", "assigned", "completed", "cancelled"] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
 export const RECURRENCE_OPTIONS = ["none", "daily", "weekly", "monthly"] as const;
