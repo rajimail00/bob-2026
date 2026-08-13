@@ -1,6 +1,7 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { Alert, Image } from "react-native";
+import { Alert } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -16,6 +17,8 @@ import { useAuthStore } from "@/features/auth/store/authStore";
 import { RatingForm } from "@/features/reviews/components/RatingForm";
 import { getApiErrorMessage } from "@/lib/apiClient";
 import type { SupportedLocale } from "@/lib/i18n";
+import { IconValue } from "../components/IconValue";
+import { MediaCarousel } from "../components/MediaCarousel";
 import { useCompleteJob, useDeleteJob, useJob } from "../hooks/useJobs";
 
 const STATUS_TONE = {
@@ -67,9 +70,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
   return (
     <Screen scroll>
       <YStack gap="$4" paddingBottom="$6">
-        {job.media[0] ? (
-          <Image source={{ uri: job.media[0].url }} style={{ width: "100%", height: 220, borderRadius: 14 }} />
-        ) : null}
+        <MediaCarousel media={job.media} />
 
         <XStack justifyContent="space-between" alignItems="center">
           <Text variant="label" color="$brand600">
@@ -83,23 +84,19 @@ export function JobDetailScreen({ route, navigation }: Props) {
           {job.description}
         </Text>
 
-        <Card gap="$2">
-          <XStack justifyContent="space-between">
-            <Text variant="caption">Budget</Text>
-            <Text variant="body">€{job.budget}</Text>
+        <Card gap="$3">
+          <XStack flexWrap="wrap" gap="$4">
+            <IconValue icon="pricetag-outline" value={`€${job.budget}`} />
+            <IconValue icon="calendar-outline" value={new Date(job.date).toLocaleDateString(locale)} />
+            <IconValue icon="person-outline" value={`${job.peopleNeeded} people`} />
           </XStack>
-          <XStack justifyContent="space-between">
-            <Text variant="caption">Date</Text>
-            <Text variant="body">{new Date(job.date).toLocaleDateString(locale)}</Text>
+          <XStack alignItems="flex-start" gap="$2">
+            <Ionicons name="location-outline" size={16} color="#4F8266" style={{ marginTop: 2 }} />
+            <Text variant="body" flex={1}>
+              {job.address}
+            </Text>
           </XStack>
-          <XStack justifyContent="space-between">
-            <Text variant="caption">Address</Text>
-            <Text variant="body">{job.address}</Text>
-          </XStack>
-          <XStack justifyContent="space-between">
-            <Text variant="caption">People needed</Text>
-            <Text variant="body">{job.peopleNeeded}</Text>
-          </XStack>
+          <IconValue icon="time-outline" value={`Posted ${new Date(job.createdAt).toLocaleDateString(locale)}`} muted />
         </Card>
 
         {(isOwner || isAssignedWorker) && job.status !== "active" ? (
@@ -200,7 +197,22 @@ function OwnerActions({
   if (jobStatus === "active") {
     return (
       <YStack gap="$3">
-        <Text variant="h4">Applicants</Text>
+        <XStack justifyContent="space-between" alignItems="center">
+          <Text variant="h4">Applicants</Text>
+          <XStack
+            width={36}
+            height={36}
+            borderRadius={18}
+            backgroundColor="$dangerBg"
+            alignItems="center"
+            justifyContent="center"
+            onPress={onDelete}
+            accessibilityRole="button"
+            accessibilityLabel="Delete job"
+          >
+            {isDeleting ? null : <Ionicons name="trash-outline" size={16} color="#C1554B" />}
+          </XStack>
+        </XStack>
         {isLoadingApplicants ? (
           <LoadingState />
         ) : applicants && applicants.length > 0 ? (
@@ -224,9 +236,6 @@ function OwnerActions({
             {deleteError}
           </Text>
         ) : null}
-        <Button variant="destructive" onPress={onDelete} loading={isDeleting}>
-          Delete job
-        </Button>
       </YStack>
     );
   }

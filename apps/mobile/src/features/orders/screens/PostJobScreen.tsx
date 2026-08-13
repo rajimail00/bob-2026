@@ -1,12 +1,14 @@
+import { Ionicons } from "@expo/vector-icons";
 import { zodResolver } from "@hookform/resolvers/zod";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
-import { Image, Platform, ScrollView } from "react-native";
+import { Platform, ScrollView } from "react-native";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { NumberStepper } from "@/components/ui/NumberStepper";
 import { PillTabs } from "@/components/ui/PillTabs";
@@ -14,6 +16,8 @@ import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { LoadingState } from "@/components/ui/states/LoadingState";
 import { CategoryTile } from "@/features/home/components/CategoryTile";
+import { IconValue } from "@/features/home/components/IconValue";
+import { MediaCarousel } from "@/features/home/components/MediaCarousel";
 import { useCategories, useCreateJob } from "@/features/home/hooks/useJobs";
 import type { UploadedMedia } from "@/features/media/api/media.api";
 import { getApiErrorMessage } from "@/lib/apiClient";
@@ -67,6 +71,7 @@ export function PostJobScreen() {
   });
 
   const values = watch();
+  const selectedCategory = categoriesQuery.data?.find((category) => category._id === values.categoryId);
 
   const STEP_FIELDS: (keyof PostJobFormValues)[][] = [
     ["categoryId"],
@@ -404,43 +409,34 @@ export function PostJobScreen() {
             ) : null}
 
             {step === 4 ? (
-              <YStack gap="$3">
+              <YStack gap="$4">
                 <Text variant="h3">Review</Text>
-                {media.length > 0 ? (
-                  <XStack gap="$2">
-                    {media.map((item) =>
-                      item.type === "photo" ? (
-                        <Image
-                          key={item.url}
-                          source={{ uri: item.url }}
-                          style={{ width: 64, height: 64, borderRadius: 8 }}
-                        />
-                      ) : (
-                        <YStack
-                          key={item.url}
-                          width={64}
-                          height={64}
-                          borderRadius={8}
-                          backgroundColor="$neutral800"
-                          alignItems="center"
-                          justifyContent="center"
-                        >
-                          <Text variant="caption" color="white">
-                            Video
-                          </Text>
-                        </YStack>
-                      )
-                    )}
-                  </XStack>
-                ) : null}
-                <Text variant="body">{values.title}</Text>
+
+                {media.length > 0 ? <MediaCarousel media={media} /> : null}
+
+                <Text variant="label" color="$brand600">
+                  {selectedCategory?.name[locale] ?? selectedCategory?.name.en ?? ""}
+                </Text>
+
+                <Text variant="h2">{values.title}</Text>
                 <Text variant="body" muted>
                   {values.description}
                 </Text>
-                <Text variant="caption">{values.address}</Text>
-                <Text variant="caption">
-                  €{values.budget} · {values.peopleNeeded} people · {values.paymentPreference}
-                </Text>
+
+                <Card gap="$3">
+                  <XStack flexWrap="wrap" gap="$4">
+                    <IconValue icon="pricetag-outline" value={`€${values.budget}`} />
+                    <IconValue icon="calendar-outline" value={new Date(values.date).toLocaleDateString(locale)} />
+                    <IconValue icon="person-outline" value={`${values.peopleNeeded} people`} />
+                  </XStack>
+                  <XStack alignItems="flex-start" gap="$2">
+                    <Ionicons name="location-outline" size={16} color="#4F8266" style={{ marginTop: 2 }} />
+                    <Text variant="body" flex={1}>
+                      {values.address}
+                    </Text>
+                  </XStack>
+                  <IconValue icon="card-outline" value={`Payment: ${values.paymentPreference}`} muted />
+                </Card>
               </YStack>
             ) : null}
           </YStack>

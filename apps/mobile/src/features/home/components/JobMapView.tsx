@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import MapView, { Marker, type Region } from "react-native-maps";
-import { YStack } from "tamagui";
+import { XStack, YStack } from "tamagui";
 import { getCategoryIcon } from "../constants/categoryIcons";
 import type { Job } from "../types/job.types";
 import { JobCard } from "./JobCard";
@@ -38,7 +38,28 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
 
       {selectedJob ? (
         <YStack position="absolute" left="$3" right="$3" bottom="$3">
-          <JobCard job={selectedJob} onPress={() => onSelectJob(selectedJob)} />
+          <YStack position="relative">
+            <JobCard job={selectedJob} onPress={() => onSelectJob(selectedJob)} />
+            <XStack
+              position="absolute"
+              top={-10}
+              right={-10}
+              width={28}
+              height={28}
+              borderRadius={14}
+              backgroundColor="$backgroundStrong"
+              alignItems="center"
+              justifyContent="center"
+              shadowColor="#000"
+              shadowOpacity={0.15}
+              shadowRadius={4}
+              onPress={() => setSelectedJobId(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Close preview"
+            >
+              <Ionicons name="close" size={16} color="#232920" />
+            </XStack>
+          </YStack>
         </YStack>
       ) : null}
     </YStack>
