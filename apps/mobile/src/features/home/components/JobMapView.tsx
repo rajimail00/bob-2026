@@ -24,13 +24,18 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
 
   return (
     <YStack flex={1} position="relative">
-      <MapView style={{ flex: 1 }} initialRegion={initialRegion} onPress={() => setSelectedJobId(null)}>
+      <MapView
+        style={{ flex: 1 }}
+        initialRegion={initialRegion}
+        onPress={() => setSelectedJobId(null)}
+        toolbarEnabled={false}
+      >
         {jobs.map((job) => (
           <Marker
             key={job._id}
             coordinate={{ latitude: job.location.coordinates[1], longitude: job.location.coordinates[0] }}
             onPress={() => setSelectedJobId(job._id)}
-            anchor={{ x: 0.5, y: 0.5 }}
+            anchor={{ x: 0.5, y: 0.92 }}
           >
             <CategoryPin iconName={getCategoryIcon(job.categoryId.slug)} isSelected={job._id === selectedJobId} />
           </Marker>
@@ -68,23 +73,37 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
 }
 
 function CategoryPin({ iconName, isSelected }: { iconName: keyof typeof Ionicons.glyphMap; isSelected: boolean }) {
+  const bubbleSize = isSelected ? 56 : 48;
+  const color = isSelected ? "$tan500" : "$primary";
+
   return (
-    <YStack width={52} height={52} alignItems="center" justifyContent="center">
+    <YStack width={68} height={76} alignItems="center" justifyContent="flex-start">
       <YStack
-        width={isSelected ? 46 : 40}
-        height={isSelected ? 46 : 40}
-        borderRadius={isSelected ? 23 : 12}
-        backgroundColor={isSelected ? "$tan500" : "$primary"}
+        width={bubbleSize}
+        height={bubbleSize}
+        borderRadius={bubbleSize / 2}
+        backgroundColor={color}
         alignItems="center"
         justifyContent="center"
-        borderWidth={2}
+        borderWidth={3}
         borderColor="$backgroundStrong"
         shadowColor="#000"
-        shadowOpacity={0.2}
-        shadowRadius={3}
+        shadowOpacity={0.25}
+        shadowRadius={4}
+        shadowOffset={{ width: 0, height: 2 }}
       >
-        <Ionicons name={iconName} size={isSelected ? 24 : 20} color="white" />
+        <Ionicons name={iconName} size={isSelected ? 28 : 24} color="white" />
       </YStack>
+      <YStack
+        width={14}
+        height={14}
+        marginTop={-8}
+        backgroundColor={color}
+        borderBottomWidth={3}
+        borderRightWidth={3}
+        borderColor="$backgroundStrong"
+        style={{ transform: [{ rotate: "45deg" }] }}
+      />
     </YStack>
   );
 }
