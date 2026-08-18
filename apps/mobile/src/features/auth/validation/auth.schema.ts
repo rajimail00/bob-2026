@@ -20,5 +20,6 @@ export type LoginFormValues = z.infer<typeof loginSchema>;
 export const createProfileSchema = z.object({
   firstName: z.string().trim().min(1, "auth.errors.firstNameRequired").max(60),
   lastName: z.string().trim().min(1, "auth.errors.lastNameRequired").max(60),
+  photoUrl: z.string().url().optional(),
 });
 export type CreateProfileFormValues = z.infer<typeof createProfileSchema>;

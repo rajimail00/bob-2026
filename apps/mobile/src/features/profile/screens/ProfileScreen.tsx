@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { XStack, YStack } from "tamagui";
+import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PillTabs } from "@/components/ui/PillTabs";
@@ -25,11 +26,7 @@ export function ProfileScreen() {
     <Screen scroll>
       <YStack gap="$4" paddingTop="$4">
         <XStack alignItems="center" gap="$3">
-          <YStack width={64} height={64} borderRadius={32} backgroundColor="$brand100" alignItems="center" justifyContent="center">
-            <Text variant="h3" color="$brand700">
-              {user?.firstName?.[0] ?? "?"}
-            </Text>
-          </YStack>
+          <Avatar uri={user?.photoUrl} name={user?.firstName} size={64} />
           <YStack>
             <Text variant="h4">
               {user?.firstName} {user?.lastName}

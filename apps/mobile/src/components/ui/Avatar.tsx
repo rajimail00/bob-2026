@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Image } from "react-native";
 import { YStack } from "tamagui";
 import { Text } from "./Text";
@@ -8,24 +9,41 @@ interface AvatarProps {
   size?: number;
 }
 
-/** Circular profile photo with initials fallback — used wherever a worker or client is shown by avatar. */
 export function Avatar({ uri, name, size = 56 }: AvatarProps) {
-  if (uri) {
-    return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2 }} />;
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [uri]);
+
+  if (uri && !imageFailed) {
+    return (
+      <Image
+        source={{ uri }}
+        resizeMode="cover"
+        onError={() => setImageFailed(true)}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+        }}
+      />
+    );
   }
 
-  const initials = (name ?? "")
-    .trim()
-    .split(/\s+/)
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const firstLetter = name?.trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <YStack width={size} height={size} borderRadius={size / 2} backgroundColor="$primary" alignItems="center" justifyContent="center">
+    <YStack
+      width={size}
+      height={size}
+      borderRadius={size / 2}
+      backgroundColor="$primary"
+      alignItems="center"
+      justifyContent="center"
+    >
       <Text variant="h4" color="white">
-        {initials || "?"}
+        {firstLetter}
       </Text>
     </YStack>
   );
