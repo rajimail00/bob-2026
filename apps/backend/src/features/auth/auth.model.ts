@@ -3,7 +3,7 @@ import { Schema, model, type InferSchemaType, type HydratedDocument } from "mong
 export const USER_ROLES = ["client", "worker", "admin"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
-export const SUPPORTED_LOCALES = ["en", "de", "es"] as const;
+export const SUPPORTED_LOCALES = ["en", "de", "es", "fr"] as const;
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export const SUBSCRIPTION_TIERS = ["free", "pro", "unlimited"] as const;

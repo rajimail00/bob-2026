@@ -22,7 +22,7 @@ async function createJobWithApplicant() {
   const category = await CategoryModel.create({
     slug: "cleaning",
     icon: "spray",
-    name: { en: "Cleaning", de: "Reinigung", es: "Limpieza" },
+    name: { en: "Cleaning", de: "Reinigung", es: "Limpieza", fr: "Nettoyage" },
     order: 0,
   });
   const client = await createVerifiedUser("msg-client@example.com");

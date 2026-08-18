@@ -25,6 +25,10 @@ export const authApi = {
     await apiClient.post("/auth/logout");
   },
 
+  async deleteAccount() {
+    await apiClient.delete("/auth/account");
+  },
+
   async completeProfile(input: { firstName: string; lastName: string }) {
     const { data } = await apiClient.post<{ user: AuthUser }>("/auth/profile", input);
     return data.user;

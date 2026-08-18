@@ -26,7 +26,7 @@ describe("jobs", () => {
     const category = await CategoryModel.create({
       slug: "cleaning",
       icon: "spray",
-      name: { en: "Cleaning", de: "Reinigung", es: "Limpieza" },
+      name: { en: "Cleaning", de: "Reinigung", es: "Limpieza", fr: "Nettoyage" },
       order: 0,
     });
     categoryId = category.id;

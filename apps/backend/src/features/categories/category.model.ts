@@ -1,7 +1,7 @@
 import { Schema, model, type InferSchemaType, type HydratedDocument } from "mongoose";
 
 const localizedTextSchema = new Schema(
-  { en: { type: String, required: true }, de: { type: String, required: true }, es: { type: String, required: true } },
+  { en: { type: String, required: true }, de: { type: String, required: true }, es: { type: String, required: true }, fr: { type: String, required: true } },
   { _id: false }
 );
 

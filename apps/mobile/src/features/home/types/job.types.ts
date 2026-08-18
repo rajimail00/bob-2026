@@ -2,6 +2,7 @@ export interface LocalizedText {
   en: string;
   de: string;
   es: string;
+  fr: string;
 }
 
 export interface Category {

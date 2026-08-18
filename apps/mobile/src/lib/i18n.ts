@@ -4,11 +4,12 @@ import { initReactI18next } from "react-i18next";
 import de from "@/locales/de.json";
 import en from "@/locales/en.json";
 import es from "@/locales/es.json";
+import fr from "@/locales/fr.json";
 
-export const SUPPORTED_LOCALES = ["en", "de", "es"] as const;
+export const SUPPORTED_LOCALES = ["en", "de", "es", "fr"] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
-const resources = { en: { translation: en }, de: { translation: de }, es: { translation: es } };
+const resources = { en: { translation: en }, de: { translation: de }, es: { translation: es }, fr: { translation: fr } };
 
 function resolveDeviceLocale(): SupportedLocale {
   const deviceLanguage = Localization.getLocales()[0]?.languageCode ?? "en";

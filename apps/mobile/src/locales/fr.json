@@ -1,0 +1,41 @@
+{
+  "common": {
+    "continue": "Continuer",
+    "back": "Retour",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "logout": "Se déconnecter",
+    "retry": "Réessayer",
+    "loading": "Chargement…",
+    "genericError": "Une erreur s’est produite. Veuillez réessayer."
+  },
+  "auth": {
+    "welcome": "Bienvenue sur BOB",
+    "tagline": "Obtenez de l’aide à proximité ou proposez la vôtre.",
+    "login": "Se connecter",
+    "register": "S’inscrire",
+    "continueAsGuest": "Continuer en tant qu’invité",
+    "emailLabel": "Adresse e-mail",
+    "passwordLabel": "Mot de passe",
+    "loginTitle": "Connexion",
+    "registerTitle": "S’inscrire",
+    "or": "ou",
+    "noAccount": "Vous n’avez pas de compte ?",
+    "haveAccount": "Vous avez déjà un compte ?",
+    "verifyTitle": "Vérification",
+    "verifySubtitle": "Saisissez le code envoyé par e-mail",
+    "resendCode": "Renvoyer le code",
+    "createProfileTitle": "Créer un profil",
+    "firstNameLabel": "Prénom",
+    "lastNameLabel": "Nom",
+    "errors": {
+      "emailRequired": "Saisissez votre adresse e-mail",
+      "emailInvalid": "Saisissez une adresse e-mail valide",
+      "passwordRequired": "Saisissez votre mot de passe",
+      "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+      "codeInvalid": "Saisissez le code à 6 chiffres",
+      "firstNameRequired": "Saisissez votre prénom",
+      "lastNameRequired": "Saisissez votre nom"
+    }
+  }
+}

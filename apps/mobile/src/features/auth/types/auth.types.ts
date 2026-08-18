@@ -1,5 +1,5 @@
 export type UserRole = "client" | "worker" | "admin";
-export type Locale = "en" | "de" | "es";
+export type Locale = "en" | "de" | "es" | "fr";
 export type SubscriptionTier = "free" | "pro" | "unlimited";
 
 export interface AuthUser {

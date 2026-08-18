@@ -57,6 +57,19 @@ export function useLogout() {
     },
   });
 }
+export function useDeleteAccount() {
+  const signOut = useAuthStore((s) => s.signOut);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => authApi.deleteAccount(),
+    onSuccess: async () => {
+      disconnectSocket();
+      await signOut();
+      queryClient.clear();
+    },
+  });
+}
 
 export function useCompleteProfile() {
   const setUser = useAuthStore((s) => s.setUser);
