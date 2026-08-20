@@ -1,16 +1,12 @@
 import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { AppError } from "../../lib/errors.js";
+import { deleteCloudinaryAssetByUrl } from "../../lib/cloudinary.js";
 import { sendVerificationEmail } from "../../lib/mailer.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../../lib/jwt.js";
 import { authRepository } from "./auth.repository.js";
-import type {
-  CreateProfileInput,
-  LoginInput,
-  RegisterInput,
-  VerifyEmailInput,
-  WorkerProfileInput,
-} from "./auth.validation.js";
+import { accountDeletionRepository } from "./accountDeletion.repository.js";
+import type { CreateProfileInput, LoginInput, RegisterInput, VerifyEmailInput, WorkerProfileInput } from "./auth.validation.js";
 import type { UserDocument } from "./auth.model.js";
 
 const SALT_ROUNDS = 12;
@@ -96,6 +92,9 @@ export const authService = {
     if (user.status === "banned") {
       throw AppError.forbidden("This account has been suspended. Contact support for help.");
     }
+    if (user.status === "deleted") {
+      throw AppError.unauthorized("This account no longer exists.");
+    }
     if (!user.isEmailVerified) {
       throw AppError.forbidden("Please verify your email before logging in.");
     }
@@ -113,7 +112,10 @@ export const authService = {
     }
 
     const user = await authRepository.findById(payload.sub);
-    if (!user) throw AppError.unauthorized();
+
+    if (!user || user.status !== "active") {
+      throw AppError.unauthorized("Session expired. Please log in again.");
+    }
     if ((user.refreshTokenVersion ?? 0) !== payload.tokenVersion) {
       throw AppError.unauthorized("Session expired. Please log in again.");
     }
@@ -125,6 +127,84 @@ export const authService = {
     const user = await authRepository.findById(userId);
     if (!user) return;
     user.refreshTokenVersion = (user.refreshTokenVersion ?? 0) + 1;
+    await authRepository.save(user);
+  },
+
+  async anonymizeAccount(userId: string) {
+    const user = await authRepository.findById(userId);
+
+    if (!user) {
+      throw AppError.notFound("Account not found.");
+    }
+
+    if (user.status !== "active") {
+      throw AppError.forbidden("Only an active account can be deleted.");
+    }
+
+  // Collect every currently referenced file owned by this account.
+    const relatedAssetUrls =
+      await accountDeletionRepository.collectAssetUrls(userId);
+
+    const assetUrls = [
+      user.photoUrl,
+      ...relatedAssetUrls,
+    ].filter(
+      (url): url is string =>
+        typeof url === "string" && url.length > 0
+    );
+
+    // Delete profile photos, job media, voice notes and attachments.
+    for (const assetUrl of new Set(assetUrls)) {
+      await deleteCloudinaryAssetByUrl(assetUrl);
+    }
+
+    // Preserve shared history while removing personal content.
+    await accountDeletionRepository.anonymizeRelatedData(userId);
+
+    // Replace the original password with an unusable random password.
+    const randomPassword = crypto.randomBytes(32).toString("hex");
+    const anonymousPasswordHash = await bcrypt.hash(
+      randomPassword,
+      SALT_ROUNDS
+    );
+
+    // Release the original email so it can be registered again.
+    user.email = `deleted+${user.id}@deleted.invalid`;
+    user.passwordHash = anonymousPasswordHash;
+
+    // Keep only an anonymous identity for shared historical records.
+    user.firstName = "Deleted";
+    user.lastName = "user";
+
+    // Remove personal/profile information.
+    user.photoUrl = undefined;
+    user.phone = undefined;
+    user.bio = undefined;
+    user.workerProfile = undefined;
+
+    user.rating = {
+      average: 0,
+      count: 0,
+    };
+
+    user.notificationPrefs = {
+      newApplicant: false,
+      newMessage: false,
+      jobWon: false,
+    };
+
+    user.subscriptionTier = "free";
+    user.locale = "en";
+    user.isEmailVerified = false;
+
+    // Remove verification secrets and invalidate refresh tokens.
+    user.emailVerificationCodeHash = undefined;
+    user.emailVerificationExpiresAt = undefined;
+    user.refreshTokenVersion = (user.refreshTokenVersion ?? 0) + 1;
+
+    user.status = "deleted";
+    user.deletedAt = new Date();
+
     await authRepository.save(user);
   },
 

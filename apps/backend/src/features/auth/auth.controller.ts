@@ -46,6 +46,14 @@ export const authController = {
     await authService.logout(req.auth.userId);
     res.status(204).send();
   },
+  async deleteAccount(req: Request, res: Response) {
+    if (!req.auth) {
+      throw AppError.unauthorized();
+    }
+
+    await authService.anonymizeAccount(req.auth.userId);
+    res.status(204).send();
+  },
 
   async completeProfile(req: Request, res: Response) {
     if (!req.auth) throw AppError.unauthorized();

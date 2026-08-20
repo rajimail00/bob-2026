@@ -9,6 +9,7 @@ vi.mock("../../../lib/mailer.js", () => ({
 }));
 
 const { createApp } = await import("../../../app.js");
+const { UserModel } = await import("../auth.model.js");
 
 const app = createApp();
 
@@ -18,6 +19,11 @@ async function registerAndGetCode(email: string) {
 }
 
 describe("auth flow", () => {
+  it("requires authentication to delete an account", async () => {
+    const response = await request(app).delete("/api/v1/auth/account");
+
+    expect(response.status).toBe(401);
+  });
   it("rejects login before the email is verified", async () => {
     const email = "worker@example.com";
     const registerRes = await request(app)
@@ -97,5 +103,140 @@ describe("auth flow", () => {
   it("returns 401 for /auth/me without a token", async () => {
     const res = await request(app).get("/api/v1/auth/me");
     expect(res.status).toBe(401);
+  });
+  it("anonymizes an account and releases its original email", async () => {
+    const email = "delete-account@example.com";
+    const password = "correct-horse-1";
+
+    const code = await registerAndGetCode(email);
+
+    const verifyResponse = await request(app)
+      .post("/api/v1/auth/verify-email")
+      .send({ email, code });
+
+    expect(verifyResponse.status).toBe(200);
+
+    const {
+      accessToken,
+      refreshToken,
+      user,
+    } = verifyResponse.body;
+
+    await UserModel.findByIdAndUpdate(user.id, {
+      firstName: "Personal",
+      lastName: "Name",
+      phone: "123456789",
+      bio: "Private biography",
+      photoUrl: "https://example.com/private-photo.jpg",
+      rating: {
+        average: 4.5,
+        count: 10,
+      },
+      workerProfile: {
+        categories: ["cleaning"],
+        serviceHours: "standard",
+        completedJobsCount: 5,
+      },
+    });
+
+    const deleteResponse = await request(app)
+      .delete("/api/v1/auth/account")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(deleteResponse.status).toBe(204);
+
+    const deletedAccount = await UserModel.findById(user.id).select(
+      "+passwordHash +emailVerificationCodeHash +emailVerificationExpiresAt"
+    );
+
+    expect(deletedAccount).toBeTruthy();
+    expect(deletedAccount?.status).toBe("deleted");
+    expect(deletedAccount?.deletedAt).toBeTruthy();
+
+    expect(deletedAccount?.email).toBe(
+      `deleted+${user.id}@deleted.invalid`
+    );
+
+    expect(deletedAccount?.firstName).toBe("Deleted");
+    expect(deletedAccount?.lastName).toBe("user");
+    expect(deletedAccount?.photoUrl).toBeUndefined();
+    expect(deletedAccount?.phone).toBeUndefined();
+    expect(deletedAccount?.bio).toBeUndefined();
+    expect(deletedAccount?.workerProfile).toBeUndefined();
+    expect(deletedAccount?.rating?.average).toBe(0);
+    expect(deletedAccount?.rating?.count).toBe(0);
+    expect(deletedAccount?.isEmailVerified).toBe(false);
+
+    // The old access token must stop working.
+    const meResponse = await request(app)
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(meResponse.status).toBe(401);
+
+    // The old refresh token must stop working.
+    const refreshResponse = await request(app)
+      .post("/api/v1/auth/refresh")
+      .send({ refreshToken });
+
+    expect(refreshResponse.status).toBe(401);
+
+    // The old login credentials must stop working.
+    const loginResponse = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email, password });
+
+    expect(loginResponse.status).toBe(401);
+
+    // The original email can now be registered again.
+    const registerAgainResponse = await request(app)
+      .post("/api/v1/auth/register")
+      .send({
+        email,
+        password: "new-correct-horse-1",
+        locale: "en",
+      });
+
+    expect(registerAgainResponse.status).toBe(201);
+  });
+
+  it("prevents a banned account from deleting itself or reusing its email", async () => {
+    const email = "banned-account@example.com";
+    const password = "correct-horse-1";
+
+    const code = await registerAndGetCode(email);
+
+    const verifyResponse = await request(app)
+      .post("/api/v1/auth/verify-email")
+      .send({ email, code });
+
+    expect(verifyResponse.status).toBe(200);
+
+    const { accessToken, user } = verifyResponse.body;
+
+    await UserModel.findByIdAndUpdate(user.id, {
+      status: "banned",
+    });
+
+    const deleteResponse = await request(app)
+      .delete("/api/v1/auth/account")
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(deleteResponse.status).toBe(401);
+
+    const registerAgainResponse = await request(app)
+      .post("/api/v1/auth/register")
+      .send({
+        email,
+        password: "another-correct-password",
+        locale: "en",
+      });
+
+    expect(registerAgainResponse.status).toBe(409);
+
+    const bannedAccount = await UserModel.findById(user.id);
+
+    expect(bannedAccount?.status).toBe("banned");
+    expect(bannedAccount?.email).toBe(email);
   });
 });
