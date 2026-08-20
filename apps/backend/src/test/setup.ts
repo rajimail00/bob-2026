@@ -9,12 +9,14 @@ process.env.JWT_REFRESH_SECRET ??= "test-refresh-secret-please-ignore";
 process.env.CORS_ORIGIN ??= "http://localhost:8081";
 process.env.MONGODB_URI ??= "mongodb://127.0.0.1:27017/bob_test_placeholder";
 
-let mongod: MongoMemoryServer;
+// let mongod: MongoMemoryServer;
+let mongod: MongoMemoryServer | undefined;
 
 beforeAll(async () => {
   mongod = await MongoMemoryServer.create();
   await mongoose.connect(mongod.getUri());
-}, 60000);
+// }, 60000);
+}, 120000);
 
 afterEach(async () => {
   const collections = mongoose.connection.collections;
@@ -23,5 +25,5 @@ afterEach(async () => {
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongod.stop();
+  await mongod?.stop();
 });

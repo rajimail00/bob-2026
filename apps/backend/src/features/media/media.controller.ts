@@ -18,11 +18,13 @@ export const mediaController = {
 
     const isVideo = req.file.mimetype.startsWith("video/");
     const isImage = req.file.mimetype.startsWith("image/");
-    if (!isVideo && !isImage) {
-      throw AppError.badRequest("Only image or video files are supported.");
+    const isAudio = req.file.mimetype.startsWith("audio/");
+
+    if (!isVideo && !isImage && !isAudio) {
+      throw AppError.badRequest("Only image, video, or audio files are supported.");
     }
 
-    const { url } = await uploadBuffer(req.file.buffer, isVideo ? "video" : "image");
-    res.status(201).json({ url, type: isVideo ? "video" : "photo" });
+    const { url } = await uploadBuffer(req.file.buffer, isImage ? "image" : "video");
+    res.status(201).json({ url, type: isAudio ? "audio" : isVideo ? "video" : "photo" });
   },
 };

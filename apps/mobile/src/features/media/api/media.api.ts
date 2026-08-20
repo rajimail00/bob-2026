@@ -27,3 +27,15 @@ export async function uploadMedia(localUri: string, kind: "photo" | "video"): Pr
   const { data } = await apiClient.post<UploadedMedia>("/media", formData);
   return data;
 }
+
+export async function uploadAudio(localUri: string): Promise<{ url: string; type: "audio" | "video" }> {
+  const filename = localUri.split("/").pop() ?? `voice-${Date.now()}.m4a`;
+  const extension = filename.includes(".") ? filename.split(".").pop()?.toLowerCase() : "mp4";
+  const mimeType = extension === "webm" ? "video/webm" : "video/mp4";
+
+  const formData = new FormData();
+  formData.append("file", { uri: localUri, name: filename, type: mimeType } as unknown as Blob);
+
+  const { data } = await apiClient.post<{ url: string; type: "audio" | "video" }>("/media", formData);
+  return data;
+}

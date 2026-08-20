@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Linking } from "react-native";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+//import { Linking } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
@@ -7,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { Text } from "@/components/ui/Text";
 import type { Application } from "../types/application.types";
+
 
 const STATUS_LABEL: Record<Application["status"], string> = {
   pending: "",
@@ -35,6 +37,23 @@ interface ApplicantCardProps {
 export function ApplicantCard({ application, onOffer, onMessage, isOffering, disabled }: ApplicantCardProps) {
   const worker = application.workerId;
   const name = `${worker.firstName ?? ""} ${worker.lastName ?? ""}`.trim();
+  const voicePlayer = useAudioPlayer(application.voiceNoteUrl ?? null);
+  const voiceStatus = useAudioPlayerStatus(voicePlayer);
+
+  const toggleVoiceNote = async () => {
+    if (!application.voiceNoteUrl) return;
+
+    if (voiceStatus.playing) {
+      voicePlayer.pause();
+      return;
+    }
+
+    if (voiceStatus.didJustFinish || voiceStatus.currentTime > 0) {
+      await voicePlayer.seekTo(0);
+    }
+
+    voicePlayer.play();
+  };
 
   return (
     <Card gap="$3" alignItems="center">
@@ -61,8 +80,15 @@ export function ApplicantCard({ application, onOffer, onMessage, isOffering, dis
       </Text>
 
       <XStack gap="$2" flexWrap="wrap" justifyContent="center">
-        {application.voiceNoteUrl ? (
+        {/* {application.voiceNoteUrl ? (
           <ActionPill icon="volume-high-outline" label="Listen" onPress={() => Linking.openURL(application.voiceNoteUrl as string)} />
+        ) : null} */}
+        {application.voiceNoteUrl ? (
+          <ActionPill
+            icon={voiceStatus.playing ? "pause-outline" : "volume-high-outline"}
+            label={voiceStatus.playing ? "Playing" : "Listen"}
+            onPress={toggleVoiceNote}
+          />
         ) : null}
         <ActionPill icon="chatbubble-ellipses-outline" label="Reply" onPress={onMessage} />
       </XStack>

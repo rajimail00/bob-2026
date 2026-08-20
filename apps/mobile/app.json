@@ -17,6 +17,13 @@
         }
       ],
       [
+        "expo-audio",
+        {
+          "microphonePermission": "BOB uses your microphone to record a voice note for your application.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "BOB uses your location to attach it to the job you're posting."
