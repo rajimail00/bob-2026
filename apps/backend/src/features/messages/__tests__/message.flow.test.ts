@@ -6,6 +6,7 @@ vi.mock("../../../lib/mailer.js", () => ({ sendVerificationEmail: vi.fn() }));
 const { createApp } = await import("../../../app.js");
 const { UserModel } = await import("../../auth/auth.model.js");
 const { CategoryModel } = await import("../../categories/category.model.js");
+const { MessageModel } = await import("../message.model.js");
 
 const app = createApp();
 
@@ -131,5 +132,36 @@ describe("job messages", () => {
       .get(`/api/v1/jobs/${jobId}/conversations`)
       .set("Authorization", `Bearer ${client.accessToken}`);
     expect(afterRead.body.conversations[0].unreadCount).toBe(0);
+  });
+
+  it("doesn't crash the conversations or unread-count endpoints on a legacy message with no workerId", async () => {
+    const { jobId, client, worker } = await createJobWithApplicant();
+
+    await request(app)
+      .post(`/api/v1/jobs/${jobId}/messages/${worker.userId}`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ text: "A real message" });
+
+    // Bypasses Mongoose's `required: true` to reproduce a pre-migration row from before
+    // conversations were scoped per applicant, which had no workerId at all.
+    const realMessage = await MessageModel.findOne({ jobId });
+    await MessageModel.collection.insertOne({
+      jobId: realMessage!.jobId,
+      senderId: realMessage!.senderId,
+      text: "Legacy message",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const conversationsRes = await request(app)
+      .get(`/api/v1/jobs/${jobId}/conversations`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+    expect(conversationsRes.status).toBe(200);
+    expect(conversationsRes.body.conversations).toHaveLength(1);
+
+    const myApplicationsRes = await request(app)
+      .get("/api/v1/applications/mine")
+      .set("Authorization", `Bearer ${worker.accessToken}`);
+    expect(myApplicationsRes.status).toBe(200);
   });
 });
