@@ -49,7 +49,8 @@ const userSchema = new Schema(
     notificationPrefs: { type: notificationPrefsSchema, default: () => ({}) },
     subscriptionTier: { type: String, enum: SUBSCRIPTION_TIERS, default: "free" },
 
-    status: { type: String, enum: ["active", "banned"], default: "active" },
+    status: { type: String, enum: ["active", "banned", "deleted"], default: "active" },
+    deletedAt: { type: Date },
 
     isEmailVerified: { type: Boolean, default: false },
     emailVerificationCodeHash: { type: String, select: false },
