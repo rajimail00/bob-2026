@@ -17,6 +17,7 @@ interface PostedJobRowProps {
 export function PostedJobRow({ job, onPress }: PostedJobRowProps) {
   const deleteJob = useDeleteJob();
   const [error, setError] = useState<string | null>(null);
+  const applicationCount = job.pendingApplicantsCount ?? 0;
 
   const confirmDelete = () => {
     Alert.alert("Delete this job?", `"${job.title}" will be removed and can't be recovered.`, [
@@ -43,7 +44,12 @@ export function PostedJobRow({ job, onPress }: PostedJobRowProps) {
         onPress={onPress}
         onDelete={job.status === "active" ? confirmDelete : undefined}
         isDeleting={deleteJob.isPending}
-        badge={{ icon: "notifications", count: job.pendingApplicantsCount ?? 0 }}
+        badge={{
+          icon: "people-outline",
+          count: applicationCount,
+          showZero: true,
+          accessibilityLabel: `${applicationCount} ${applicationCount === 1 ? "application" : "applications"}`,
+        }}
       />
       {error ? (
         <Text variant="small" color="$danger">

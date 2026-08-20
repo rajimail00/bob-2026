@@ -4,6 +4,7 @@ import { Image } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
+import { color } from "@/design/tokens";
 import type { SupportedLocale } from "@/lib/i18n";
 import { getCategoryIcon } from "../constants/categoryIcons";
 import type { Job } from "../types/job.types";
@@ -26,6 +27,8 @@ function formatBudget(amount: number) {
 interface JobCardBadge {
   icon: keyof typeof Ionicons.glyphMap;
   count: number;
+  showZero?: boolean;
+  accessibilityLabel?: string;
 }
 
 interface JobCardProps {
@@ -68,25 +71,29 @@ export function JobCard({ job, onPress, distance, onDelete, isDeleting, badge }:
         </YStack>
       ) : null}
 
-      {badge && badge.count > 0 ? (
+      {badge && (badge.count > 0 || badge.showZero) ? (
         <XStack
           position="absolute"
-          top="$2"
-          left="$2"
-          minWidth={26}
-          height={26}
-          borderRadius={13}
-          paddingHorizontal="$1.5"
-          backgroundColor="$backgroundStrong"
+          top="$3"
+          left="$3"
+          minWidth={44}
+          height={32}
+          borderRadius="$pill"
+          paddingHorizontal="$2"
+          backgroundColor="$brand50"
+          borderWidth={1}
+          borderColor="$brand200"
           alignItems="center"
           justifyContent="center"
           gap="$1"
           shadowColor="#000"
-          shadowOpacity={0.15}
+          shadowOpacity={0.1}
           shadowRadius={4}
+          accessibilityRole="text"
+          accessibilityLabel={badge.accessibilityLabel}
         >
-          <Ionicons name={badge.icon} size={13} color="#4F8266" />
-          <Text variant="small" fontWeight="700" color="$danger">
+          <Ionicons name={badge.icon} size={15} color={color.brand600} />
+          <Text variant="small" fontWeight="700" color="$brand800">
             {badge.count}
           </Text>
         </XStack>
