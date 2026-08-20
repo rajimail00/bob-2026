@@ -34,14 +34,21 @@ export const messageRepository = {
       { $match: { $expr: { $eq: [{ $ifNull: ["$readAt", null] }, null] } } },
       { $group: { _id: "$jobId", count: { $sum: 1 } } },
     ]);
-    return Object.fromEntries(rows.map((row) => [row._id.toString(), row.count as number]));
+    // `_id` is null for any stray message missing a jobId (shouldn't happen since it's required
+    // and immutable, but this endpoint crashed in the past on legacy pre-migration rows —
+    // guard against it rather than 500 the whole "My Jobs" list over a handful of bad rows).
+    return Object.fromEntries(
+      rows.filter((row) => row._id != null).map((row) => [row._id.toString(), row.count as number])
+    );
   },
 
   /** Per-applicant conversation summary for a job's owner — last message and unread count
    * for each candidate they've exchanged messages with. */
   async listConversationSummariesForJob(jobId: string, clientId: string) {
     const rows = await MessageModel.aggregate([
-      { $match: { jobId: new Types.ObjectId(jobId) } },
+      // Excludes messages from before conversations were scoped per-applicant, which have no
+      // workerId — grouping those under `_id: null` used to crash this endpoint.
+      { $match: { jobId: new Types.ObjectId(jobId), workerId: { $ne: null } } },
       { $sort: { createdAt: -1 } },
       {
         $group: {
