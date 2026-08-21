@@ -1,8 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { zodResolver } from "@hookform/resolvers/zod";
-import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
-import { Platform, ScrollView } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -21,6 +20,7 @@ import { IconValue } from "@/features/home/components/IconValue";
 import { MediaCarousel } from "@/features/home/components/MediaCarousel";
 import { useCategories, useCreateJob } from "@/features/home/hooks/useJobs";
 import type { UploadedMedia } from "@/features/media/api/media.api";
+import { color } from "@/design/tokens";
 import { getApiErrorMessage } from "@/lib/apiClient";
 import type { SupportedLocale } from "@/lib/i18n";
 import { useCurrentLocation } from "@/lib/useCurrentLocation";
@@ -33,6 +33,17 @@ const STEP_COUNT = 5;
 const MAX_PEOPLE = 15;
 const RECURRENCE_OPTIONS = ["none", "daily", "weekly", "monthly"] as const;
 const PAYMENT_OPTIONS = ["cash", "paypal", "both"] as const;
+const DATE_PICKER_BRAND_COLOR = color.brand500;
+const DATE_PICKER_DAY_SIZE = 36;
+const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"] as const;
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index + 1));
+const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, "0"));
+const MERIDIEM_OPTIONS = ["AM", "PM"] as const;
+const TIME_PICKER_CLOCK_SIZE = 260;
+const TIME_PICKER_CLOCK_CENTER = TIME_PICKER_CLOCK_SIZE / 2;
+const TIME_PICKER_CLOCK_RADIUS = 108;
+const TIME_PICKER_CLOCK_NUMBER_SIZE = 50;
+const TIME_PICKER_HAND_LENGTH = 88;
 
 export function PostJobScreen() {
   const { t, i18n } = useTranslation();
@@ -47,6 +58,10 @@ export function PostJobScreen() {
   const [published, setPublished] = useState(false);
   const [media, setMedia] = useState<UploadedMedia[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [draftDate, setDraftDate] = useState(new Date());
+  const [datePickerMonth, setDatePickerMonth] = useState(startOfMonth(new Date()));
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [draftTime, setDraftTime] = useState(new Date());
 
   const {
     control,
@@ -100,11 +115,16 @@ export function PostJobScreen() {
   };
   const goBack = () => setStep((s) => Math.max(s - 1, 0));
 
-  const onDateChange = (event: DateTimePickerEvent, selected?: Date) => {
-    setShowDatePicker(Platform.OS === "ios");
-    if (event.type === "set" && selected) {
-      setValue("date", selected);
-    }
+  const openDatePicker = () => {
+    const date = values.date;
+    setDraftDate(date);
+    setDatePickerMonth(startOfMonth(date));
+    setShowDatePicker(true);
+  };
+
+  const openTimePicker = () => {
+    setDraftTime(values.date);
+    setShowTimePicker(true);
   };
 
   const onSubmit = handleSubmit(async (formValues) => {
@@ -257,18 +277,48 @@ export function PostJobScreen() {
                         }}
                       />
                     </YStack>
-                    <Button variant={isCustomDate ? "primary" : "outline"} size="sm" onPress={() => setShowDatePicker(true)}>
+                    <Button variant={isCustomDate ? "primary" : "outline"} size="sm" onPress={openDatePicker}>
                       {isCustomDate ? values.date.toLocaleDateString(locale) : "Pick date"}
                     </Button>
                   </XStack>
-                  {showDatePicker ? (
-                    <DateTimePicker
-                      value={values.date}
-                      mode="date"
-                      minimumDate={new Date()}
-                      onChange={onDateChange}
-                    />
-                  ) : null}
+                  <BrandDatePicker
+                    visible={showDatePicker}
+                    locale={locale}
+                    selectedDate={draftDate}
+                    month={datePickerMonth}
+                    minimumDate={new Date()}
+                    onMonthChange={setDatePickerMonth}
+                    onSelectDate={setDraftDate}
+                    onCancel={() => setShowDatePicker(false)}
+                    onConfirm={() => {
+                      setValue("date", draftDate);
+                      setShowDatePicker(false);
+                    }}
+                  />
+                </YStack>
+
+                <YStack gap="$2">
+                  <Text variant="label">Select time</Text>
+
+                  <Button variant="outline" onPress={openTimePicker}>
+                    {values.date.toLocaleTimeString(locale, {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </Button>
+
+                  <BrandTimePicker
+                    visible={showTimePicker}
+                    locale={locale}
+                    selectedTime={draftTime}
+                    onSelectTime={setDraftTime}
+                    onCancel={() => setShowTimePicker(false)}
+                    onConfirm={() => {
+                      setValue("date", mergeDateWithTime(values.date, draftTime));
+                      setShowTimePicker(false);
+                    }}
+                  />
                 </YStack>
 
                 <YStack gap="$2">
@@ -440,6 +490,14 @@ export function PostJobScreen() {
                   <XStack flexWrap="wrap" gap="$4">
                     <IconValue icon="pricetag-outline" value={`€${values.budget}`} />
                     <IconValue icon="calendar-outline" value={new Date(values.date).toLocaleDateString(locale)} />
+                    <IconValue
+                      icon="time-outline"
+                      value={new Date(values.date).toLocaleTimeString(locale, {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    />
                     <IconValue icon="person-outline" value={`${values.peopleNeeded} people`} />
                   </XStack>
                   <XStack alignItems="flex-start" gap="$2">
@@ -490,3 +548,449 @@ export function PostJobScreen() {
     </SafeAreaView>
   );
 }
+
+interface BrandDatePickerProps {
+  visible: boolean;
+  locale: SupportedLocale;
+  selectedDate: Date;
+  month: Date;
+  minimumDate: Date;
+  onMonthChange: (month: Date) => void;
+  onSelectDate: (date: Date) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+function BrandDatePicker({
+  visible,
+  locale,
+  selectedDate,
+  month,
+  minimumDate,
+  onMonthChange,
+  onSelectDate,
+  onCancel,
+  onConfirm,
+}: BrandDatePickerProps) {
+  const minimumDay = startOfDay(minimumDate);
+  const calendarWeeks = getCalendarWeeks(month);
+  const canGoPreviousMonth = startOfMonth(month).getTime() > startOfMonth(minimumDay).getTime();
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <Pressable style={styles.datePickerBackdrop} onPress={onCancel}>
+        <Pressable style={styles.datePickerCard} onPress={(event) => event.stopPropagation()}>
+          <YStack backgroundColor="$backgroundStrong" borderRadius="$md" overflow="hidden">
+            <YStack backgroundColor="$primary" padding="$4" gap="$1">
+              <Text variant="body" color="$primaryText" opacity={0.78} fontWeight="600">
+                {selectedDate.getFullYear()}
+              </Text>
+              <Text variant="h1" color="$primaryText">
+                {selectedDate.toLocaleDateString(locale, { weekday: "short", month: "short", day: "numeric" })}
+              </Text>
+            </YStack>
+
+            <YStack padding="$4" gap="$4">
+              <XStack alignItems="center" justifyContent="space-between">
+                <XStack
+                  width={40}
+                  height={40}
+                  borderRadius={20}
+                  alignItems="center"
+                  justifyContent="center"
+                  opacity={canGoPreviousMonth ? 1 : 0.3}
+                  onPress={canGoPreviousMonth ? () => onMonthChange(addMonths(month, -1)) : undefined}
+                  accessibilityRole="button"
+                  accessibilityLabel="Previous month"
+                >
+                  <Ionicons name="chevron-back" size={24} color={DATE_PICKER_BRAND_COLOR} />
+                </XStack>
+                <Text variant="body" fontWeight="700">
+                  {month.toLocaleDateString(locale, { month: "long", year: "numeric" })}
+                </Text>
+                <XStack
+                  width={40}
+                  height={40}
+                  borderRadius={20}
+                  alignItems="center"
+                  justifyContent="center"
+                  onPress={() => onMonthChange(addMonths(month, 1))}
+                  accessibilityRole="button"
+                  accessibilityLabel="Next month"
+                >
+                  <Ionicons name="chevron-forward" size={24} color={DATE_PICKER_BRAND_COLOR} />
+                </XStack>
+              </XStack>
+
+              <XStack justifyContent="space-between">
+                {WEEKDAY_LABELS.map((day, index) => (
+                  <YStack key={`${day}-${index}`} width={DATE_PICKER_DAY_SIZE} alignItems="center">
+                    <Text variant="body" muted>
+                      {day}
+                    </Text>
+                  </YStack>
+                ))}
+              </XStack>
+
+              <YStack gap="$2">
+                {calendarWeeks.map((week, weekIndex) => (
+                  <XStack key={weekIndex} justifyContent="space-between">
+                    {week.map((date, dayIndex) => {
+                      if (!date) {
+                        return (
+                          <YStack
+                            key={`empty-${dayIndex}`}
+                            width={DATE_PICKER_DAY_SIZE}
+                            height={DATE_PICKER_DAY_SIZE}
+                          />
+                        );
+                      }
+
+                      const isDisabled = startOfDay(date).getTime() < minimumDay.getTime();
+                      const isSelected = isSameDay(date, selectedDate);
+
+                      return (
+                        <YStack
+                          key={date.toISOString()}
+                          width={DATE_PICKER_DAY_SIZE}
+                          height={DATE_PICKER_DAY_SIZE}
+                          borderRadius={DATE_PICKER_DAY_SIZE / 2}
+                          alignItems="center"
+                          justifyContent="center"
+                          backgroundColor={isSelected ? "$primary" : "transparent"}
+                          opacity={isDisabled ? 0.35 : 1}
+                          onPress={isDisabled ? undefined : () => onSelectDate(date)}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: isSelected, disabled: isDisabled }}
+                          accessibilityLabel={date.toLocaleDateString(locale, {
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        >
+                          <Text variant="body" color={isSelected ? "$primaryText" : "$color"}>
+                            {date.getDate()}
+                          </Text>
+                        </YStack>
+                      );
+                    })}
+                  </XStack>
+                ))}
+              </YStack>
+
+              <XStack justifyContent="flex-end" gap="$2" paddingTop="$2">
+                <Button variant="ghost" size="sm" onPress={onCancel}>
+                  CANCEL
+                </Button>
+                <Button variant="ghost" size="sm" onPress={onConfirm}>
+                  OK
+                </Button>
+              </XStack>
+            </YStack>
+          </YStack>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+interface BrandTimePickerProps {
+  visible: boolean;
+  locale: SupportedLocale;
+  selectedTime: Date;
+  onSelectTime: (time: Date) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+function BrandTimePicker({
+  visible,
+  locale,
+  selectedTime,
+  onSelectTime,
+  onCancel,
+  onConfirm,
+}: BrandTimePickerProps) {
+  const [clockMode, setClockMode] = useState<"hour" | "minute">("hour");
+  const selectedHour = getDisplayHour(selectedTime);
+  const selectedMinute = String(selectedTime.getMinutes()).padStart(2, "0");
+  const selectedMeridiem = getMeridiem(selectedTime);
+  const clockOptions = clockMode === "hour" ? HOUR_OPTIONS : MINUTE_OPTIONS;
+  const selectedClockValue = clockMode === "hour" ? selectedHour : selectedMinute;
+  const handAngle = getClockAngle(clockMode, selectedClockValue);
+
+  useEffect(() => {
+    if (visible) setClockMode("hour");
+  }, [visible]);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <Pressable style={styles.datePickerBackdrop} onPress={onCancel}>
+        <Pressable style={styles.datePickerCard} onPress={(event) => event.stopPropagation()}>
+          <YStack backgroundColor="$backgroundStrong" borderRadius="$md" overflow="hidden">
+            <YStack backgroundColor="$primary" padding="$4" style={styles.timePickerHeader}>
+              <XStack alignItems="center" justifyContent="space-between">
+                <XStack alignItems="center">
+                  <Pressable onPress={() => setClockMode("hour")}>
+                    <Text color="$primaryText" style={styles.timePickerHeaderTime}>
+                      {selectedHour}
+                    </Text>
+                  </Pressable>
+                  <Text color="$primaryText" opacity={0.65} style={styles.timePickerHeaderTime}>
+                    :
+                  </Text>
+                  <Pressable onPress={() => setClockMode("minute")}>
+                    <Text
+                      color="$primaryText"
+                      opacity={clockMode === "minute" ? 1 : 0.65}
+                      style={styles.timePickerHeaderTime}
+                    >
+                      {selectedMinute}
+                    </Text>
+                  </Pressable>
+                </XStack>
+
+                <YStack gap="$2" alignItems="center">
+                  {MERIDIEM_OPTIONS.map((meridiem) => {
+                    const isSelected = selectedMeridiem === meridiem;
+                    return (
+                      <Pressable
+                        key={meridiem}
+                        onPress={() => onSelectTime(setTimeMeridiem(selectedTime, meridiem))}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: isSelected }}
+                        accessibilityLabel={meridiem}
+                      >
+                        <Text
+                          variant="h3"
+                          color="$primaryText"
+                          opacity={isSelected ? 1 : 0.58}
+                          fontWeight="700"
+                        >
+                          {meridiem}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </YStack>
+              </XStack>
+            </YStack>
+
+            <YStack padding="$4" gap="$3" alignItems="center">
+              <View style={styles.timePickerClockFace}>
+                <View
+                  style={[
+                    styles.timePickerHand,
+                    {
+                      transform: [{ rotate: `${handAngle}deg` }],
+                    },
+                  ]}
+                />
+                <View style={styles.timePickerCenterDot} />
+
+                {clockOptions.map((option) => {
+                  const isSelected = selectedClockValue === option;
+                  const position = getClockOptionPosition(clockMode, option);
+
+                  return (
+                    <Pressable
+                      key={option}
+                      style={[
+                        styles.timePickerNumber,
+                        position,
+                        isSelected ? styles.timePickerNumberSelected : null,
+                      ]}
+                      onPress={() => {
+                        if (clockMode === "hour") {
+                          onSelectTime(setTimeHour(selectedTime, option));
+                          setClockMode("minute");
+                        } else {
+                          onSelectTime(setTimeMinute(selectedTime, option));
+                        }
+                      }}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: isSelected }}
+                      accessibilityLabel={clockMode === "hour" ? `Hour ${option}` : `Minute ${option}`}
+                    >
+                      <Text
+                        variant="h4"
+                        color={isSelected ? "$primaryText" : "$color"}
+                        fontWeight={isSelected ? "700" : "500"}
+                      >
+                        {option}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <XStack justifyContent="flex-end" alignItems="center" width="100%" paddingTop="$2">
+                <XStack gap="$2">
+                  <Button variant="ghost" size="sm" onPress={onCancel}>
+                    CANCEL
+                  </Button>
+                  <Button variant="ghost" size="sm" onPress={onConfirm}>
+                    OK
+                  </Button>
+                </XStack>
+              </XStack>
+            </YStack>
+          </YStack>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function mergeDateWithTime(date: Date, time: Date) {
+  const merged = new Date(date);
+  merged.setHours(time.getHours(), time.getMinutes(), 0, 0);
+  return merged;
+}
+
+function getClockAngle(mode: "hour" | "minute", value: string) {
+  const numericValue = Number(value);
+  if (mode === "hour") return (numericValue % 12) * 30 - 90;
+  return numericValue * 6 - 90;
+}
+
+function getClockOptionPosition(mode: "hour" | "minute", value: string) {
+  const angle = (getClockAngle(mode, value) * Math.PI) / 180;
+  const x = TIME_PICKER_CLOCK_CENTER + Math.cos(angle) * TIME_PICKER_CLOCK_RADIUS;
+  const y = TIME_PICKER_CLOCK_CENTER + Math.sin(angle) * TIME_PICKER_CLOCK_RADIUS;
+
+  return {
+    left: x - TIME_PICKER_CLOCK_NUMBER_SIZE / 2,
+    top: y - TIME_PICKER_CLOCK_NUMBER_SIZE / 2,
+  };
+}
+
+function getDisplayHour(time: Date) {
+  const hour = time.getHours() % 12;
+  return String(hour === 0 ? 12 : hour);
+}
+
+function getMeridiem(time: Date): (typeof MERIDIEM_OPTIONS)[number] {
+  return time.getHours() >= 12 ? "PM" : "AM";
+}
+
+function setTimeHour(time: Date, hourValue: string) {
+  const updated = new Date(time);
+  const hour = Number(hourValue) % 12;
+  updated.setHours(getMeridiem(time) === "PM" ? hour + 12 : hour);
+  return updated;
+}
+
+function setTimeMinute(time: Date, minuteValue: string) {
+  const updated = new Date(time);
+  updated.setMinutes(Number(minuteValue));
+  return updated;
+}
+
+function setTimeMeridiem(time: Date, meridiem: (typeof MERIDIEM_OPTIONS)[number]) {
+  const updated = new Date(time);
+  const hour = updated.getHours();
+  if (meridiem === "AM" && hour >= 12) updated.setHours(hour - 12);
+  if (meridiem === "PM" && hour < 12) updated.setHours(hour + 12);
+  return updated;
+}
+
+function getCalendarWeeks(month: Date): (Date | null)[][] {
+  const firstDay = startOfMonth(month);
+  const daysInMonth = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 0).getDate();
+  const cells: (Date | null)[] = Array.from({ length: firstDay.getDay() }, () => null);
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    cells.push(new Date(firstDay.getFullYear(), firstDay.getMonth(), day));
+  }
+
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const weeks: (Date | null)[][] = [];
+  for (let index = 0; index < cells.length; index += 7) {
+    weeks.push(cells.slice(index, index + 7));
+  }
+  return weeks;
+}
+
+function addMonths(date: Date, amount: number) {
+  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+const styles = StyleSheet.create({
+  datePickerBackdrop: {
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+    flex: 1,
+    justifyContent: "center",
+    padding: 24,
+  },
+  datePickerCard: {
+    borderRadius: 10,
+    elevation: 12,
+    maxWidth: 360,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+    width: "100%",
+  },
+  timePickerHeader: {
+    minHeight: 190,
+    justifyContent: "center",
+  },
+  timePickerHeaderTime: {
+    fontSize: 64,
+    fontWeight: "400",
+    lineHeight: 78,
+  },
+  timePickerClockFace: {
+    backgroundColor: color.neutral100,
+    borderRadius: TIME_PICKER_CLOCK_SIZE / 2,
+    height: TIME_PICKER_CLOCK_SIZE,
+    position: "relative",
+    width: TIME_PICKER_CLOCK_SIZE,
+  },
+  timePickerHand: {
+    backgroundColor: color.brand500,
+    height: 2,
+    left: TIME_PICKER_CLOCK_CENTER,
+    position: "absolute",
+    top: TIME_PICKER_CLOCK_CENTER - 1,
+    transformOrigin: "left center",
+    width: TIME_PICKER_HAND_LENGTH,
+  },
+  timePickerCenterDot: {
+    backgroundColor: color.brand500,
+    borderRadius: 5,
+    height: 10,
+    left: TIME_PICKER_CLOCK_CENTER - 5,
+    position: "absolute",
+    top: TIME_PICKER_CLOCK_CENTER - 5,
+    width: 10,
+  },
+  timePickerNumber: {
+    alignItems: "center",
+    borderRadius: TIME_PICKER_CLOCK_NUMBER_SIZE / 2,
+    height: TIME_PICKER_CLOCK_NUMBER_SIZE,
+    justifyContent: "center",
+    position: "absolute",
+    width: TIME_PICKER_CLOCK_NUMBER_SIZE,
+  },
+  timePickerNumberSelected: {
+    backgroundColor: color.brand500,
+  },
+});
