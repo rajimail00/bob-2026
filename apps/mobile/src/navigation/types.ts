@@ -10,6 +10,10 @@ export type AuthStackParamList = {
 export type HomeStackParamList = {
   HomeList: undefined;
   JobDetail: { jobId: string };
+  ApplicantProfile: {
+    jobId: string;
+    applicationId: string;
+  };
   Chat: { jobId: string; workerId: string };
   WorkerProfileSetup: undefined;
 };
@@ -17,6 +21,10 @@ export type HomeStackParamList = {
 export type OrdersStackParamList = {
   OrdersList: undefined;
   JobDetail: { jobId: string };
+  ApplicantProfile: {
+    jobId: string;
+    applicationId: string;
+  };
   Chat: { jobId: string; workerId: string };
   WorkerProfileSetup: undefined;
 };

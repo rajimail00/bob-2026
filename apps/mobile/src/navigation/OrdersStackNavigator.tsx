@@ -4,6 +4,7 @@ import { ChatScreen } from "@/features/messages/screens/ChatScreen";
 import { OrdersScreen } from "@/features/orders/screens/OrdersScreen";
 import { WorkerProfileSetupScreen } from "@/features/profile/screens/WorkerProfileSetupScreen";
 import type { OrdersStackParamList } from "./types";
+import { ApplicantProfileScreen } from "@/features/applications/screens/ApplicantProfileScreen";
 
 const Stack = createNativeStackNavigator<OrdersStackParamList>();
 
@@ -12,6 +13,7 @@ export function OrdersStackNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="OrdersList" component={OrdersScreen} />
       <Stack.Screen name="JobDetail" component={JobDetailScreen} options={{ headerShown: true, title: "" }} />
+      <Stack.Screen name="ApplicantProfile" component={ApplicantProfileScreen} options={{ headerShown: true, title: "Applicant Profile",}} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: true, title: "Messages" }} />
       <Stack.Screen
         name="WorkerProfileSetup"

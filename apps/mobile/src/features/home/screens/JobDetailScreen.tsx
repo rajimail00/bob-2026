@@ -1,3 +1,4 @@
+import { ApplicantListRow } from "@/features/applications/components/ApplicantListRow";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
@@ -5,7 +6,6 @@ import { Alert } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { PillTabs } from "@/components/ui/PillTabs";
 import { Screen } from "@/components/ui/Screen";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { SwipeToConfirm } from "@/components/ui/SwipeToConfirm";
@@ -13,13 +13,11 @@ import { Text } from "@/components/ui/Text";
 import { EmptyState } from "@/components/ui/states/EmptyState";
 import { ErrorState } from "@/components/ui/states/ErrorState";
 import { LoadingState } from "@/components/ui/states/LoadingState";
-import { ApplicantCarousel } from "@/features/applications/components/ApplicantCarousel";
 import { ApplyForm } from "@/features/applications/components/ApplyForm";
 import type { Application, MyApplication } from "@/features/applications/types/application.types";
 import {
   useJobApplicants,
   useMyApplications,
-  useOfferApplicant,
   useRespondToOffer,
 } from "@/features/applications/hooks/useApplications";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -44,8 +42,27 @@ const STATUS_TONE = {
 } as const;
 
 interface Props {
-  route: { params: { jobId: string } };
-  navigation: { navigate: (screen: string, params?: { jobId: string; workerId?: string }) => void; goBack: () => void };
+  route: {
+    params: {
+      jobId: string;
+    };
+  };
+
+  navigation: {
+    navigate(
+      screen: "Chat",
+      params: { jobId: string; workerId: string }
+    ): void;
+
+    navigate(
+      screen: "ApplicantProfile",
+      params: { jobId: string; applicationId: string }
+    ): void;
+
+    navigate(screen: "WorkerProfileSetup"): void;
+
+    goBack(): void;
+  };
 }
 
 export function JobDetailScreen({ route, navigation }: Props) {
@@ -58,7 +75,6 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const isOwnerView = Boolean(jobQuery.data && jobQuery.data.clientId._id === user?.id);
   const applicantsQuery = useJobApplicants(isOwnerView ? jobId : undefined);
   const myApplicationsQuery = useMyApplications();
-  const offerApplicant = useOfferApplicant(jobId);
   const respondToOffer = useRespondToOffer(jobId);
   const completeJob = useCompleteJob();
   const cancelJob = useCancelJob();
@@ -164,8 +180,12 @@ export function JobDetailScreen({ route, navigation }: Props) {
             jobStatus={job.status}
             applicants={applicantsQuery.data}
             isLoadingApplicants={applicantsQuery.isLoading}
-            onOffer={(applicationId) => offerApplicant.mutate(applicationId)}
-            isOffering={offerApplicant.isPending}
+            onOpenApplicant={(applicationId) =>
+              navigation.navigate("ApplicantProfile", {
+                jobId,
+                applicationId,
+              })
+            }
             onOpenChat={(workerId) => navigation.navigate("Chat", { jobId, workerId })}
             onComplete={async () => {
               setCompleteError(null);
@@ -259,15 +279,13 @@ function NotificationBell({ count }: { count: number }) {
   );
 }
 
-type InboxTab = "applicants" | "messages";
 
 function OwnerActions({
   jobId,
   jobStatus,
   applicants,
   isLoadingApplicants,
-  onOffer,
-  isOffering,
+  onOpenApplicant,
   onOpenChat,
   onComplete,
   isCompleting,
@@ -282,8 +300,7 @@ function OwnerActions({
   jobStatus: string;
   applicants: Application[] | undefined;
   isLoadingApplicants: boolean;
-  onOffer: (applicationId: string) => void;
-  isOffering: boolean;
+  onOpenApplicant: (applicationId: string) => void;
   onOpenChat: (workerId: string) => void;
   onComplete: () => void;
   isCompleting: boolean;
@@ -294,27 +311,21 @@ function OwnerActions({
   isDeleting: boolean;
   deleteError: string | null;
 }) {
-  const [inboxTab, setInboxTab] = useState<InboxTab>("applicants");
   const conversationsQuery = useJobConversations(jobId);
 
   if (jobStatus === "active" || jobStatus === "offer_pending") {
     return (
-      <YStack gap="$3">
+      <YStack gap="$4">
         {jobStatus === "offer_pending" ? (
           <Text variant="body" muted>
-            Waiting for the offered candidate to respond — other applicants are on hold.
+            Waiting for the offered candidate to respond — other applicants
+            are on hold.
           </Text>
         ) : null}
 
         <XStack justifyContent="space-between" alignItems="center">
-          <PillTabs
-            options={[
-              { value: "applicants", label: "Bewerber" },
-              { value: "messages", label: "Nachrichten" },
-            ]}
-            value={inboxTab}
-            onChange={setInboxTab}
-          />
+          <Text variant="h3">Applicants</Text>
+
           {jobStatus === "active" ? (
             <XStack
               width={36}
@@ -327,22 +338,42 @@ function OwnerActions({
               accessibilityRole="button"
               accessibilityLabel="Delete job"
             >
-              {isDeleting ? null : <Ionicons name="trash-outline" size={16} color="#C1554B" />}
+              {isDeleting ? null : (
+                <Ionicons
+                  name="trash-outline"
+                  size={16}
+                  color="#C1554B"
+                />
+              )}
             </XStack>
           ) : null}
         </XStack>
 
-        {inboxTab === "applicants" ? (
-          isLoadingApplicants ? (
-            <LoadingState />
-          ) : applicants && applicants.length > 0 ? (
-            <ApplicantCarousel applicants={applicants} onOffer={onOffer} onMessage={onOpenChat} isOffering={isOffering} />
-          ) : (
-            <EmptyState title="No applicants yet" body="Candidates who apply will show up here." />
-          )
-        ) : conversationsQuery.isLoading ? (
+        {isLoadingApplicants ? (
           <LoadingState />
-        ) : conversationsQuery.data && conversationsQuery.data.length > 0 ? (
+        ) : applicants && applicants.length > 0 ? (
+          <YStack gap="$2">
+            {applicants.map((application) => (
+              <ApplicantListRow
+                key={application._id}
+                application={application}
+                onPress={() => onOpenApplicant(application._id)}
+              />
+            ))}
+          </YStack>
+        ) : (
+          <EmptyState
+            title="No applicants yet"
+            body="Candidates who apply will show up here."
+          />
+        )}
+
+        <Text variant="h3">Chat</Text>
+
+        {conversationsQuery.isLoading ? (
+          <LoadingState />
+        ) : conversationsQuery.data &&
+          conversationsQuery.data.length > 0 ? (
           <YStack gap="$2">
             {conversationsQuery.data.map((conversation) => (
               <ConversationRow
@@ -353,7 +384,10 @@ function OwnerActions({
             ))}
           </YStack>
         ) : (
-          <EmptyState title="No messages yet" body="Conversations with applicants will show up here." />
+          <EmptyState
+            title="No conversations yet"
+            body="Start a conversation from an applicant's profile."
+          />
         )}
 
         {deleteError ? (
