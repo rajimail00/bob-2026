@@ -36,8 +36,7 @@
           "cameraPermission": "BOB uses your camera to take photos and videos for the job you're posting.",
           "microphonePermission": "BOB uses your microphone to record video for the job you're posting."
         }
-      ],
-      "@react-native-community/datetimepicker"
+      ]
     ],
     "assetBundlePatterns": [
       "**/*"
