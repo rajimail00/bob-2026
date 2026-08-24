@@ -76,7 +76,7 @@ export function useCompleteProfile() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: { firstName: string; lastName: string; photoUrl?: string }) =>
+    mutationFn: (input: { firstName: string; lastName: string; photoUrl?: string; phone?: string }) =>
   authApi.completeProfile(input),
     onSuccess: async (user) => {
       setUser(user);
