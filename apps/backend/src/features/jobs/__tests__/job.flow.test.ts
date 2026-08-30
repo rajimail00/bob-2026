@@ -74,6 +74,58 @@ describe("jobs", () => {
     expect(res.status).toBe(400);
   });
 
+  it("returns 409 for a forbidden active -> completed transition", async () => {
+    const { accessToken } = await createVerifiedClient("client-transition@example.com");
+    const createRes = await request(app)
+      .post("/api/v1/jobs")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        categoryId,
+        title: "Need help packing",
+        description: "Help me pack several boxes before moving day.",
+        location: { lng: 13.405, lat: 52.52 },
+        address: "Schwalbacherstr. 42, Berlin",
+        date: new Date().toISOString(),
+        budget: 75,
+      });
+
+    const res = await request(app)
+      .post(`/api/v1/jobs/${createRes.body.job._id}/complete`)
+      .set("Authorization", `Bearer ${accessToken}`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("CONFLICT");
+  });
+
+  it("allows active -> cancelled, then returns 409 for another cancellation", async () => {
+    const { accessToken } = await createVerifiedClient("client-cancel-transition@example.com");
+    const createRes = await request(app)
+      .post("/api/v1/jobs")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        categoryId,
+        title: "Need help gardening",
+        description: "Help trim the garden and collect the branches.",
+        location: { lng: 13.405, lat: 52.52 },
+        address: "Schwalbacherstr. 42, Berlin",
+        date: new Date().toISOString(),
+        budget: 60,
+      });
+    const jobId = createRes.body.job._id as string;
+
+    const cancelRes = await request(app)
+      .post(`/api/v1/jobs/${jobId}/cancel`)
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(cancelRes.status).toBe(200);
+    expect(cancelRes.body.job.status).toBe("cancelled");
+
+    const cancelAgainRes = await request(app)
+      .post(`/api/v1/jobs/${jobId}/cancel`)
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(cancelAgainRes.status).toBe(409);
+    expect(cancelAgainRes.body.error.code).toBe("CONFLICT");
+  });
+
   it("returns 404 for an unknown job id", async () => {
     const res = await request(app).get("/api/v1/jobs/64b64b64b64b64b64b64b64b");
     expect(res.status).toBe(404);

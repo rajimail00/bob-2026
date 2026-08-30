@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Avatar } from "@/components/ui/Avatar";
@@ -9,101 +10,74 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { Text } from "@/components/ui/Text";
 import { ErrorState } from "@/components/ui/states/ErrorState";
 import { LoadingState } from "@/components/ui/states/LoadingState";
-import {
-  useJobApplicants,
-  useOfferApplicant,
-} from "../hooks/useApplications";
+import { useJob } from "@/features/home/hooks/useJobs";
 import { getApiErrorMessage } from "@/lib/apiClient";
+import { useJobApplicants, useOfferApplicant } from "../hooks/useApplications";
 
 interface Props {
-  route: {
-    params: {
-      jobId: string;
-      applicationId: string;
-    };
-  };
+  route: { params: { jobId: string; applicationId: string } };
   navigation: {
-    navigate: (
-      screen: "Chat",
-      params: { jobId: string; workerId: string }
-    ) => void;
+    navigate: (screen: "Chat", params: { jobId: string; workerId: string }) => void;
   };
 }
 
-export function ApplicantProfileScreen({
-  route,
-  navigation,
-}: Props) {
+export function ApplicantProfileScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { jobId, applicationId } = route.params;
-
   const applicantsQuery = useJobApplicants(jobId);
+  const jobQuery = useJob(jobId);
   const offerApplicant = useOfferApplicant(jobId);
 
-  if (applicantsQuery.isLoading) {
-    return <LoadingState />;
-  }
+  if (applicantsQuery.isLoading || jobQuery.isLoading) return <LoadingState />;
 
-  if (applicantsQuery.isError) {
+  if (applicantsQuery.isError || jobQuery.isError) {
     return (
       <ErrorState
-        title="Couldn't load applicant"
-        retryLabel="Try again"
+        title={t("applications.loadError")}
+        retryLabel={t("common.retry")}
+        onRetry={() => {
+          void applicantsQuery.refetch();
+          void jobQuery.refetch();
+        }}
+      />
+    );
+  }
+
+  const application = applicantsQuery.data?.find((item) => item._id === applicationId);
+
+  if (!application || !jobQuery.data) {
+    return (
+      <ErrorState
+        title={t("applications.notFound")}
+        retryLabel={t("common.retry")}
         onRetry={() => applicantsQuery.refetch()}
       />
     );
   }
 
-  const application = applicantsQuery.data?.find(
-    (item) => item._id === applicationId
-  );
-
-  if (!application) {
-    return (
-      <ErrorState
-        title="Applicant not found"
-        retryLabel="Try again"
-        onRetry={() => applicantsQuery.refetch()}
-      />
-    );
-  }
-
+  const job = jobQuery.data;
+  const canOffer = application.status === "pending" && job.status === "active";
   const worker = application.workerId;
-  const name = `${worker.firstName ?? ""} ${
-    worker.lastName ?? ""
-  }`.trim();
+  const name = `${worker.firstName ?? ""} ${worker.lastName ?? ""}`.trim();
 
   const confirmOffer = () => {
-    Alert.alert(
-      "Offer this job?",
-      `Do you want to send the job offer to ${name}?`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
+    Alert.alert(t("applications.offerTitle"), t("applications.offerQuestion", { name }), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("applications.offerJob"),
+        onPress: async () => {
+          try {
+            await offerApplicant.mutateAsync(application._id);
+            Alert.alert(t("applications.offerSentTitle"), t("applications.offerSentMessage", { name }));
+          } catch (error) {
+            Alert.alert(
+              t("applications.offerErrorTitle"),
+              getApiErrorMessage(error, t("applications.offerErrorFallback"))
+            );
+          }
         },
-        {
-          text: "Send Offer",
-          onPress: async () => {
-            try {
-              await offerApplicant.mutateAsync(application._id);
-
-              Alert.alert(
-                "Offer sent",
-                `The job offer was sent to ${name}.`
-              );
-            } catch (error) {
-              Alert.alert(
-                "Unable to send offer",
-                getApiErrorMessage(
-                  error,
-                  "The offer could not be sent. Please try again."
-                )
-              );
-            }
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   return (
@@ -111,52 +85,48 @@ export function ApplicantProfileScreen({
       <YStack gap="$4" paddingBottom="$6">
         <YStack alignItems="center" gap="$2">
           <Avatar uri={worker.photoUrl} name={name} size={100} />
-
           <Text variant="h2">{name}</Text>
-
           <XStack alignItems="center" gap="$1">
             <Ionicons name="star" size={18} color="#4F8266" />
-
             <Text variant="body">
-              {(worker.rating?.average ?? 0).toFixed(1)} / 5 ·{" "}
-              {worker.rating?.count ?? 0} reviews
+              {t("applications.rating", {
+                average: (worker.rating?.average ?? 0).toFixed(1),
+                count: worker.rating?.count ?? 0,
+              })}
             </Text>
           </XStack>
-
           <StatusPill
-            label={application.status.replace("_", " ")}
+            label={t(`applications.status.${application.status}`)}
             tone={application.status === "offered" ? "brand" : "neutral"}
           />
         </YStack>
 
         <Card gap="$2">
-          <Text variant="h4">Application message</Text>
-
+          <Text variant="h4">{t("applications.applicationMessage")}</Text>
           <Text variant="body" muted>
-            {application.message || "No application message provided."}
+            {application.message || t("applications.noApplicationMessage")}
           </Text>
         </Card>
 
         <Button
           variant="outline"
           fullWidth
-          onPress={() =>
-            navigation.navigate("Chat", {
-              jobId,
-              workerId: worker._id,
-            })
-          }
+          onPress={() => navigation.navigate("Chat", { jobId, workerId: worker._id })}
         >
-          Chat
+          {t("applications.chat")}
         </Button>
 
-        {application.status === "pending" ? (
-          <Button
-            fullWidth
-            loading={offerApplicant.isPending}
-            onPress={confirmOffer}
-          >
-            Offer Job
+        {job.status === "offer_pending" && application.status === "pending" ? (
+          <Card gap="$2">
+            <Text variant="body" muted textAlign="center">
+              {t("applications.anotherOfferPending")}
+            </Text>
+          </Card>
+        ) : null}
+
+        {canOffer ? (
+          <Button fullWidth loading={offerApplicant.isPending} onPress={confirmOffer}>
+            {t("applications.offerJob")}
           </Button>
         ) : null}
       </YStack>

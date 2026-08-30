@@ -47,5 +47,89 @@
     "errorTitle": "Couldn't load jobs",
     "budget": "Budget",
     "people": "People"
+    },
+  "orders": {
+    "postedTab": "My Orders",
+    "appliedTab": "My Applications",
+    "current": "Current",
+    "history": "History",
+    "loadOrdersError": "Couldn't load your orders",
+    "loadApplicationsError": "Couldn't load your applications",
+    "noOrdersTitle": "No orders posted yet",
+    "noOrdersBody": "Orders you post will appear here.",
+    "workerProfileTitle": "Set up your worker profile",
+    "workerProfileBody": "You need a worker profile before you can apply for jobs.",
+    "workerProfileButton": "Set up worker profile",
+    "noApplicationsTitle": "No applications yet",
+    "noApplicationsBody": "Jobs you apply for will appear here.",
+    "applicationCount_one": "{{count}} application",
+    "applicationCount_other": "{{count}} applications",
+    "unreadMessages_one": "{{count}} unread message",
+    "unreadMessages_other": "{{count}} unread messages",
+    "deleteTitle": "Delete this job?",
+    "deleteBody": "\"{{title}}\" will be removed and cannot be recovered.",
+    "deleteAction": "Delete",
+    "deleteError": "Couldn't delete this job. Please try again."
+  },
+  "applications": {
+    "status": {
+      "pending": "Pending",
+      "offered": "Offer sent",
+      "accepted": "Accepted",
+      "declined": "Declined",
+      "rejected": "Not selected"
+    },
+    "rating": "{{average}} / 5 · {{count}} reviews",
+    "noMessage": "No application message",
+    "openProfile": "Open {{name}}'s profile",
+    "messageApplicant": "Message {{name}}",
+    "title": "Applications",
+    "waitingOffer": "Waiting for the selected applicant to respond. Other applications are on hold.",
+    "emptyTitle": "No applications yet",
+    "emptyBody": "Applicants will appear here after they apply.",
+    "profileTitle": "Applicant profile",
+    "loadError": "Couldn't load the applicant",
+    "notFound": "Applicant not found",
+    "applicationMessage": "Application message",
+    "noApplicationMessage": "No application message provided.",
+    "chat": "Write a message",
+    "offerJob": "Send offer",
+    "offerTitle": "Send offer?",
+    "offerQuestion": "Do you want to send an offer to {{name}} for this job?",
+    "offerSentTitle": "Offer sent",
+    "offerSentMessage": "The offer was sent to {{name}}.",
+    "offerErrorTitle": "Unable to send offer",
+    "offerErrorFallback": "The offer could not be sent. Please try again.",
+    "anotherOfferPending": "Another applicant is currently considering this job offer."
+  },
+  "chat": {
+    "title": "Messages",
+    "loadError": "Couldn't load messages",
+    "empty": "No messages yet — say hello.",
+    "placeholder": "Write a message…",
+    "send": "Send",
+    "sendError": "Your message couldn't be sent. Please try again.",
+    "conversation": "Job conversation",
+    "jobContext": "About this job"
+  },
+  "jobs": {
+    "today": "Today",
+    "status": {
+      "draft": "Draft",
+      "active": "Open",
+      "offer_pending": "Offer pending",
+      "assigned": "Assigned",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "cancelledMessage": "This job was cancelled.",
+    "expiredMessage": "This job has expired."
+  },
+  "navigation": {
+    "home": "Home",
+    "orders": "Orders",
+    "post": "Post",
+    "profile": "Profile"
   }
 }

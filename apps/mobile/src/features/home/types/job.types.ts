@@ -21,7 +21,14 @@ export interface JobClientSummary {
   rating?: { average: number; count: number };
 }
 
-export type JobStatus = "draft" | "active" | "offer_pending" | "assigned" | "completed" | "cancelled";
+export type JobStatus =
+  | "draft"
+  | "active"
+  | "offer_pending"
+  | "assigned"
+  | "completed"
+  | "cancelled"
+  | "expired";
 
 interface JobBase {
   _id: string;

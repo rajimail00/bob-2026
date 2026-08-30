@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import type { RouteProp } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "tamagui";
 import { PostJobScreen } from "@/features/orders/screens/PostJobScreen";
 import { ProfileScreen } from "@/features/profile/screens/ProfileScreen";
@@ -18,6 +19,7 @@ const ICON_BY_ROUTE: Record<keyof MainTabParamList, keyof typeof Ionicons.glyphM
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export function MainTabNavigator() {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   return (
@@ -31,10 +33,10 @@ export function MainTabNavigator() {
         ),
       })}
     >
-      <Tab.Screen name="Home" component={HomeStackNavigator} />
-      <Tab.Screen name="Orders" component={OrdersStackNavigator} />
-      <Tab.Screen name="Post" component={PostJobScreen} options={{ tabBarLabel: "Post" }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Home" component={HomeStackNavigator} options={{ tabBarLabel: t("navigation.home") }} />
+      <Tab.Screen name="Orders" component={OrdersStackNavigator} options={{ tabBarLabel: t("navigation.orders") }} />
+      <Tab.Screen name="Post" component={PostJobScreen} options={{ tabBarLabel: t("navigation.post") }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: t("navigation.profile") }} />
     </Tab.Navigator>
   );
 }

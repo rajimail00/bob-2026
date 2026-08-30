@@ -1,3 +1,4 @@
+import type { ApplicationStatus } from "@/features/applications/types/application.types";
 export interface MessageSenderSummary {
   _id: string;
   firstName?: string;
@@ -24,12 +25,11 @@ export interface ConversationWorkerSummary {
   rating?: { average: number; count: number };
 }
 
-/** One applicant's conversation preview, as seen by the job owner's NACHRICHTEN tab. */
-export interface Conversation {
+/** Conversation information displayed with an applicant in the integrated applications list. */export interface Conversation {
   workerId: string;
   worker: ConversationWorkerSummary;
   applicationId: string;
-  applicationStatus: "pending" | "selected" | "rejected";
+  applicationStatus: ApplicationStatus;
   previewText?: string;
   previewAt: string;
   unreadCount: number;

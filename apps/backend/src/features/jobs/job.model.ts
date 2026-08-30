@@ -1,7 +1,26 @@
 import { Schema, model, type InferSchemaType, type HydratedDocument } from "mongoose";
 
-export const JOB_STATUSES = ["draft", "active", "offer_pending", "assigned", "completed", "cancelled"] as const;
+export const JOB_STATUSES = [
+  "draft",
+  "active",
+  "offer_pending",
+  "assigned",
+  "completed",
+  "cancelled",
+  "expired",
+] as const;
+
 export type JobStatus = (typeof JOB_STATUSES)[number];
+
+export const ALLOWED_TRANSITIONS = {
+  draft: ["active", "cancelled"],
+  active: ["offer_pending", "cancelled", "expired"],
+  offer_pending: ["active", "assigned", "cancelled"],
+  assigned: ["completed", "cancelled"],
+  completed: [],
+  cancelled: [],
+  expired: [],
+} as const satisfies Record<JobStatus, readonly JobStatus[]>;
 
 export const RECURRENCE_OPTIONS = ["none", "daily", "weekly", "monthly"] as const;
 export const PAYMENT_PREFERENCES = ["cash", "paypal", "both"] as const;
@@ -32,7 +51,7 @@ const jobSchema = new Schema(
     isEmergency: { type: Boolean, default: false },
     paymentPreference: { type: String, enum: PAYMENT_PREFERENCES, default: "cash" },
 
-    status: { type: String, enum: JOB_STATUSES, default: "active", index: true },
+    status: { type: String, enum: JOB_STATUSES, default: "draft", index: true },
     assignedWorkerId: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }

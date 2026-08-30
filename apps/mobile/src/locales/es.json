@@ -47,5 +47,89 @@
     "errorTitle": "No se pudieron cargar los trabajos",
     "budget": "Presupuesto",
     "people": "Personas"
+  },
+  "orders": {
+    "postedTab": "Mis encargos",
+    "appliedTab": "Mis solicitudes",
+    "current": "Actuales",
+    "history": "Historial",
+    "loadOrdersError": "No se pudieron cargar tus encargos",
+    "loadApplicationsError": "No se pudieron cargar tus solicitudes",
+    "noOrdersTitle": "Todavía no has publicado encargos",
+    "noOrdersBody": "Los encargos que publiques aparecerán aquí.",
+    "workerProfileTitle": "Configura tu perfil profesional",
+    "workerProfileBody": "Necesitas un perfil profesional antes de solicitar encargos.",
+    "workerProfileButton": "Configurar perfil profesional",
+    "noApplicationsTitle": "Todavía no hay solicitudes",
+    "noApplicationsBody": "Los encargos que solicites aparecerán aquí.",
+    "applicationCount_one": "{{count}} solicitud",
+    "applicationCount_other": "{{count}} solicitudes",
+    "unreadMessages_one": "{{count}} mensaje sin leer",
+    "unreadMessages_other": "{{count}} mensajes sin leer",
+    "deleteTitle": "¿Eliminar este encargo?",
+    "deleteBody": "\"{{title}}\" se eliminará y no podrá recuperarse.",
+    "deleteAction": "Eliminar",
+    "deleteError": "No se pudo eliminar el encargo. Inténtalo de nuevo."
+  },
+  "applications": {
+    "status": {
+      "pending": "Pendiente",
+      "offered": "Oferta enviada",
+      "accepted": "Aceptada",
+      "declined": "Rechazada",
+      "rejected": "No seleccionado"
+    },
+    "rating": "{{average}} de 5 · {{count}} reseñas",
+    "noMessage": "Sin mensaje de solicitud",
+    "openProfile": "Abrir el perfil de {{name}}",
+    "messageApplicant": "Enviar un mensaje a {{name}}",
+    "title": "Solicitudes",
+    "waitingOffer": "Esperando la respuesta de la persona seleccionada. Las demás solicitudes están en espera.",
+    "emptyTitle": "Todavía no hay solicitudes",
+    "emptyBody": "Las solicitudes aparecerán aquí cuando se reciban.",
+    "profileTitle": "Perfil del solicitante",
+    "loadError": "No se pudo cargar el solicitante",
+    "notFound": "Solicitante no encontrado",
+    "applicationMessage": "Mensaje de la solicitud",
+    "noApplicationMessage": "No se proporcionó ningún mensaje.",
+    "chat": "Escribir un mensaje",
+    "offerJob": "Enviar oferta",
+    "offerTitle": "¿Enviar oferta?",
+    "offerQuestion": "¿Quieres enviar una oferta a {{name}} para este encargo?",
+    "offerSentTitle": "Oferta enviada",
+    "offerSentMessage": "La oferta se envió a {{name}}.",
+    "offerErrorTitle": "No se pudo enviar la oferta",
+    "offerErrorFallback": "No se pudo enviar la oferta. Inténtalo de nuevo.",
+    "anotherOfferPending": "Otra persona está revisando actualmente la oferta de este encargo."
+  },
+  "chat": {
+    "title": "Mensajes",
+    "loadError": "No se pudieron cargar los mensajes",
+    "empty": "Todavía no hay mensajes. Escribe el primero.",
+    "placeholder": "Escribe un mensaje…",
+    "send": "Enviar",
+    "sendError": "No se pudo enviar tu mensaje. Inténtalo de nuevo.",
+    "conversation": "Conversación del encargo",
+    "jobContext": "Sobre este encargo"
+  },
+  "jobs": {
+    "today": "Hoy",
+    "status": {
+      "draft": "Borrador",
+      "active": "Abierto",
+      "offer_pending": "Oferta pendiente",
+      "assigned": "Asignado",
+      "completed": "Completado",
+      "cancelled": "Cancelado",
+      "expired": "Caducado"
+    },
+    "cancelledMessage": "Este encargo fue cancelado.",
+    "expiredMessage": "Este encargo ha caducado."
+  },
+  "navigation": {
+    "home": "Inicio",
+    "orders": "Encargos",
+    "post": "Publicar",
+    "profile": "Perfil"
   }
 }

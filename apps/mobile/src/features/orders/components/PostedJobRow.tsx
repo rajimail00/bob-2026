@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert } from "react-native";
 import { YStack } from "tamagui";
 import { JobCard } from "@/features/home/components/JobCard";
@@ -15,22 +16,23 @@ interface PostedJobRowProps {
 /** A posted-job list row with a delete affordance — only offered while the job has no assigned
  * worker yet, matching the backend's rule (an in-progress/completed job can't be hard-deleted). */
 export function PostedJobRow({ job, onPress }: PostedJobRowProps) {
+  const { t } = useTranslation();
   const deleteJob = useDeleteJob();
   const [error, setError] = useState<string | null>(null);
   const applicationCount = job.pendingApplicantsCount ?? 0;
 
   const confirmDelete = () => {
-    Alert.alert("Delete this job?", `"${job.title}" will be removed and can't be recovered.`, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("orders.deleteTitle"), t("orders.deleteBody", { title: job.title }), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("orders.deleteAction"),
         style: "destructive",
         onPress: async () => {
           setError(null);
           try {
             await deleteJob.mutateAsync(job._id);
           } catch (err) {
-            setError(getApiErrorMessage(err, "Couldn't delete this job. Please try again."));
+            setError(getApiErrorMessage(err, t("orders.deleteError")));
           }
         },
       },
@@ -48,7 +50,7 @@ export function PostedJobRow({ job, onPress }: PostedJobRowProps) {
           icon: "people-outline",
           count: applicationCount,
           showZero: true,
-          accessibilityLabel: `${applicationCount} ${applicationCount === 1 ? "application" : "applications"}`,
+          accessibilityLabel: t("orders.applicationCount", { count: applicationCount }),
         }}
       />
       {error ? (

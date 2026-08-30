@@ -4,6 +4,7 @@ import { AppError } from "../../lib/errors.js";
 import { deleteCloudinaryAssetByUrl } from "../../lib/cloudinary.js";
 import { sendVerificationEmail } from "../../lib/mailer.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../../lib/jwt.js";
+import { jobService } from "../jobs/job.service.js";
 import { authRepository } from "./auth.repository.js";
 import { accountDeletionRepository } from "./accountDeletion.repository.js";
 import type { CreateProfileInput, LoginInput, RegisterInput, VerifyEmailInput, WorkerProfileInput } from "./auth.validation.js";
@@ -157,6 +158,16 @@ export const authService = {
     for (const assetUrl of new Set(assetUrls)) {
       await deleteCloudinaryAssetByUrl(assetUrl);
     }
+
+    const { ownedJobIds, assignedJobIds, offeredJobIds } =
+      await accountDeletionRepository.collectJobLifecycleIds(userId);
+
+    // Route every job status change through the central state machine.
+    await Promise.all([
+      ...ownedJobIds.map((jobId) => jobService.transitionStatus(jobId, "cancelled")),
+      ...assignedJobIds.map((jobId) => jobService.transitionStatus(jobId, "cancelled")),
+      ...offeredJobIds.map((jobId) => jobService.transitionStatus(jobId, "active")),
+    ]);
 
     // Preserve shared history while removing personal content.
     await accountDeletionRepository.anonymizeRelatedData(userId);

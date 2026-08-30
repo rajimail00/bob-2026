@@ -1,9 +1,9 @@
 import { AppError } from "../../lib/errors.js";
-import { notifyUser } from "../../lib/socket.js";
 import { authRepository } from "../auth/auth.repository.js";
 import { jobRepository } from "../jobs/job.repository.js";
 import { jobService } from "../jobs/job.service.js";
 import { messageService } from "../messages/message.service.js";
+import { createNotification } from "../notifications/notification.service.js";
 import { applicationRepository } from "./application.repository.js";
 import type { CreateApplicationInput } from "./application.validation.js";
 
@@ -29,7 +29,12 @@ export const applicationService = {
       voiceNoteUrl: input.voiceNoteUrl,
     });
 
-    notifyUser(job.clientId.toString(), "application:new", { jobId, applicationId: application._id.toString() });
+    await createNotification({
+      recipientId: job.clientId.toString(),
+      type: "new_application",
+      data: { jobId, applicationId: application._id.toString(), workerId },
+      realtimePayload: { jobId, applicationId: application._id.toString() },
+    });
 
     return application;
   },
@@ -57,14 +62,25 @@ export const applicationService = {
     if (!application) throw AppError.notFound("This application no longer exists.");
     if (application.status !== "pending") throw AppError.conflict("This application has already been decided.");
 
-    await jobService.markOfferPending(application.jobId.toString(), requesterId);
+    const jobId = application.jobId.toString();
+    await jobService.assertOwner(jobId, requesterId);
+    await jobService.transitionStatus(jobId, "offer_pending");
 
     application.status = "offered";
     await application.save();
 
-    notifyUser(application.workerId.toString(), "application:offered", {
-      jobId: application.jobId.toString(),
-      applicationId: application._id.toString(),
+    await createNotification({
+      recipientId: application.workerId.toString(),
+      type: "offer_received",
+      data: {
+        jobId,
+        applicationId: application._id.toString(),
+        workerId: application.workerId.toString(),
+      },
+      realtimePayload: {
+        jobId,
+        applicationId: application._id.toString(),
+      },
     });
 
     return application;
@@ -78,19 +94,47 @@ export const applicationService = {
     if (application.status !== "offered") throw AppError.conflict("This application isn't awaiting a response.");
 
     const jobId = application.jobId.toString();
-    const clientId = (await jobRepository.findRawById(jobId))?.clientId.toString();
-
     if (accept) {
-      await jobService.assignWorker(jobId, workerId);
+      const rejectedApplications = await applicationRepository.listRejectableOthers(jobId, applicationId);
+      const job = await jobService.transitionStatus(jobId, "assigned", { assignedWorkerId: workerId });
       application.status = "accepted";
       await application.save();
       await applicationRepository.rejectOthers(jobId, applicationId);
-      if (clientId) notifyUser(clientId, "application:accepted", { jobId, applicationId });
+
+      await createNotification({
+        recipientId: job.clientId.toString(),
+        type: "offer_accepted",
+        data: { jobId, applicationId, workerId },
+        realtimePayload: { jobId, applicationId },
+      });
+
+      await Promise.all(
+        rejectedApplications.map((rejectedApplication) =>
+          createNotification({
+            recipientId: rejectedApplication.workerId.toString(),
+            type: "application_rejected",
+            data: {
+              jobId,
+              applicationId: rejectedApplication._id.toString(),
+              workerId: rejectedApplication.workerId.toString(),
+            },
+            realtimePayload: {
+              jobId,
+              applicationId: rejectedApplication._id.toString(),
+            },
+          })
+        )
+      );
     } else {
-      await jobService.reopenAfterDecline(jobId);
+      const job = await jobService.transitionStatus(jobId, "active");
       application.status = "declined";
       await application.save();
-      if (clientId) notifyUser(clientId, "application:declined", { jobId, applicationId });
+      await createNotification({
+        recipientId: job.clientId.toString(),
+        type: "offer_declined",
+        data: { jobId, applicationId, workerId },
+        realtimePayload: { jobId, applicationId },
+      });
     }
 
     return application;

@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { AppError } from "../../lib/errors.js";
 import { jobIdParamsSchema } from "../jobs/job.validation.js";
-import { broadcastToConversation, notifyOtherParticipant } from "../../lib/socket.js";
+import { broadcastToConversation } from "../../lib/socket.js";
 import { messageService } from "./message.service.js";
 import { conversationParamsSchema, createMessageSchema } from "./message.validation.js";
 
@@ -13,8 +13,6 @@ export const messageController = {
     const message = await messageService.send(id, workerId, req.auth.userId, input);
 
     broadcastToConversation(id, workerId, "message:new", message);
-    void notifyOtherParticipant(id, workerId, req.auth.userId, message);
-
     res.status(201).json({ message });
   },
 

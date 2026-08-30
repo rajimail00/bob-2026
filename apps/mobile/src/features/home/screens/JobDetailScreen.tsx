@@ -21,7 +21,6 @@ import {
   useRespondToOffer,
 } from "@/features/applications/hooks/useApplications";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { ConversationRow } from "@/features/messages/components/ConversationRow";
 import { useJobConversations } from "@/features/messages/hooks/useJobConversations";
 import { RatingForm } from "@/features/reviews/components/RatingForm";
 import { getApiErrorMessage } from "@/lib/apiClient";
@@ -39,6 +38,7 @@ const STATUS_TONE = {
   completed: "neutral",
   cancelled: "danger",
   draft: "neutral",
+  expired: "neutral",
 } as const;
 
 interface Props {
@@ -311,6 +311,7 @@ function OwnerActions({
   isDeleting: boolean;
   deleteError: string | null;
 }) {
+  const { t } = useTranslation();
   const conversationsQuery = useJobConversations(jobId);
 
   if (jobStatus === "active" || jobStatus === "offer_pending") {
@@ -318,13 +319,12 @@ function OwnerActions({
       <YStack gap="$4">
         {jobStatus === "offer_pending" ? (
           <Text variant="body" muted>
-            Waiting for the offered candidate to respond — other applicants
-            are on hold.
+            {t("applications.waitingOffer")}
           </Text>
         ) : null}
 
         <XStack justifyContent="space-between" alignItems="center">
-          <Text variant="h3">Applicants</Text>
+          <Text variant="h3">{t("applications.title")}</Text>
 
           {jobStatus === "active" ? (
             <XStack
@@ -353,42 +353,29 @@ function OwnerActions({
           <LoadingState />
         ) : applicants && applicants.length > 0 ? (
           <YStack gap="$2">
-            {applicants.map((application) => (
-              <ApplicantListRow
-                key={application._id}
-                application={application}
-                onPress={() => onOpenApplicant(application._id)}
-              />
-            ))}
+            {applicants.map((application) => {
+              const conversation = conversationsQuery.data?.find(
+                (item) => item.applicationId === application._id
+              );
+
+              return (
+                <ApplicantListRow
+                  key={application._id}
+                  application={application}
+                  conversation={conversation}
+                  onPress={() => onOpenApplicant(application._id)}
+                  onMessage={() => onOpenChat(application.workerId._id)}
+                />
+              );
+            })}
           </YStack>
         ) : (
           <EmptyState
-            title="No applicants yet"
-            body="Candidates who apply will show up here."
+            title={t("applications.emptyTitle")}
+            body={t("applications.emptyBody")}
           />
         )}
 
-        <Text variant="h3">Chat</Text>
-
-        {conversationsQuery.isLoading ? (
-          <LoadingState />
-        ) : conversationsQuery.data &&
-          conversationsQuery.data.length > 0 ? (
-          <YStack gap="$2">
-            {conversationsQuery.data.map((conversation) => (
-              <ConversationRow
-                key={conversation.workerId}
-                conversation={conversation}
-                onPress={() => onOpenChat(conversation.workerId)}
-              />
-            ))}
-          </YStack>
-        ) : (
-          <EmptyState
-            title="No conversations yet"
-            body="Start a conversation from an applicant's profile."
-          />
-        )}
 
         {deleteError ? (
           <Text variant="small" color="$danger">
@@ -421,10 +408,10 @@ function OwnerActions({
     );
   }
 
-  if (jobStatus === "cancelled") {
+  if (jobStatus === "cancelled" || jobStatus === "expired") {
     return (
       <Text variant="body" muted>
-        This job was cancelled.
+        {jobStatus === "expired" ? t("jobs.expiredMessage") : t("jobs.cancelledMessage")}
       </Text>
     );
   }
@@ -457,6 +444,8 @@ function WorkerActions({
   isResponding: boolean;
   respondError: string | null;
 }) {
+  const { t } = useTranslation();
+
   if (jobStatus === "active") {
     if (!hasWorkerProfile) {
       return (
@@ -529,10 +518,10 @@ function WorkerActions({
     );
   }
 
-  if (jobStatus === "cancelled") {
+  if (jobStatus === "cancelled" || jobStatus === "expired") {
     return (
       <Text variant="body" muted>
-        This job was cancelled.
+        {jobStatus === "expired" ? t("jobs.expiredMessage") : t("jobs.cancelledMessage")}
       </Text>
     );
   }

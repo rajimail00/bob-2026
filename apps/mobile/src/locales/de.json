@@ -47,5 +47,89 @@
     "errorTitle": "Aufträge konnten nicht geladen werden",
     "budget": "Budget",
     "people": "Personen"
+    },
+  "orders": {
+    "postedTab": "Meine Aufträge",
+    "appliedTab": "Meine Bewerbungen",
+    "current": "Aktuell",
+    "history": "Verlauf",
+    "loadOrdersError": "Deine Aufträge konnten nicht geladen werden",
+    "loadApplicationsError": "Deine Bewerbungen konnten nicht geladen werden",
+    "noOrdersTitle": "Noch keine Aufträge erstellt",
+    "noOrdersBody": "Deine erstellten Aufträge werden hier angezeigt.",
+    "workerProfileTitle": "Arbeitsprofil einrichten",
+    "workerProfileBody": "Du benötigst ein Arbeitsprofil, bevor du dich auf Aufträge bewerben kannst.",
+    "workerProfileButton": "Arbeitsprofil einrichten",
+    "noApplicationsTitle": "Noch keine Bewerbungen",
+    "noApplicationsBody": "Aufträge, auf die du dich bewirbst, werden hier angezeigt.",
+    "applicationCount_one": "{{count}} Bewerbung",
+    "applicationCount_other": "{{count}} Bewerbungen",
+    "unreadMessages_one": "{{count}} ungelesene Nachricht",
+    "unreadMessages_other": "{{count}} ungelesene Nachrichten",
+    "deleteTitle": "Diesen Auftrag löschen?",
+    "deleteBody": "„{{title}}“ wird gelöscht und kann nicht wiederhergestellt werden.",
+    "deleteAction": "Löschen",
+    "deleteError": "Der Auftrag konnte nicht gelöscht werden. Bitte versuche es erneut."
+  },
+  "applications": {
+    "status": {
+      "pending": "Offen",
+      "offered": "Angebot gesendet",
+      "accepted": "Angenommen",
+      "declined": "Abgelehnt",
+      "rejected": "Nicht ausgewählt"
+    },
+    "rating": "{{average}} von 5 · {{count}} Bewertungen",
+    "noMessage": "Keine Bewerbungsnachricht",
+    "openProfile": "Profil von {{name}} öffnen",
+    "messageApplicant": "{{name}} eine Nachricht schreiben",
+    "title": "Bewerbungen",
+    "waitingOffer": "Die ausgewählte Person muss noch antworten. Andere Bewerbungen werden zurückgestellt.",
+    "emptyTitle": "Noch keine Bewerbungen",
+    "emptyBody": "Bewerbungen werden hier angezeigt, sobald sie eingehen.",
+    "profileTitle": "Bewerberprofil",
+    "loadError": "Die Bewerbung konnte nicht geladen werden",
+    "notFound": "Bewerbung nicht gefunden",
+    "applicationMessage": "Nachricht aus der Bewerbung",
+    "noApplicationMessage": "Keine Bewerbungsnachricht vorhanden.",
+    "chat": "Nachricht schreiben",
+    "offerJob": "Angebot senden",
+    "offerTitle": "Angebot senden?",
+    "offerQuestion": "Möchtest du {{name}} ein Angebot für diesen Auftrag senden?",
+    "offerSentTitle": "Angebot gesendet",
+    "offerSentMessage": "Das Angebot wurde an {{name}} gesendet.",
+    "offerErrorTitle": "Angebot konnte nicht gesendet werden",
+    "offerErrorFallback": "Das Angebot konnte nicht gesendet werden. Bitte versuche es erneut.",
+    "anotherOfferPending": "Eine andere Person prüft derzeit das Angebot für diesen Auftrag."
+  },
+  "chat": {
+    "title": "Nachrichten",
+    "loadError": "Nachrichten konnten nicht geladen werden",
+    "empty": "Noch keine Nachrichten — schreibe eine erste Nachricht.",
+    "placeholder": "Nachricht schreiben…",
+    "send": "Senden",
+    "sendError": "Deine Nachricht konnte nicht gesendet werden. Bitte versuche es erneut.",
+    "conversation": "Auftragsnachrichten",
+    "jobContext": "Zu diesem Auftrag"
+  },
+  "jobs": {
+    "today": "Heute",
+    "status": {
+      "draft": "Entwurf",
+      "active": "Offen",
+      "offer_pending": "Angebot ausstehend",
+      "assigned": "Vergeben",
+      "completed": "Abgeschlossen",
+      "cancelled": "Storniert",
+      "expired": "Abgelaufen"
+    },
+    "cancelledMessage": "Dieser Auftrag wurde storniert.",
+    "expiredMessage": "Dieser Auftrag ist abgelaufen."
+  },
+  "navigation": {
+    "home": "Start",
+    "orders": "Aufträge",
+    "post": "Erstellen",
+    "profile": "Profil"
   }
 }

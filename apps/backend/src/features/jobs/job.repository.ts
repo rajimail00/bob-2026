@@ -1,5 +1,9 @@
-import { JobModel } from "./job.model.js";
+import { JobModel, type JobStatus } from "./job.model.js";
 import type { ListJobsQuery } from "./job.validation.js";
+
+type JobTransitionUpdates = {
+  assignedWorkerId?: string;
+};
 
 export const jobRepository = {
   async list(query: ListJobsQuery) {
@@ -51,6 +55,27 @@ export const jobRepository = {
 
   create(data: Record<string, unknown>) {
     return JobModel.create(data);
+  },
+
+  transitionStatus(
+    id: string,
+    currentStatus: JobStatus,
+    nextStatus: JobStatus,
+    updates: JobTransitionUpdates = {}
+  ) {
+    return JobModel.findOneAndUpdate(
+      { _id: id, status: currentStatus },
+      {
+        $set: {
+          status: nextStatus,
+          ...updates,
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
   },
 
   listPostedBy(clientId: string) {

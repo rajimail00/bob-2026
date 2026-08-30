@@ -2,6 +2,7 @@ import { AppError } from "../../lib/errors.js";
 import { applicationRepository } from "../applications/application.repository.js";
 import { jobRepository } from "../jobs/job.repository.js";
 import { jobService } from "../jobs/job.service.js";
+import { createNotification } from "../notifications/notification.service.js";
 import { messageRepository } from "./message.repository.js";
 import type { CreateMessageInput } from "./message.validation.js";
 
@@ -19,14 +20,25 @@ async function assertParticipant(jobId: string, workerId: string, userId: string
 
 export const messageService = {
   async send(jobId: string, workerId: string, senderId: string, input: CreateMessageInput) {
-    await assertParticipant(jobId, workerId, senderId);
-    return messageRepository.create({
+    const job = await assertParticipant(jobId, workerId, senderId);
+    const message = await messageRepository.create({
       jobId,
       workerId,
       senderId,
       text: input.text,
       attachmentUrl: input.attachmentUrl,
     });
+
+    const clientId = job.clientId.toString();
+    const recipientId = senderId === clientId ? workerId : clientId;
+    await createNotification({
+      recipientId,
+      type: "new_message",
+      data: { jobId, workerId, messageId: message._id.toString() },
+      realtimePayload: { jobId, workerId, message },
+    });
+
+    return message;
   },
 
   async listForConversation(jobId: string, workerId: string, requesterId: string) {

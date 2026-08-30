@@ -37,5 +37,89 @@
       "firstNameRequired": "Saisissez votre prénom",
       "lastNameRequired": "Saisissez votre nom"
     }
+    },
+  "orders": {
+    "postedTab": "Mes demandes",
+    "appliedTab": "Mes candidatures",
+    "current": "En cours",
+    "history": "Historique",
+    "loadOrdersError": "Impossible de charger vos demandes",
+    "loadApplicationsError": "Impossible de charger vos candidatures",
+    "noOrdersTitle": "Aucune demande publiée",
+    "noOrdersBody": "Les demandes que vous publiez apparaîtront ici.",
+    "workerProfileTitle": "Configurer votre profil professionnel",
+    "workerProfileBody": "Vous devez avoir un profil professionnel avant de pouvoir postuler.",
+    "workerProfileButton": "Configurer le profil",
+    "noApplicationsTitle": "Aucune candidature",
+    "noApplicationsBody": "Les missions auxquelles vous postulez apparaîtront ici.",
+    "applicationCount_one": "{{count}} candidature",
+    "applicationCount_other": "{{count}} candidatures",
+    "unreadMessages_one": "{{count}} message non lu",
+    "unreadMessages_other": "{{count}} messages non lus",
+    "deleteTitle": "Supprimer cette demande ?",
+    "deleteBody": "« {{title}} » sera supprimée définitivement.",
+    "deleteAction": "Supprimer",
+    "deleteError": "Impossible de supprimer la demande. Veuillez réessayer."
+  },
+  "applications": {
+    "status": {
+      "pending": "En attente",
+      "offered": "Offre envoyée",
+      "accepted": "Acceptée",
+      "declined": "Refusée",
+      "rejected": "Non sélectionné"
+    },
+    "rating": "{{average}} sur 5 · {{count}} avis",
+    "noMessage": "Aucun message de candidature",
+    "openProfile": "Ouvrir le profil de {{name}}",
+    "messageApplicant": "Envoyer un message à {{name}}",
+    "title": "Candidatures",
+    "waitingOffer": "En attente de la réponse de la personne sélectionnée. Les autres candidatures sont suspendues.",
+    "emptyTitle": "Aucune candidature",
+    "emptyBody": "Les candidatures apparaîtront ici dès leur réception.",
+    "profileTitle": "Profil du candidat",
+    "loadError": "Impossible de charger le candidat",
+    "notFound": "Candidat introuvable",
+    "applicationMessage": "Message de candidature",
+    "noApplicationMessage": "Aucun message de candidature fourni.",
+    "chat": "Écrire un message",
+    "offerJob": "Envoyer une offre",
+    "offerTitle": "Envoyer une offre ?",
+    "offerQuestion": "Voulez-vous envoyer une offre à {{name}} pour cette mission ?",
+    "offerSentTitle": "Offre envoyée",
+    "offerSentMessage": "L'offre a été envoyée à {{name}}.",
+    "offerErrorTitle": "Impossible d'envoyer l'offre",
+    "offerErrorFallback": "L'offre n'a pas pu être envoyée. Veuillez réessayer.",
+    "anotherOfferPending": "Une autre personne examine actuellement l'offre pour cette mission."
+  },
+  "chat": {
+    "title": "Messages",
+    "loadError": "Impossible de charger les messages",
+    "empty": "Aucun message — écrivez le premier.",
+    "placeholder": "Écrire un message…",
+    "send": "Envoyer",
+    "sendError": "Votre message n'a pas pu être envoyé. Veuillez réessayer.",
+    "conversation": "Conversation sur la mission",
+    "jobContext": "À propos de cette mission"
+  },
+  "jobs": {
+    "today": "Aujourd'hui",
+    "status": {
+      "draft": "Brouillon",
+      "active": "Ouverte",
+      "offer_pending": "Offre en attente",
+      "assigned": "Attribuée",
+      "completed": "Terminée",
+      "cancelled": "Annulée",
+      "expired": "Expirée"
+    },
+    "cancelledMessage": "Cette mission a été annulée.",
+    "expiredMessage": "Cette mission a expiré."
+  },
+  "navigation": {
+    "home": "Accueil",
+    "orders": "Demandes",
+    "post": "Publier",
+    "profile": "Profil"
   }
 }

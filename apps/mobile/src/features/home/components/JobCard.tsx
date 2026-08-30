@@ -3,16 +3,17 @@ import { useTranslation } from "react-i18next";
 import { Image } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Card } from "@/components/ui/Card";
+import { StatusPill } from "@/components/ui/StatusPill";
 import { Text } from "@/components/ui/Text";
 import { color } from "@/design/tokens";
 import type { SupportedLocale } from "@/lib/i18n";
 import { getCategoryIcon } from "../constants/categoryIcons";
 import type { Job } from "../types/job.types";
 
-function formatDay(iso: string, locale: string) {
+function formatDay(iso: string, locale: string, todayLabel: string) {
   const date = new Date(iso);
   const isToday = date.toDateString() === new Date().toDateString();
-  if (isToday) return "Heute";
+  if (isToday) return todayLabel;
   return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short" }).format(date);
 }
 
@@ -20,9 +21,24 @@ function formatTime(iso: string, locale: string) {
   return new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 }
 
-function formatBudget(amount: number) {
-  return `${amount}€`;
+function formatBudget(amount: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
+
+const STATUS_TONE = {
+  draft: "neutral",
+  active: "active",
+  offer_pending: "brand",
+  assigned: "brand",
+  completed: "neutral",
+  cancelled: "danger",
+  expired: "neutral",
+} as const;
 
 interface JobCardBadge {
   icon: keyof typeof Ionicons.glyphMap;
@@ -45,7 +61,7 @@ interface JobCardProps {
 /** The compact, icon-row job card used in every list/map/grid context. Full detail lives on
  * the job detail screen — this card is deliberately minimal. */
 export function JobCard({ job, onPress, distance, onDelete, isDeleting, badge }: JobCardProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
   const thumbnail = job.media?.[0];
 
@@ -115,19 +131,26 @@ export function JobCard({ job, onPress, distance, onDelete, isDeleting, badge }:
             onDelete();
           }}
           accessibilityRole="button"
-          accessibilityLabel="Delete job"
+          accessibilityLabel={t("orders.deleteAction")}
         >
           {isDeleting ? null : <Ionicons name="trash-outline" size={14} color="#C1554B" />}
         </XStack>
       ) : null}
 
       <YStack padding="$3" gap="$2">
+        <XStack justifyContent="space-between" alignItems="flex-start" gap="$2">
+          <Text variant="body" fontWeight="600" flex={1} numberOfLines={1}>
+            {job.title}
+          </Text>
+          <StatusPill label={t(`jobs.status.${job.status}`)} tone={STATUS_TONE[job.status]} />
+        </XStack>
+
         <XStack flexWrap="wrap" gap="$3" alignItems="center">
           <IconLabel icon={getCategoryIcon(job.categoryId.slug)} label={undefined} />
-          <IconLabel icon="calendar-outline" label={formatDay(job.date, locale)} />
+          <IconLabel icon="calendar-outline" label={formatDay(job.date, locale, t("jobs.today"))} />
           <IconLabel icon="time-outline" label={formatTime(job.date, locale)} />
           {distance ? <IconLabel icon="location-outline" label={distance} /> : null}
-          <IconLabel icon="pricetag-outline" label={formatBudget(job.budget)} />
+          <IconLabel icon="pricetag-outline" label={formatBudget(job.budget, locale)} />
           <IconLabel icon="person-outline" label={String(job.peopleNeeded)} />
         </XStack>
 

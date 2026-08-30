@@ -5,6 +5,23 @@ import { ProblemReportModel } from "../problems/problem.model.js";
 import { ReviewModel } from "../reviews/review.model.js";
 
 export const accountDeletionRepository = {
+  async collectJobLifecycleIds(userId: string) {
+    const [ownedJobs, assignedJobs, offeredApplications] = await Promise.all([
+      JobModel.find({
+        clientId: userId,
+        status: { $in: ["draft", "active", "offer_pending", "assigned"] },
+      }).select("_id"),
+      JobModel.find({ assignedWorkerId: userId, status: "assigned" }).select("_id"),
+      ApplicationModel.find({ workerId: userId, status: "offered" }).select("jobId"),
+    ]);
+
+    return {
+      ownedJobIds: ownedJobs.map((job) => job._id.toString()),
+      assignedJobIds: assignedJobs.map((job) => job._id.toString()),
+      offeredJobIds: offeredApplications.map((application) => application.jobId.toString()),
+    };
+  },
+
   async collectAssetUrls(userId: string): Promise<string[]> {
     const [jobs, applications, messages] = await Promise.all([
       JobModel.find({ clientId: userId }).select("media"),
@@ -45,17 +62,6 @@ export const accountDeletionRepository = {
     const ownedJobIds = ownedJobs.map((job) => job._id);
 
     await Promise.all([
-      // Cancel unfinished jobs posted by the deleted user.
-      JobModel.updateMany(
-        {
-          clientId: userId,
-          status: { $ne: "completed" },
-        },
-        {
-          $set: { status: "cancelled" },
-        }
-      ),
-
       // Remove personal content from jobs while preserving history.
       JobModel.updateMany(
         { clientId: userId },
@@ -70,18 +76,6 @@ export const accountDeletionRepository = {
               coordinates: [0, 0],
             },
           },
-        }
-      ),
-
-      // Reopen unfinished jobs where the deleted user was the worker.
-      JobModel.updateMany(
-        {
-          assignedWorkerId: userId,
-          status: { $ne: "completed" },
-        },
-        {
-          $set: { status: "active" },
-          $unset: { assignedWorkerId: "" },
         }
       ),
 

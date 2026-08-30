@@ -204,6 +204,12 @@ describe("applications + job lifecycle", () => {
     expect(completeRes.status).toBe(200);
     expect(completeRes.body.job.status).toBe("completed");
 
+    const cancelCompleted = await request(app)
+      .post(`/api/v1/jobs/${jobId}/cancel`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+    expect(cancelCompleted.status).toBe(409);
+    expect(cancelCompleted.body.error.code).toBe("CONFLICT");
+
     const reviewRes = await request(app)
       .post(`/api/v1/jobs/${jobId}/reviews`)
       .set("Authorization", `Bearer ${client.accessToken}`)
