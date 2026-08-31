@@ -9,6 +9,7 @@ export type AuthStackParamList = {
 
 export type HomeStackParamList = {
   HomeList: undefined;
+  Notifications: undefined;
   JobDetail: { jobId: string };
   ApplicantProfile: {
     jobId: string;

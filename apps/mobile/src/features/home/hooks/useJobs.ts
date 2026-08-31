@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { jobsApi, type CreateJobInput, type JobListParams } from "../api/jobs.api";
+import type { Job } from "../types/job.types";
+
+/** Temporary stale-cache guard; the backend applies the same rules authoritatively. */
+export function isGloballyVisibleJob(job: Job, now = Date.now()) {
+  return job.status === "active" && new Date(job.date).getTime() > now;
+}
 
 export function useJobs(params: JobListParams) {
   return useQuery({

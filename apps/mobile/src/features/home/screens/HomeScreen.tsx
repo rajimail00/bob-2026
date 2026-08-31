@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useFocusEffect } from "@react-navigation/native";
 import Slider from "@react-native-community/slider";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlatList } from "react-native";
 import { XStack, YStack } from "tamagui";
@@ -19,7 +20,8 @@ import type { HomeStackParamList } from "@/navigation/types";
 import { JobCard } from "../components/JobCard";
 import { JobFilterModal, type JobFilters } from "../components/JobFilterModal";
 import { JobMapView } from "../components/JobMapView";
-import { useCategories, useJobs } from "../hooks/useJobs";
+import { isGloballyVisibleJob, useCategories, useJobs } from "../hooks/useJobs";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "HomeList">;
 type ViewMode = "map" | "list";
@@ -49,7 +51,13 @@ export function HomeScreen({ navigation }: Props) {
     radiusKm: location.status === "granted" ? radiusKm : undefined,
   });
 
-  const jobs = jobsQuery.data?.items ?? [];
+  useFocusEffect(
+    useCallback(() => {
+      void jobsQuery.refetch();
+    }, [jobsQuery.refetch])
+  );
+
+  const jobs = (jobsQuery.data?.items ?? []).filter((job) => isGloballyVisibleJob(job));
   const activeFilterCount =
     filters.categoryIds.length +
     (filters.minBudget > 0 || filters.maxBudget < 1000 ? 1 : 0) +
@@ -79,6 +87,10 @@ export function HomeScreen({ navigation }: Props) {
               }
             />
           </YStack>
+          <NotificationBell
+            onPress={() => navigation.navigate("Notifications")}
+            label={(count) => t("notifications.bellLabel", { count })}
+          />
           <XStack
             width={44}
             height={44}

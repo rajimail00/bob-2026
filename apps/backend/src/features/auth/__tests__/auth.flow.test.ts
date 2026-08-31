@@ -104,6 +104,47 @@ describe("auth flow", () => {
     const res = await request(app).get("/api/v1/auth/me");
     expect(res.status).toBe(401);
   });
+
+  it("persists authenticated notification preference updates with safe defaults", async () => {
+    const email = "notification-preferences@example.com";
+    const code = await registerAndGetCode(email);
+    const verified = await request(app)
+      .post("/api/v1/auth/verify-email")
+      .send({ email, code });
+    const accessToken = verified.body.accessToken as string;
+
+    expect(verified.body.user.notificationPrefs).toMatchObject({
+      newApplicant: true,
+      newMessage: true,
+      offers: true,
+      applicationUpdates: true,
+      jobStatusChanges: true,
+      jobEdits: true,
+      cancellations: true,
+      completions: true,
+      jobWon: true,
+    });
+
+    const unauthenticated = await request(app)
+      .patch("/api/v1/auth/notification-preferences")
+      .send({ newMessage: false });
+    expect(unauthenticated.status).toBe(401);
+
+    const updated = await request(app)
+      .patch("/api/v1/auth/notification-preferences")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ newMessage: false, cancellations: false });
+    expect(updated.status).toBe(200);
+    expect(updated.body.user.notificationPrefs.newMessage).toBe(false);
+    expect(updated.body.user.notificationPrefs.cancellations).toBe(false);
+    expect(updated.body.user.notificationPrefs.offers).toBe(true);
+
+    const login = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email, password: "correct-horse-1" });
+    expect(login.body.user.notificationPrefs.newMessage).toBe(false);
+    expect(login.body.user.notificationPrefs.cancellations).toBe(false);
+  });
   it("anonymizes an account and releases its original email", async () => {
     const email = "delete-account@example.com";
     const password = "correct-horse-1";

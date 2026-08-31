@@ -1,3 +1,4 @@
+import type { ClientSession } from "mongoose";
 import { JobModel, type JobStatus } from "./job.model.js";
 import type { ListJobsQuery } from "./job.validation.js";
 
@@ -7,7 +8,11 @@ type JobTransitionUpdates = {
 
 export const jobRepository = {
   async list(query: ListJobsQuery) {
-    const filter: Record<string, unknown> = { status: "active" };
+    const filter: Record<string, unknown> = {
+      status: "active",
+      // Evaluate this for every request so a job disappears even before the scheduler catches up.
+      date: { $gt: new Date() },
+    };
 
     if (query.categoryId) {
       const ids = query.categoryId.split(",").filter(Boolean);
@@ -70,12 +75,27 @@ export const jobRepository = {
           status: nextStatus,
           ...updates,
         },
+        $inc: { applicationRevision: 1 },
       },
       {
         new: true,
         runValidators: true,
       }
     );
+  },
+
+  lockForApplication(id: string, now: Date, session: ClientSession) {
+    return JobModel.findOneAndUpdate(
+      { _id: id, status: "active", date: { $gt: now } },
+      { $inc: { applicationRevision: 1 } },
+      { new: true, session }
+    );
+  },
+
+  findPastDueActive(now: Date) {
+    return JobModel.find({ status: "active", date: { $lt: now } })
+      .select("_id clientId")
+      .sort({ date: 1 });
   },
 
   listPostedBy(clientId: string) {

@@ -4,6 +4,7 @@ import { createApp } from "./app.js";
 import { connectDatabase } from "./config/db.js";
 import { env } from "./config/env.js";
 import { initSocket } from "./lib/socket.js";
+import { startJobExpirationScheduler } from "./features/jobs/jobExpiration.scheduler.js";
 
 async function main() {
   await connectDatabase();
@@ -11,6 +12,8 @@ async function main() {
   const app = createApp();
   const httpServer = http.createServer(app);
   initSocket(httpServer);
+  const stopJobExpirationScheduler = startJobExpirationScheduler();
+  httpServer.on("close", stopJobExpirationScheduler);
 
   httpServer.listen(env.PORT, () => {
     console.log(`[server] listening on http://localhost:${env.PORT} (HTTP + Socket.IO)`);

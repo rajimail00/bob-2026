@@ -4,6 +4,7 @@ import { authService } from "./auth.service.js";
 import {
   createProfileSchema,
   loginSchema,
+  notificationPreferencesSchema,
   refreshSchema,
   registerSchema,
   verifyEmailSchema,
@@ -66,6 +67,13 @@ export const authController = {
     if (!req.auth) throw AppError.unauthorized();
     const input = workerProfileSchema.parse(req.body);
     const user = await authService.completeWorkerProfile(req.auth.userId, input);
+    res.status(200).json({ user });
+  },
+
+  async updateNotificationPreferences(req: Request, res: Response) {
+    if (!req.auth) throw AppError.unauthorized();
+    const input = notificationPreferencesSchema.parse(req.body);
+    const user = await authService.updateNotificationPreferences(req.auth.userId, input);
     res.status(200).json({ user });
   },
 

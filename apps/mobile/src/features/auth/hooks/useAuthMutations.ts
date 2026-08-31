@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { disconnectSocket } from "@/lib/socket";
 import { authApi } from "../api/auth.api";
 import { useAuthStore } from "../store/authStore";
-import type { Locale } from "../types/auth.types";
+import type { AuthUser, Locale, NotificationPreferences } from "../types/auth.types";
 
 export function useRegister() {
   return useMutation({
@@ -94,6 +94,37 @@ export function useCompleteWorkerProfile() {
       authApi.completeWorkerProfile(input),
     onSuccess: async (user) => {
       setUser(user);
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    },
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const setUser = useAuthStore((state) => state.setUser);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: Partial<NotificationPreferences>) =>
+      authApi.updateNotificationPreferences(input),
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: ["auth", "me"] });
+      const previousUser = useAuthStore.getState().user;
+      if (previousUser) {
+        setUser({
+          ...previousUser,
+          notificationPrefs: { ...previousUser.notificationPrefs, ...input },
+        });
+      }
+      return { previousUser };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previousUser) setUser(context.previousUser as AuthUser);
+    },
+    onSuccess: (user) => {
+      setUser(user);
+      queryClient.setQueryData(["auth", "me"], user);
+    },
+    onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     },
   });

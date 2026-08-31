@@ -126,6 +126,57 @@
     "cancelledMessage": "This job was cancelled.",
     "expiredMessage": "This job has expired."
   },
+  "notifications": {
+    "title": "Notifications",
+    "loading": "Loading notifications…",
+    "errorTitle": "Couldn't load notifications",
+    "errorBody": "Your notifications could not be loaded. Please try again.",
+    "emptyTitle": "No notifications yet",
+    "emptyBody": "Updates about your jobs, applications and messages will appear here.",
+    "markAllRead": "Mark all read",
+    "bellLabel_one": "Notifications, {{count}} unread",
+    "bellLabel_other": "Notifications, {{count}} unread",
+    "open": "Open notification: {{message}}",
+    "time": {
+      "now": "Just now",
+      "minutes_one": "{{count}} minute ago",
+      "minutes_other": "{{count}} minutes ago",
+      "hours_one": "{{count}} hour ago",
+      "hours_other": "{{count}} hours ago",
+      "days_one": "{{count}} day ago",
+      "days_other": "{{count}} days ago"
+    },
+    "types": {
+      "new_application": "A worker applied to your job",
+      "offer_received": "You received a job offer",
+      "offer_accepted": "Your job offer was accepted",
+      "offer_declined": "Your job offer was declined",
+      "application_rejected": "Your application was not selected",
+      "job_cancelled": "A job was cancelled",
+      "job_completed": "A job was marked complete",
+      "new_message": "You received a new message",
+      "job_updated": "A job was updated",
+      "job_expired": "A job expired",
+      "job_reposted": "A job was reposted"
+    }
+  },
+  "notificationPreferences": {
+    "title": "Notification settings",
+    "shortTitle": "Notifications",
+    "description": "Choose which updates arrive in real time. Important updates remain in your notification history.",
+    "updateError": "Your notification setting could not be saved.",
+    "toggleLabel": "Toggle {{preference}}",
+    "fields": {
+      "newApplicant": "New applicants",
+      "newMessage": "New messages",
+      "offers": "Job offers",
+      "applicationUpdates": "Application updates",
+      "jobStatusChanges": "Job status changes",
+      "jobEdits": "Job edits and reposts",
+      "cancellations": "Cancellations",
+      "completions": "Completions"
+    }
+  },
   "navigation": {
     "home": "Home",
     "orders": "Orders",

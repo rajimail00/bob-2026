@@ -1,5 +1,7 @@
 import { AppError } from "../../lib/errors.js";
 import { emitToUser } from "../../lib/realtime.js";
+import { authRepository } from "../auth/auth.repository.js";
+import { normalizeNotificationPreferences } from "../auth/auth.model.js";
 import type { NotificationData, NotificationType } from "./notification.model.js";
 import { notificationRepository } from "./notification.repository.js";
 
@@ -32,7 +34,17 @@ export async function createNotification(input: CreateNotificationInput) {
     data: input.data,
   });
 
-  // Persistence is the source of truth. Realtime delivery happens only after the insert succeeds.
+  // Persistence is the source of truth. Preferences affect live delivery, never in-app history.
+  let preferences;
+  try {
+    const recipient = await authRepository.findById(input.recipientId);
+    preferences = normalizeNotificationPreferences(recipient?.notificationPrefs);
+  } catch {
+    // A delivery-preference lookup must not turn a persisted lifecycle action into a failed request.
+    return notification;
+  }
+  if (!isRealtimeDeliveryEnabled(input.type, preferences)) return notification;
+
   emitToUser(input.recipientId, "notification:new", notification);
 
   const legacyEvent = LEGACY_EVENT_BY_TYPE[input.type];
@@ -41,6 +53,33 @@ export async function createNotification(input: CreateNotificationInput) {
   }
 
   return notification;
+}
+
+function isRealtimeDeliveryEnabled(
+  type: NotificationType,
+  preferences: ReturnType<typeof normalizeNotificationPreferences>
+) {
+  switch (type) {
+    case "new_application":
+      return preferences.newApplicant;
+    case "new_message":
+      return preferences.newMessage;
+    case "offer_received":
+      return preferences.offers;
+    case "offer_accepted":
+    case "offer_declined":
+    case "application_rejected":
+      return preferences.applicationUpdates;
+    case "job_cancelled":
+      return preferences.cancellations;
+    case "job_completed":
+      return preferences.completions;
+    case "job_updated":
+    case "job_reposted":
+      return preferences.jobEdits;
+    case "job_expired":
+      return preferences.jobStatusChanges;
+  }
 }
 
 export const notificationService = {

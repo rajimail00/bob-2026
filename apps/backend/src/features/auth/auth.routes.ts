@@ -25,4 +25,9 @@ authRouter.post("/logout", requireAuth, asyncHandler(authController.logout));
 authRouter.delete("/account", requireAuth, asyncHandler(authController.deleteAccount));
 authRouter.post("/profile", requireAuth, asyncHandler(authController.completeProfile));
 authRouter.post("/worker-profile", requireAuth, asyncHandler(authController.completeWorkerProfile));
+authRouter.patch(
+  "/notification-preferences",
+  requireAuth,
+  asyncHandler(authController.updateNotificationPreferences)
+);
 authRouter.get("/me", requireAuth, asyncHandler(authController.me));

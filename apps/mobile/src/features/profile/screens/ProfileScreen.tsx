@@ -1,13 +1,19 @@
 import { ActivityIndicator, Alert, Image, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
-import { Input as TamaguiInput, XStack, YStack } from "tamagui";
+import { Input as TamaguiInput, Switch, XStack, YStack } from "tamagui";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import { useCompleteProfile, useDeleteAccount, useLogout, } from "@/features/auth/hooks/useAuthMutations";
+import {
+  useCompleteProfile,
+  useDeleteAccount,
+  useLogout,
+  useUpdateNotificationPreferences,
+} from "@/features/auth/hooks/useAuthMutations";
+import type { EditableNotificationPreference } from "@/features/auth/types/auth.types";
 import { setAppLocale, type SupportedLocale } from "@/lib/i18n";
 import { getApiErrorMessage } from "@/lib/apiClient";
 import { useState } from "react";
@@ -224,8 +230,11 @@ export function ProfileScreen() {
   const logout = useLogout();
   const deleteAccount = useDeleteAccount();
   const completeProfile = useCompleteProfile();
+  const updateNotificationPreferences = useUpdateNotificationPreferences();
   const currentLocale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
   const [showSettings, setShowSettings] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [notificationPreferenceError, setNotificationPreferenceError] = useState<string | null>(null);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [selectedLanguage, setSelectedLanguage] =
@@ -342,6 +351,85 @@ export function ProfileScreen() {
       ]
     );
   };
+
+  const notificationPreferenceFields: EditableNotificationPreference[] = [
+    "newApplicant",
+    "newMessage",
+    "offers",
+    "applicationUpdates",
+    "jobStatusChanges",
+    "jobEdits",
+    "cancellations",
+    "completions",
+  ];
+
+  if (showNotificationSettings) {
+    return (
+      <Screen scroll>
+        <YStack gap="$4" paddingTop="$4">
+          <XStack alignItems="center" gap="$3">
+            <XStack
+              width={40}
+              height={40}
+              alignItems="center"
+              justifyContent="center"
+              onPress={() => setShowNotificationSettings(false)}
+              role="button"
+              aria-label={t("common.back")}
+            >
+              <Ionicons name="chevron-back" size={24} color="#4F8266" />
+            </XStack>
+            <Text variant="h3">{t("notificationPreferences.title")}</Text>
+          </XStack>
+
+          <Text variant="body" muted>{t("notificationPreferences.description")}</Text>
+
+          <Card padding="$0" overflow="hidden">
+            {notificationPreferenceFields.map((field, index) => (
+              <XStack
+                key={field}
+                minHeight={62}
+                paddingHorizontal="$4"
+                alignItems="center"
+                gap="$3"
+                borderBottomWidth={index === notificationPreferenceFields.length - 1 ? 0 : 1}
+                borderBottomColor="$borderColor"
+              >
+                <Text variant="body" flex={1}>{t(`notificationPreferences.fields.${field}`)}</Text>
+                <Switch
+                  checked={user?.notificationPrefs[field] ?? true}
+                  onCheckedChange={(checked) => {
+                    setNotificationPreferenceError(null);
+                    updateNotificationPreferences.mutate(
+                      { [field]: checked },
+                      {
+                        onError: (error) =>
+                          setNotificationPreferenceError(
+                            getApiErrorMessage(error, t("notificationPreferences.updateError"))
+                          ),
+                      }
+                    );
+                  }}
+                  disabled={updateNotificationPreferences.isPending}
+                  backgroundColor={user?.notificationPrefs[field] ?? true ? "$primary" : "$borderColor"}
+                  role="switch"
+                  aria-label={t("notificationPreferences.toggleLabel", {
+                    preference: t(`notificationPreferences.fields.${field}`),
+                  })}
+                >
+                  <Switch.Thumb backgroundColor="white" />
+                </Switch>
+              </XStack>
+            ))}
+          </Card>
+
+          {notificationPreferenceError ? (
+            <Text variant="small" color="$danger">{notificationPreferenceError}</Text>
+          ) : null}
+        </YStack>
+      </Screen>
+    );
+  }
 
   if (showProfileEdit) {
     const displayPhotoUri = editPhotoPreviewUri ?? editPhotoUrl;
@@ -514,12 +602,13 @@ export function ProfileScreen() {
                 alignItems="center"
                 justifyContent="center"
                 gap="$2"
-                onPress={() => { }}
-                accessibilityRole="button"
+                onPress={() => setShowNotificationSettings(true)}
+                role="button"
+                aria-label={t("notificationPreferences.title")}
               >
                 <Ionicons name="notifications-outline" size={16} color="#232920" />
                 <Text fontSize={11} fontWeight="600">
-                  PUSH NOTIFICATIONS
+                  {t("notificationPreferences.shortTitle").toUpperCase()}
                 </Text>
               </XStack>
 

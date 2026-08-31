@@ -7,8 +7,18 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../../lib
 import { jobService } from "../jobs/job.service.js";
 import { authRepository } from "./auth.repository.js";
 import { accountDeletionRepository } from "./accountDeletion.repository.js";
-import type { CreateProfileInput, LoginInput, RegisterInput, VerifyEmailInput, WorkerProfileInput } from "./auth.validation.js";
-import type { UserDocument } from "./auth.model.js";
+import type {
+  CreateProfileInput,
+  LoginInput,
+  NotificationPreferencesInput,
+  RegisterInput,
+  VerifyEmailInput,
+  WorkerProfileInput,
+} from "./auth.validation.js";
+import {
+  normalizeNotificationPreferences,
+  type UserDocument,
+} from "./auth.model.js";
 
 const SALT_ROUNDS = 12;
 const VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000;
@@ -201,6 +211,12 @@ export const authService = {
     user.notificationPrefs = {
       newApplicant: false,
       newMessage: false,
+      offers: false,
+      applicationUpdates: false,
+      jobStatusChanges: false,
+      jobEdits: false,
+      cancellations: false,
+      completions: false,
       jobWon: false,
     };
 
@@ -246,6 +262,18 @@ export const authService = {
     return toPublicUser(user);
   },
 
+  async updateNotificationPreferences(userId: string, input: NotificationPreferencesInput) {
+    const user = await authRepository.findById(userId);
+    if (!user) throw AppError.notFound();
+
+    user.notificationPrefs = {
+      ...normalizeNotificationPreferences(user.notificationPrefs),
+      ...input,
+    };
+    await authRepository.save(user);
+    return toPublicUser(user);
+  },
+
   async getMe(userId: string) {
     const user = await authRepository.findById(userId);
     if (!user) throw AppError.notFound();
@@ -266,7 +294,7 @@ export function toPublicUser(user: UserDocument) {
     bio: user.bio,
     rating: user.rating,
     workerProfile: user.workerProfile,
-    notificationPrefs: user.notificationPrefs,
+    notificationPrefs: normalizeNotificationPreferences(user.notificationPrefs),
     subscriptionTier: user.subscriptionTier,
     isEmailVerified: user.isEmailVerified,
     createdAt: user.createdAt,

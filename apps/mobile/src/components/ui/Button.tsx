@@ -79,7 +79,7 @@ export function Button({ children, loading = false, disabled, variant = "primary
       variant={variant}
       disabled={isDisabled}
       onPress={isDisabled ? undefined : onPress}
-      accessibilityRole="button"
+      role="button"
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       {...rest}
     >

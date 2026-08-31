@@ -43,7 +43,7 @@ async function createJobWithApplicant() {
       description: "Weekly apartment cleaning needed, two bedrooms.",
       location: { lng: 13.405, lat: 52.52 },
       address: "Schwalbacherstr. 42, Berlin",
-      date: new Date().toISOString(),
+      date: new Date(Date.now() + 3_600_000).toISOString(),
       budget: 100,
     });
   const jobId = jobRes.body.job._id as string;

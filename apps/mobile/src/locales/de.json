@@ -126,6 +126,57 @@
     "cancelledMessage": "Dieser Auftrag wurde storniert.",
     "expiredMessage": "Dieser Auftrag ist abgelaufen."
   },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "loading": "Benachrichtigungen werden geladen…",
+    "errorTitle": "Benachrichtigungen konnten nicht geladen werden",
+    "errorBody": "Deine Benachrichtigungen konnten nicht geladen werden. Bitte versuche es erneut.",
+    "emptyTitle": "Noch keine Benachrichtigungen",
+    "emptyBody": "Neuigkeiten zu deinen Aufträgen, Bewerbungen und Nachrichten erscheinen hier.",
+    "markAllRead": "Alle gelesen",
+    "bellLabel_one": "Benachrichtigungen, {{count}} ungelesen",
+    "bellLabel_other": "Benachrichtigungen, {{count}} ungelesen",
+    "open": "Benachrichtigung öffnen: {{message}}",
+    "time": {
+      "now": "Gerade eben",
+      "minutes_one": "Vor {{count}} Minute",
+      "minutes_other": "Vor {{count}} Minuten",
+      "hours_one": "Vor {{count}} Stunde",
+      "hours_other": "Vor {{count}} Stunden",
+      "days_one": "Vor {{count}} Tag",
+      "days_other": "Vor {{count}} Tagen"
+    },
+    "types": {
+      "new_application": "Eine Person hat sich auf deinen Auftrag beworben",
+      "offer_received": "Du hast ein Auftragsangebot erhalten",
+      "offer_accepted": "Dein Auftragsangebot wurde angenommen",
+      "offer_declined": "Dein Auftragsangebot wurde abgelehnt",
+      "application_rejected": "Deine Bewerbung wurde nicht ausgewählt",
+      "job_cancelled": "Ein Auftrag wurde storniert",
+      "job_completed": "Ein Auftrag wurde abgeschlossen",
+      "new_message": "Du hast eine neue Nachricht erhalten",
+      "job_updated": "Ein Auftrag wurde aktualisiert",
+      "job_expired": "Ein Auftrag ist abgelaufen",
+      "job_reposted": "Ein Auftrag wurde erneut veröffentlicht"
+    }
+  },
+  "notificationPreferences": {
+    "title": "Benachrichtigungseinstellungen",
+    "shortTitle": "Benachrichtigungen",
+    "description": "Wähle, welche Neuigkeiten in Echtzeit ankommen. Wichtige Neuigkeiten bleiben im Verlauf erhalten.",
+    "updateError": "Die Benachrichtigungseinstellung konnte nicht gespeichert werden.",
+    "toggleLabel": "{{preference}} umschalten",
+    "fields": {
+      "newApplicant": "Neue Bewerbungen",
+      "newMessage": "Neue Nachrichten",
+      "offers": "Auftragsangebote",
+      "applicationUpdates": "Bewerbungsstatus",
+      "jobStatusChanges": "Statusänderungen",
+      "jobEdits": "Änderungen und Neuveröffentlichungen",
+      "cancellations": "Stornierungen",
+      "completions": "Abschlüsse"
+    }
+  },
   "navigation": {
     "home": "Start",
     "orders": "Aufträge",

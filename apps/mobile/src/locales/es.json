@@ -126,6 +126,57 @@
     "cancelledMessage": "Este encargo fue cancelado.",
     "expiredMessage": "Este encargo ha caducado."
   },
+  "notifications": {
+    "title": "Notificaciones",
+    "loading": "Cargando notificaciones…",
+    "errorTitle": "No se pudieron cargar las notificaciones",
+    "errorBody": "No se pudieron cargar tus notificaciones. Inténtalo de nuevo.",
+    "emptyTitle": "Todavía no hay notificaciones",
+    "emptyBody": "Las novedades sobre tus encargos, solicitudes y mensajes aparecerán aquí.",
+    "markAllRead": "Marcar todo como leído",
+    "bellLabel_one": "Notificaciones, {{count}} sin leer",
+    "bellLabel_other": "Notificaciones, {{count}} sin leer",
+    "open": "Abrir notificación: {{message}}",
+    "time": {
+      "now": "Ahora mismo",
+      "minutes_one": "Hace {{count}} minuto",
+      "minutes_other": "Hace {{count}} minutos",
+      "hours_one": "Hace {{count}} hora",
+      "hours_other": "Hace {{count}} horas",
+      "days_one": "Hace {{count}} día",
+      "days_other": "Hace {{count}} días"
+    },
+    "types": {
+      "new_application": "Una persona solicitó tu encargo",
+      "offer_received": "Has recibido una oferta de trabajo",
+      "offer_accepted": "Tu oferta de trabajo fue aceptada",
+      "offer_declined": "Tu oferta de trabajo fue rechazada",
+      "application_rejected": "Tu solicitud no fue seleccionada",
+      "job_cancelled": "Se canceló un encargo",
+      "job_completed": "Se completó un encargo",
+      "new_message": "Has recibido un mensaje nuevo",
+      "job_updated": "Se actualizó un encargo",
+      "job_expired": "Un encargo ha caducado",
+      "job_reposted": "Se volvió a publicar un encargo"
+    }
+  },
+  "notificationPreferences": {
+    "title": "Ajustes de notificaciones",
+    "shortTitle": "Notificaciones",
+    "description": "Elige qué novedades llegan en tiempo real. Las novedades importantes permanecen en tu historial.",
+    "updateError": "No se pudo guardar el ajuste de notificación.",
+    "toggleLabel": "Cambiar {{preference}}",
+    "fields": {
+      "newApplicant": "Nuevas solicitudes",
+      "newMessage": "Mensajes nuevos",
+      "offers": "Ofertas de trabajo",
+      "applicationUpdates": "Cambios en solicitudes",
+      "jobStatusChanges": "Cambios de estado",
+      "jobEdits": "Ediciones y republicaciones",
+      "cancellations": "Cancelaciones",
+      "completions": "Finalizaciones"
+    }
+  },
   "navigation": {
     "home": "Inicio",
     "orders": "Encargos",

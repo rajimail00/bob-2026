@@ -1,9 +1,15 @@
-import { Types } from "mongoose";
-import { ApplicationModel } from "./application.model.js";
+import { Types, type ClientSession } from "mongoose";
+import { ApplicationModel, type ApplicationDocument } from "./application.model.js";
 
 export const applicationRepository = {
-  create(data: { jobId: string; workerId: string; message: string; voiceNoteUrl?: string }) {
-    return ApplicationModel.create(data);
+  async create(
+    data: { jobId: string; workerId: string; message: string; voiceNoteUrl?: string },
+    session?: ClientSession
+  ): Promise<ApplicationDocument> {
+    if (!session) return ApplicationModel.create(data);
+    const [application] = await ApplicationModel.create([data], { session });
+    if (!application) throw new Error("Application insert returned no document.");
+    return application;
   },
 
   findByJobAndWorker(jobId: string, workerId: string) {
@@ -28,6 +34,14 @@ export const applicationRepository = {
 
   findOfferedForJob(jobId: string) {
     return ApplicationModel.findOne({ jobId, status: "offered" });
+  },
+
+  listAffectedByExpiration(jobId: string) {
+    return ApplicationModel.find({ jobId, status: { $in: ["pending", "offered"] } }).select("workerId");
+  },
+
+  listAffectedByCancellation(jobId: string) {
+    return ApplicationModel.find({ jobId, status: { $in: ["pending", "offered"] } }).select("workerId");
   },
 
   listRejectableOthers(jobId: string, exceptApplicationId: string) {

@@ -1,5 +1,5 @@
 module.exports = function (api) {
-  api.cache(true);
+  const isTest = api.env("test");
   return {
     presets: ["babel-preset-expo"],
     plugins: [
@@ -11,16 +11,20 @@ module.exports = function (api) {
           extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
         },
       ],
-      [
-        "@tamagui/babel-plugin",
-        {
-          components: ["tamagui"],
-          config: "./tamagui.config.ts",
-          logTimings: false,
-        },
-      ],
-      // Reanimated 4 moved the worklets babel plugin into its own package.
-      "react-native-worklets/plugin",
+      ...(isTest
+        ? []
+        : [
+            [
+              "@tamagui/babel-plugin",
+              {
+                components: ["tamagui"],
+                config: "./tamagui.config.ts",
+                logTimings: false,
+              },
+            ],
+            // Reanimated 4 moved the worklets babel plugin into its own package.
+            "react-native-worklets/plugin",
+          ]),
     ],
   };
 };

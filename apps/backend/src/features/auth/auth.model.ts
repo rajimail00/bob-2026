@@ -9,6 +9,44 @@ export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const SUBSCRIPTION_TIERS = ["free", "pro", "unlimited"] as const;
 export type SubscriptionTier = (typeof SUBSCRIPTION_TIERS)[number];
 
+export const NOTIFICATION_PREFERENCE_DEFAULTS = {
+  newApplicant: true,
+  newMessage: true,
+  offers: true,
+  applicationUpdates: true,
+  jobStatusChanges: true,
+  jobEdits: true,
+  cancellations: true,
+  completions: true,
+  // Retained for users created before the expanded preference set.
+  jobWon: true,
+} as const;
+
+export type NotificationPreferences = {
+  [Key in keyof typeof NOTIFICATION_PREFERENCE_DEFAULTS]: boolean;
+};
+
+export function normalizeNotificationPreferences(
+  preferences: Partial<NotificationPreferences> | null | undefined
+): NotificationPreferences {
+  return {
+    ...NOTIFICATION_PREFERENCE_DEFAULTS,
+    ...(preferences?.newApplicant !== undefined ? { newApplicant: preferences.newApplicant } : {}),
+    ...(preferences?.newMessage !== undefined ? { newMessage: preferences.newMessage } : {}),
+    ...(preferences?.offers !== undefined ? { offers: preferences.offers } : {}),
+    ...(preferences?.applicationUpdates !== undefined
+      ? { applicationUpdates: preferences.applicationUpdates }
+      : {}),
+    ...(preferences?.jobStatusChanges !== undefined
+      ? { jobStatusChanges: preferences.jobStatusChanges }
+      : {}),
+    ...(preferences?.jobEdits !== undefined ? { jobEdits: preferences.jobEdits } : {}),
+    ...(preferences?.cancellations !== undefined ? { cancellations: preferences.cancellations } : {}),
+    ...(preferences?.completions !== undefined ? { completions: preferences.completions } : {}),
+    ...(preferences?.jobWon !== undefined ? { jobWon: preferences.jobWon } : {}),
+  };
+}
+
 const workerProfileSchema = new Schema(
   {
     categories: { type: [String], default: [], validate: (v: string[]) => v.length <= 5 },
@@ -22,6 +60,12 @@ const notificationPrefsSchema = new Schema(
   {
     newApplicant: { type: Boolean, default: true },
     newMessage: { type: Boolean, default: true },
+    offers: { type: Boolean, default: true },
+    applicationUpdates: { type: Boolean, default: true },
+    jobStatusChanges: { type: Boolean, default: true },
+    jobEdits: { type: Boolean, default: true },
+    cancellations: { type: Boolean, default: true },
+    completions: { type: Boolean, default: true },
     jobWon: { type: Boolean, default: true },
   },
   { _id: false }

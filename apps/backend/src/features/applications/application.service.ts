@@ -1,4 +1,5 @@
 import { AppError } from "../../lib/errors.js";
+import mongoose from "mongoose";
 import { authRepository } from "../auth/auth.repository.js";
 import { jobRepository } from "../jobs/job.repository.js";
 import { jobService } from "../jobs/job.service.js";
@@ -11,7 +12,9 @@ export const applicationService = {
   async apply(jobId: string, workerId: string, input: CreateApplicationInput) {
     const job = await jobRepository.findRawById(jobId);
     if (!job) throw AppError.notFound("This job no longer exists.");
-    if (job.status !== "active") throw AppError.conflict("This job is no longer accepting applicants.");
+    if (job.status !== "active" || job.date.getTime() <= Date.now()) {
+      throw AppError.conflict("This job is no longer accepting applicants.");
+    }
     if (job.clientId.toString() === workerId) throw AppError.badRequest("You can't apply to your own job.");
 
     const worker = await authRepository.findById(workerId);
@@ -22,12 +25,40 @@ export const applicationService = {
     const existing = await applicationRepository.findByJobAndWorker(jobId, workerId);
     if (existing) throw AppError.conflict("You've already applied to this job.");
 
-    const application = await applicationRepository.create({
-      jobId,
-      workerId,
-      message: input.message,
-      voiceNoteUrl: input.voiceNoteUrl,
-    });
+    const session = await mongoose.startSession();
+    let application;
+    try {
+      application = await session.withTransaction(async () => {
+        const lockedJob = await jobRepository.lockForApplication(jobId, new Date(), session);
+        if (!lockedJob) {
+          throw AppError.conflict("This job is no longer accepting applicants.");
+        }
+
+        return applicationRepository.create(
+          {
+            jobId,
+            workerId,
+            message: input.message,
+            voiceNoteUrl: input.voiceNoteUrl,
+          },
+          session
+        );
+      });
+    } catch (error) {
+      if (isDuplicateApplicationError(error)) {
+        throw AppError.conflict("You've already applied to this job.");
+      }
+      if (isTransactionConflict(error)) {
+        throw AppError.conflict("This job is no longer accepting applicants.");
+      }
+      throw error;
+    } finally {
+      await session.endSession();
+    }
+
+    if (!application) {
+      throw AppError.conflict("This job is no longer accepting applicants.");
+    }
 
     await createNotification({
       recipientId: job.clientId.toString(),
@@ -140,3 +171,15 @@ export const applicationService = {
     return application;
   },
 };
+
+function hasMongoErrorCode(error: unknown, code: number): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === code;
+}
+
+function isDuplicateApplicationError(error: unknown): boolean {
+  return hasMongoErrorCode(error, 11000);
+}
+
+function isTransactionConflict(error: unknown): boolean {
+  return hasMongoErrorCode(error, 112) || hasMongoErrorCode(error, 251);
+}

@@ -147,24 +147,71 @@ export const jobService = {
     const isClient = job.clientId.toString() === requesterId;
     const isAssignedWorker = job.assignedWorkerId?.toString() === requesterId;
     if (!isClient && !isAssignedWorker) throw AppError.forbidden("This job doesn't belong to you.");
-    let otherPartyId = isClient ? job.assignedWorkerId?.toString() : job.clientId.toString();
-    if (isClient && !otherPartyId && job.status === "offer_pending") {
-      const offeredApplication = await applicationRepository.findOfferedForJob(jobId);
-      otherPartyId = offeredApplication?.workerId.toString();
-    }
-
     const updatedJob = await transitionJobStatus(jobId, "cancelled");
 
-    if (otherPartyId) {
-      await createNotification({
-        recipientId: otherPartyId,
-        type: "job_cancelled",
-        data: { jobId, workerId: isClient ? otherPartyId : requesterId },
-        realtimePayload: { jobId },
-      });
+    const recipientIds = new Set<string>();
+    if (isClient) {
+      const assignedWorkerId = job.assignedWorkerId?.toString();
+      if (assignedWorkerId) {
+        recipientIds.add(assignedWorkerId);
+      } else {
+        const affectedApplications = await applicationRepository.listAffectedByCancellation(jobId);
+        for (const application of affectedApplications) {
+          recipientIds.add(application.workerId.toString());
+        }
+      }
+    } else {
+      recipientIds.add(job.clientId.toString());
     }
 
+    await Promise.all(
+      Array.from(recipientIds).map((recipientId) =>
+        createNotification({
+          recipientId,
+          type: "job_cancelled",
+          data: { jobId, workerId: isClient ? recipientId : requesterId },
+          realtimePayload: { jobId },
+        })
+      )
+    );
+
     return updatedJob;
+  },
+
+  async expirePastDue(now: Date) {
+    const candidates = await jobRepository.findPastDueActive(now);
+    const expiredJobIds: string[] = [];
+
+    for (const candidate of candidates) {
+      const jobId = candidate._id.toString();
+      try {
+        await transitionJobStatus(jobId, "expired");
+      } catch (error) {
+        // Another lifecycle request or scheduler instance won the conditional transition.
+        if (error instanceof AppError && error.code === "CONFLICT") continue;
+        throw error;
+      }
+
+      const applications = await applicationRepository.listAffectedByExpiration(jobId);
+      const recipientIds = new Set<string>([
+        candidate.clientId.toString(),
+        ...applications.map((application) => application.workerId.toString()),
+      ]);
+
+      await Promise.all(
+        Array.from(recipientIds).map((recipientId) =>
+          createNotification({
+            recipientId,
+            type: "job_expired",
+            data: { jobId },
+            realtimePayload: { jobId },
+          })
+        )
+      );
+      expiredJobIds.push(jobId);
+    }
+
+    return { expiredCount: expiredJobIds.length, jobIds: expiredJobIds };
   },
 
   async remove(jobId: string, clientId: string) {

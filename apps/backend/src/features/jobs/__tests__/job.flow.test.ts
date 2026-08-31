@@ -6,6 +6,10 @@ vi.mock("../../../lib/mailer.js", () => ({ sendVerificationEmail: vi.fn() }));
 const { createApp } = await import("../../../app.js");
 const { UserModel } = await import("../../auth/auth.model.js");
 const { CategoryModel } = await import("../../categories/category.model.js");
+const { JobModel } = await import("../job.model.js");
+const { ApplicationModel } = await import("../../applications/application.model.js");
+const { NotificationModel } = await import("../../notifications/notification.model.js");
+const { runJobExpiration } = await import("../jobExpiration.scheduler.js");
 
 const app = createApp();
 
@@ -49,7 +53,7 @@ describe("jobs", () => {
         description: "Looking for someone to watch our dog for an hour daily.",
         location: { lng: 13.405, lat: 52.52 },
         address: "Schwalbacherstr. 42, Berlin",
-        date: new Date().toISOString(),
+        date: new Date(Date.now() + 3_600_000).toISOString(),
         budget: 200,
       });
 
@@ -85,7 +89,7 @@ describe("jobs", () => {
         description: "Help me pack several boxes before moving day.",
         location: { lng: 13.405, lat: 52.52 },
         address: "Schwalbacherstr. 42, Berlin",
-        date: new Date().toISOString(),
+        date: new Date(Date.now() + 3_600_000).toISOString(),
         budget: 75,
       });
 
@@ -108,7 +112,7 @@ describe("jobs", () => {
         description: "Help trim the garden and collect the branches.",
         location: { lng: 13.405, lat: 52.52 },
         address: "Schwalbacherstr. 42, Berlin",
-        date: new Date().toISOString(),
+        date: new Date(Date.now() + 3_600_000).toISOString(),
         budget: 60,
       });
     const jobId = createRes.body.job._id as string;
@@ -148,7 +152,7 @@ describe("jobs", () => {
         description: "Water my plants twice a week while I'm away.",
         location: { lng: 13.405, lat: 52.52 },
         address: "Schwalbacherstr. 42, Berlin",
-        date: new Date().toISOString(),
+        date: new Date(Date.now() + 3_600_000).toISOString(),
         budget: 50,
       });
     const jobId = createRes.body.job._id as string;
@@ -195,7 +199,7 @@ describe("jobs", () => {
         description: "Help moving boxes from the second floor to the truck.",
         location: { lng: 13.405, lat: 52.52 },
         address: "Schwalbacherstr. 42, Berlin",
-        date: new Date().toISOString(),
+        date: new Date(Date.now() + 3_600_000).toISOString(),
         budget: 80,
       });
     const jobId = createRes.body.job._id as string;
@@ -217,5 +221,203 @@ describe("jobs", () => {
   it("requires auth to delete a job", async () => {
     const res = await request(app).delete("/api/v1/jobs/64b64b64b64b64b64b64b64b");
     expect(res.status).toBe(401);
+  });
+
+  it("rejects creating a job whose scheduled time is in the past", async () => {
+    const owner = await createVerifiedClient("past-create@example.com");
+    const response = await request(app)
+      .post("/api/v1/jobs")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({
+        categoryId,
+        title: "Past-due cleaning",
+        description: "This date has already passed and must be rejected.",
+        location: { lng: 13.405, lat: 52.52 },
+        address: "Berlin",
+        date: new Date(Date.now() - 1_000).toISOString(),
+        budget: 50,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("lists only future active jobs while keeping closed jobs in account history", async () => {
+    const owner = await createVerifiedClient("listing-owner@example.com");
+    const worker = await createVerifiedClient("listing-worker@example.com");
+    const future = new Date(Date.now() + 3_600_000);
+    const base = {
+      clientId: owner.userId,
+      categoryId,
+      description: "A sufficiently detailed description for listing rules.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: future,
+      budget: 100,
+    };
+
+    const statuses = [
+      "draft",
+      "active",
+      "offer_pending",
+      "assigned",
+      "completed",
+      "cancelled",
+      "expired",
+    ] as const;
+    for (const status of statuses) {
+      await JobModel.create({
+        ...base,
+        title: `Status ${status}`,
+        status,
+        ...(status === "assigned" || status === "completed"
+          ? { assignedWorkerId: worker.userId }
+          : {}),
+      });
+    }
+    await JobModel.create({
+      ...base,
+      title: "Past active",
+      status: "active",
+      date: new Date(Date.now() - 60_000),
+    });
+
+    const global = await request(app).get("/api/v1/jobs");
+    expect(global.status).toBe(200);
+    expect(global.body.total).toBe(1);
+    expect(global.body.items.map((job: { title: string }) => job.title)).toEqual(["Status active"]);
+
+    const posted = await request(app)
+      .get("/api/v1/jobs/mine/posted")
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+    expect(posted.body.jobs).toHaveLength(8);
+    expect(posted.body.jobs.map((job: { status: string }) => job.status)).toEqual(
+      expect.arrayContaining([...statuses])
+    );
+
+    const assigned = await request(app)
+      .get("/api/v1/jobs/mine/assigned")
+      .set("Authorization", `Bearer ${worker.accessToken}`);
+    expect(assigned.body.jobs.map((job: { status: string }) => job.status)).toEqual(
+      expect.arrayContaining(["assigned", "completed"])
+    );
+  });
+
+  it("keeps search, filters, geolocation, totals, and pagination scoped to visible jobs", async () => {
+    const owner = await createVerifiedClient("listing-filters@example.com");
+    const future = new Date(Date.now() + 3_600_000);
+    const makeJob = (title: string, budget: number, peopleNeeded: number, coordinates: [number, number]) =>
+      JobModel.create({
+        clientId: owner.userId,
+        categoryId,
+        title,
+        description: "Special garden help with enough searchable detail.",
+        location: { type: "Point", coordinates },
+        address: "Berlin",
+        date: future,
+        budget,
+        peopleNeeded,
+        status: "active",
+      });
+
+    await makeJob("Special garden alpha", 120, 2, [13.405, 52.52]);
+    await makeJob("Special garden beta", 180, 3, [13.41, 52.51]);
+    await makeJob("Far garden", 150, 2, [2.35, 48.85]);
+    await JobModel.create({
+      clientId: owner.userId,
+      categoryId,
+      title: "Closed special garden",
+      description: "Special garden help with enough searchable detail.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: future,
+      budget: 160,
+      peopleNeeded: 2,
+      status: "cancelled",
+    });
+
+    const response = await request(app).get("/api/v1/jobs").query({
+      search: "Special",
+      minBudget: 100,
+      maxBudget: 200,
+      peopleNeeded: 2,
+      lng: 13.405,
+      lat: 52.52,
+      radiusKm: 20,
+      page: 1,
+      pageSize: 1,
+    });
+    expect(response.status).toBe(200);
+    expect(response.body.total).toBe(2);
+    expect(response.body.items).toHaveLength(1);
+    expect(response.body.page).toBe(1);
+    expect(response.body.pageSize).toBe(1);
+
+    const secondPage = await request(app).get("/api/v1/jobs").query({
+      search: "Special",
+      lng: 13.405,
+      lat: 52.52,
+      radiusKm: 20,
+      page: 2,
+      pageSize: 1,
+    });
+    expect(secondPage.body.total).toBe(2);
+    expect(secondPage.body.items).toHaveLength(1);
+  });
+
+  it("expires overdue active jobs once and creates one notification per affected user", async () => {
+    const owner = await createVerifiedClient("expiration-owner@example.com");
+    const workerOne = await createVerifiedClient("expiration-worker-one@example.com");
+    const workerTwo = await createVerifiedClient("expiration-worker-two@example.com");
+    const now = new Date("2030-01-01T12:00:00.000Z");
+    const base = {
+      clientId: owner.userId,
+      categoryId,
+      description: "A detailed job used to verify automatic expiration.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      budget: 90,
+    };
+    const past = await JobModel.create({
+      ...base,
+      title: "Past active job",
+      date: new Date("2030-01-01T11:00:00.000Z"),
+      status: "active",
+    });
+    const future = await JobModel.create({
+      ...base,
+      title: "Future active job",
+      date: new Date("2030-01-01T13:00:00.000Z"),
+      status: "active",
+    });
+    const closed = await JobModel.create({
+      ...base,
+      title: "Already cancelled job",
+      date: new Date("2030-01-01T10:00:00.000Z"),
+      status: "cancelled",
+    });
+    await ApplicationModel.create([
+      { jobId: past._id, workerId: workerOne.userId, message: "I can help", status: "pending" },
+      { jobId: past._id, workerId: workerTwo.userId, message: "I can also help", status: "pending" },
+    ]);
+
+    const firstRun = await runJobExpiration(now);
+    const secondRun = await runJobExpiration(now);
+
+    expect(firstRun).toEqual({ expiredCount: 1, jobIds: [past.id] });
+    expect(secondRun).toEqual({ expiredCount: 0, jobIds: [] });
+    expect((await JobModel.findById(past._id))?.status).toBe("expired");
+    expect((await JobModel.findById(future._id))?.status).toBe("active");
+    expect((await JobModel.findById(closed._id))?.status).toBe("cancelled");
+
+    const notifications = await NotificationModel.find({
+      type: "job_expired",
+      "data.jobId": past.id,
+    });
+    expect(notifications).toHaveLength(3);
+    expect(new Set(notifications.map((item) => item.recipientId.toString())).size).toBe(3);
+
+    const global = await request(app).get("/api/v1/jobs");
+    expect(global.body.items.some((job: { _id: string }) => job._id === past.id)).toBe(false);
   });
 });

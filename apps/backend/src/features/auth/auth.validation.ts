@@ -38,3 +38,19 @@ export const workerProfileSchema = z.object({
   serviceHours: z.enum(["standard", "24h"]).default("standard"),
 });
 export type WorkerProfileInput = z.infer<typeof workerProfileSchema>;
+
+export const notificationPreferencesSchema = z
+  .object({
+    newApplicant: z.boolean().optional(),
+    newMessage: z.boolean().optional(),
+    offers: z.boolean().optional(),
+    applicationUpdates: z.boolean().optional(),
+    jobStatusChanges: z.boolean().optional(),
+    jobEdits: z.boolean().optional(),
+    cancellations: z.boolean().optional(),
+    completions: z.boolean().optional(),
+    jobWon: z.boolean().optional(),
+  })
+  .strict()
+  .refine((input) => Object.keys(input).length > 0, "Provide at least one notification preference.");
+export type NotificationPreferencesInput = z.infer<typeof notificationPreferencesSchema>;

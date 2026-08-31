@@ -22,7 +22,10 @@ export const createJobSchema = z.object({
     lat: z.number().min(-90).max(90),
   }),
   address: z.string().trim().min(1, "Address is required"),
-  date: z.coerce.date(),
+  // Date.now() is evaluated when each request is parsed, not when this module is imported.
+  date: z.coerce.date().refine((date) => date.getTime() > Date.now(), {
+    message: "Choose a date and time in the future",
+  }),
   peopleNeeded: z.number().int().min(1).max(15).default(1),
   budget: z.number().min(0),
   recurrence: z.enum(RECURRENCE_OPTIONS).default("none"),

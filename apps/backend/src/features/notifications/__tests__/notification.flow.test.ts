@@ -56,7 +56,7 @@ async function createJob(clientToken: string, categoryId: string, title = "Need 
       description: "Weekly apartment cleaning needed for two bedrooms.",
       location: { lng: 13.405, lat: 52.52 },
       address: "Schwalbacherstr. 42, Berlin",
-      date: new Date().toISOString(),
+      date: new Date(Date.now() + 3_600_000).toISOString(),
       budget: 100,
     });
   return response.body.job._id as string;
@@ -306,5 +306,37 @@ describe("notifications", () => {
       .set("Authorization", `Bearer ${client.accessToken}`);
     expect(complete.status).toBe(200);
     expect(await NotificationModel.countDocuments({ recipientId: worker.userId, type: "job_completed" })).toBe(1);
+  });
+
+  it("notifies every pending applicant when the owner cancels an active job", async () => {
+    const categoryId = await createCategory("notification-active-cancel");
+    const client = await createVerifiedUser("active-cancel-client@example.com");
+    const firstWorker = await createVerifiedUser("active-cancel-worker-one@example.com");
+    const secondWorker = await createVerifiedUser("active-cancel-worker-two@example.com");
+    await Promise.all([
+      setWorkerProfile(firstWorker.accessToken, categoryId),
+      setWorkerProfile(secondWorker.accessToken, categoryId),
+    ]);
+
+    const jobId = await createJob(client.accessToken, categoryId, "Active job with applicants");
+    await Promise.all([
+      applyToJob(jobId, firstWorker.accessToken),
+      applyToJob(jobId, secondWorker.accessToken),
+    ]);
+
+    const cancel = await request(app)
+      .post(`/api/v1/jobs/${jobId}/cancel`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+
+    expect(cancel.status).toBe(200);
+    for (const worker of [firstWorker, secondWorker]) {
+      expect(
+        await NotificationModel.countDocuments({
+          recipientId: worker.userId,
+          type: "job_cancelled",
+          "data.jobId": jobId,
+        })
+      ).toBe(1);
+    }
   });
 });

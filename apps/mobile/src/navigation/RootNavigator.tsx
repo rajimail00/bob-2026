@@ -8,8 +8,19 @@ import { Screen } from "@/components/ui/Screen";
 import { AuthNavigator } from "./AuthNavigator";
 import { MainTabNavigator } from "./MainTabNavigator";
 import type { RootStackParamList } from "./types";
+import { useNotificationEvents } from "@/features/notifications/hooks/useNotificationEvents";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+function AuthenticatedApp() {
+  useNotificationEvents();
+  return <MainTabNavigator />;
+}
+
+function AuthenticatedProfileSetup() {
+  useNotificationEvents();
+  return <CreateProfileScreen />;
+}
 
 /**
  * Single source of truth for which stack the app shows:
@@ -38,9 +49,9 @@ export function RootNavigator() {
         {!hasSession ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
         ) : !hasCompletedProfile ? (
-          <Stack.Screen name="CreateProfile" component={CreateProfileScreen} />
+          <Stack.Screen name="CreateProfile" component={AuthenticatedProfileSetup} />
         ) : (
-          <Stack.Screen name="Main" component={MainTabNavigator} />
+          <Stack.Screen name="Main" component={AuthenticatedApp} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

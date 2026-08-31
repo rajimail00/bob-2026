@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/apiClient";
-import type { AuthUser, Locale, TokenPair } from "../types/auth.types";
+import type { AuthUser, Locale, NotificationPreferences, TokenPair } from "../types/auth.types";
 
 export const authApi = {
   async register(input: { email: string; password: string; locale: Locale }) {
@@ -41,6 +41,14 @@ export const authApi = {
 
   async me() {
     const { data } = await apiClient.get<{ user: AuthUser }>("/auth/me");
+    return data.user;
+  },
+
+  async updateNotificationPreferences(input: Partial<NotificationPreferences>) {
+    const { data } = await apiClient.patch<{ user: AuthUser }>(
+      "/auth/notification-preferences",
+      input
+    );
     return data.user;
   },
 };

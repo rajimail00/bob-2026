@@ -1,4 +1,4 @@
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { afterAll, afterEach, beforeAll } from "vitest";
 
@@ -9,13 +9,13 @@ process.env.JWT_REFRESH_SECRET ??= "test-refresh-secret-please-ignore";
 process.env.CORS_ORIGIN ??= "http://localhost:8081";
 process.env.MONGODB_URI ??= "mongodb://127.0.0.1:27017/bob_test_placeholder";
 
-// let mongod: MongoMemoryServer;
-let mongod: MongoMemoryServer | undefined;
+let mongod: MongoMemoryReplSet | undefined;
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await MongoMemoryReplSet.create({
+    replSet: { count: 1, storageEngine: "wiredTiger" },
+  });
   await mongoose.connect(mongod.getUri());
-// }, 60000);
 }, 120000);
 
 afterEach(async () => {

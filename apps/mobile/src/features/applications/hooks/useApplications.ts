@@ -34,6 +34,7 @@ export function useOfferApplicant(jobId: string) {
       await queryClient.invalidateQueries({ queryKey: ["applications", "forJob", jobId] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", jobId] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "mine"] });
+      await queryClient.invalidateQueries({ queryKey: ["jobs", "list"] });
     },
   });
 }
@@ -46,6 +47,7 @@ export function useRespondToOffer(jobId: string) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["applications", "mine"] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", jobId] });
+      await queryClient.invalidateQueries({ queryKey: ["jobs", "list"] });
     },
   });
 }

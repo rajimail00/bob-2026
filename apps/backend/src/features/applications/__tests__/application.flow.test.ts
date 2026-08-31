@@ -6,6 +6,9 @@ vi.mock("../../../lib/mailer.js", () => ({ sendVerificationEmail: vi.fn() }));
 const { createApp } = await import("../../../app.js");
 const { UserModel } = await import("../../auth/auth.model.js");
 const { CategoryModel } = await import("../../categories/category.model.js");
+const { JobModel } = await import("../../jobs/job.model.js");
+const { ApplicationModel } = await import("../application.model.js");
+const { NotificationModel } = await import("../../notifications/notification.model.js");
 
 const app = createApp();
 
@@ -38,7 +41,7 @@ async function createJob(clientToken: string, categoryId: string) {
       description: "Looking for someone to watch our dog for an hour daily.",
       location: { lng: 13.405, lat: 52.52 },
       address: "Schwalbacherstr. 42, Berlin",
-      date: new Date().toISOString(),
+      date: new Date(Date.now() + 3_600_000).toISOString(),
       budget: 200,
     });
   return res.body.job._id as string;
@@ -285,5 +288,95 @@ describe("applications + job lifecycle", () => {
 
     const jobAfterCancel = await request(app).get(`/api/v1/jobs/${jobId}`);
     expect(jobAfterCancel.body.job.status).toBe("cancelled");
+  });
+
+  it("allows only one of multiple concurrent duplicate applications", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("concurrent-client@example.com");
+    const worker = await createVerifiedUser("concurrent-worker@example.com");
+    await setWorkerProfile(worker.accessToken, categoryId);
+    const jobId = await createJob(client.accessToken, categoryId);
+
+    const submit = (message: string) =>
+      request(app)
+        .post(`/api/v1/jobs/${jobId}/applications`)
+        .set("Authorization", `Bearer ${worker.accessToken}`)
+        .send({ message });
+    const responses = await Promise.all([submit("First concurrent request"), submit("Second concurrent request")]);
+
+    expect(responses.map((response) => response.status).sort()).toEqual([201, 409]);
+    expect(await ApplicationModel.countDocuments({ jobId, workerId: worker.userId })).toBe(1);
+    expect(
+      await NotificationModel.countDocuments({
+        recipientId: client.userId,
+        type: "new_application",
+        "data.jobId": jobId,
+      })
+    ).toBe(1);
+  });
+
+  it.each(["offer_pending", "assigned", "completed", "cancelled", "expired"] as const)(
+    "rejects applications and notifications when the job is %s",
+    async (status) => {
+      const categoryId = await createCategory();
+      const client = await createVerifiedUser(`locked-client-${status}@example.com`);
+      const worker = await createVerifiedUser(`locked-worker-${status}@example.com`);
+      await setWorkerProfile(worker.accessToken, categoryId);
+      const jobId = await createJob(client.accessToken, categoryId);
+      await JobModel.updateOne({ _id: jobId }, { $set: { status } });
+
+      const response = await request(app)
+        .post(`/api/v1/jobs/${jobId}/applications`)
+        .set("Authorization", `Bearer ${worker.accessToken}`)
+        .send({ message: "This application should be rejected" });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error.code).toBe("CONFLICT");
+      expect(await ApplicationModel.countDocuments({ jobId, workerId: worker.userId })).toBe(0);
+      expect(
+        await NotificationModel.countDocuments({ type: "new_application", "data.jobId": jobId })
+      ).toBe(0);
+    }
+  );
+
+  it("serializes a concurrent application against an offer_pending transition", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("stage-race-client@example.com");
+    const selectedWorker = await createVerifiedUser("stage-race-selected@example.com");
+    const racingWorker = await createVerifiedUser("stage-race-worker@example.com");
+    const lateWorker = await createVerifiedUser("stage-race-late@example.com");
+    await Promise.all([
+      setWorkerProfile(selectedWorker.accessToken, categoryId),
+      setWorkerProfile(racingWorker.accessToken, categoryId),
+      setWorkerProfile(lateWorker.accessToken, categoryId),
+    ]);
+    const jobId = await createJob(client.accessToken, categoryId);
+    const selectedApplication = await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${selectedWorker.accessToken}`)
+      .send({ message: "Select me" });
+
+    const [offerResponse, racingApplication] = await Promise.all([
+      request(app)
+        .patch(`/api/v1/applications/${selectedApplication.body.application._id}/offer`)
+        .set("Authorization", `Bearer ${client.accessToken}`),
+      request(app)
+        .post(`/api/v1/jobs/${jobId}/applications`)
+        .set("Authorization", `Bearer ${racingWorker.accessToken}`)
+        .send({ message: "Concurrent application" }),
+    ]);
+
+    expect(offerResponse.status).toBe(200);
+    expect([201, 409]).toContain(racingApplication.status);
+    const job = await JobModel.findById(jobId).select("+applicationRevision");
+    expect(job?.status).toBe("offer_pending");
+    expect(job?.applicationRevision).toBe(racingApplication.status === 201 ? 3 : 2);
+
+    const lateApplication = await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${lateWorker.accessToken}`)
+      .send({ message: "Definitely too late" });
+    expect(lateApplication.status).toBe(409);
+    expect(await ApplicationModel.countDocuments({ jobId, workerId: lateWorker.userId })).toBe(0);
   });
 });
