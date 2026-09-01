@@ -6,6 +6,7 @@ vi.mock("../../../lib/mailer.js", () => ({ sendVerificationEmail: vi.fn() }));
 const { createApp } = await import("../../../app.js");
 const { UserModel } = await import("../../auth/auth.model.js");
 const { CategoryModel } = await import("../../categories/category.model.js");
+const { ApplicationModel } = await import("../../applications/application.model.js");
 const { NotificationModel } = await import("../notification.model.js");
 const { createNotification } = await import("../notification.service.js");
 
@@ -329,6 +330,13 @@ describe("notifications", () => {
       .set("Authorization", `Bearer ${client.accessToken}`);
 
     expect(cancel.status).toBe(200);
+    expect(await ApplicationModel.countDocuments({ jobId, status: "rejected" })).toBe(2);
+    expect(
+      await ApplicationModel.countDocuments({
+        jobId,
+        status: { $in: ["pending", "offered"] },
+      })
+    ).toBe(0);
     for (const worker of [firstWorker, secondWorker]) {
       expect(
         await NotificationModel.countDocuments({

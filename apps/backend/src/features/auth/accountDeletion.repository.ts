@@ -10,13 +10,16 @@ export const accountDeletionRepository = {
       JobModel.find({
         clientId: userId,
         status: { $in: ["draft", "active", "offer_pending", "assigned"] },
-      }).select("_id"),
+      }).select("_id status"),
       JobModel.find({ assignedWorkerId: userId, status: "assigned" }).select("_id"),
       ApplicationModel.find({ workerId: userId, status: "offered" }).select("jobId"),
     ]);
 
     return {
-      ownedJobIds: ownedJobs.map((job) => job._id.toString()),
+      ownedJobs: ownedJobs.map((job) => ({
+        jobId: job._id.toString(),
+        status: job.status,
+      })),
       assignedJobIds: assignedJobs.map((job) => job._id.toString()),
       offeredJobIds: offeredApplications.map((application) => application.jobId.toString()),
     };

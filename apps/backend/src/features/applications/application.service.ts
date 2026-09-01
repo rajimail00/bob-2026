@@ -1,12 +1,28 @@
+import type { ClientSession } from "mongoose";
 import { AppError } from "../../lib/errors.js";
-import mongoose from "mongoose";
+import { isMongoTransactionConflict, withMongoTransaction } from "../../lib/transactions.js";
 import { authRepository } from "../auth/auth.repository.js";
 import { jobRepository } from "../jobs/job.repository.js";
 import { jobService } from "../jobs/job.service.js";
 import { messageService } from "../messages/message.service.js";
-import { createNotification } from "../notifications/notification.service.js";
+import {
+  createNotificationRecord,
+  emitCommittedNotification,
+} from "../notifications/notification.service.js";
 import { applicationRepository } from "./application.repository.js";
 import type { CreateApplicationInput } from "./application.validation.js";
+
+async function runLifecycleTransaction<T>(
+  work: (session: ClientSession) => Promise<T>,
+  conflictMessage: string
+) {
+  try {
+    return await withMongoTransaction(work);
+  } catch (error) {
+    if (isMongoTransactionConflict(error)) throw AppError.conflict(conflictMessage);
+    throw error;
+  }
+}
 
 export const applicationService = {
   async apply(jobId: string, workerId: string, input: CreateApplicationInput) {
@@ -15,7 +31,9 @@ export const applicationService = {
     if (job.status !== "active" || job.date.getTime() <= Date.now()) {
       throw AppError.conflict("This job is no longer accepting applicants.");
     }
-    if (job.clientId.toString() === workerId) throw AppError.badRequest("You can't apply to your own job.");
+    if (job.clientId.toString() === workerId) {
+      throw AppError.badRequest("You can't apply to your own job.");
+    }
 
     const worker = await authRepository.findById(workerId);
     if (!worker?.workerProfile) {
@@ -25,49 +43,49 @@ export const applicationService = {
     const existing = await applicationRepository.findByJobAndWorker(jobId, workerId);
     if (existing) throw AppError.conflict("You've already applied to this job.");
 
-    const session = await mongoose.startSession();
-    let application;
+    let result;
     try {
-      application = await session.withTransaction(async () => {
-        const lockedJob = await jobRepository.lockForApplication(jobId, new Date(), session);
-        if (!lockedJob) {
-          throw AppError.conflict("This job is no longer accepting applicants.");
-        }
+      result = await runLifecycleTransaction(
+        async (session) => {
+          const lockedJob = await jobRepository.lockForApplication(jobId, new Date(), session);
+          if (!lockedJob) {
+            throw AppError.conflict("This job is no longer accepting applicants.");
+          }
 
-        return applicationRepository.create(
-          {
-            jobId,
-            workerId,
-            message: input.message,
-            voiceNoteUrl: input.voiceNoteUrl,
-          },
-          session
-        );
-      });
+          const application = await applicationRepository.create(
+            {
+              jobId,
+              workerId,
+              message: input.message,
+              voiceNoteUrl: input.voiceNoteUrl,
+            },
+            session
+          );
+          const notification = await createNotificationRecord(
+            {
+              recipientId: lockedJob.clientId.toString(),
+              type: "new_application",
+              data: { jobId, applicationId: application._id.toString(), workerId },
+            },
+            session
+          );
+
+          return { application, notification };
+        },
+        "This job is no longer accepting applicants."
+      );
     } catch (error) {
       if (isDuplicateApplicationError(error)) {
         throw AppError.conflict("You've already applied to this job.");
       }
-      if (isTransactionConflict(error)) {
-        throw AppError.conflict("This job is no longer accepting applicants.");
-      }
       throw error;
-    } finally {
-      await session.endSession();
     }
 
-    if (!application) {
-      throw AppError.conflict("This job is no longer accepting applicants.");
-    }
-
-    await createNotification({
-      recipientId: job.clientId.toString(),
-      type: "new_application",
-      data: { jobId, applicationId: application._id.toString(), workerId },
-      realtimePayload: { jobId, applicationId: application._id.toString() },
+    await emitCommittedNotification(result.notification, {
+      jobId,
+      applicationId: result.application._id.toString(),
     });
-
-    return application;
+    return result.application;
   },
 
   async listForJob(jobId: string, requesterId: string) {
@@ -87,88 +105,164 @@ export const applicationService = {
     }));
   },
 
-  /** Client picks a candidate — the job is held while the worker decides. */
+  /** The provider holds an active job for exactly one pending applicant. */
   async offer(applicationId: string, requesterId: string) {
-    const application = await applicationRepository.findById(applicationId);
-    if (!application) throw AppError.notFound("This application no longer exists.");
-    if (application.status !== "pending") throw AppError.conflict("This application has already been decided.");
+    const existingApplication = await applicationRepository.findById(applicationId);
+    if (!existingApplication) throw AppError.notFound("This application no longer exists.");
 
-    const jobId = application.jobId.toString();
+    const jobId = existingApplication.jobId.toString();
     await jobService.assertOwner(jobId, requesterId);
-    await jobService.transitionStatus(jobId, "offer_pending");
 
-    application.status = "offered";
-    await application.save();
+    const result = await runLifecycleTransaction(
+      async (session) => {
+        await jobService.transitionStatus(jobId, "active", "offer_pending", { session });
+        const application = await applicationRepository.offerPendingApplication(
+          applicationId,
+          jobId,
+          session
+        );
+        if (!application) {
+          throw AppError.conflict("This application has already been decided.");
+        }
 
-    await createNotification({
-      recipientId: application.workerId.toString(),
-      type: "offer_received",
-      data: {
-        jobId,
-        applicationId: application._id.toString(),
-        workerId: application.workerId.toString(),
+        const workerId = application.workerId.toString();
+        const notification = await createNotificationRecord(
+          {
+            recipientId: workerId,
+            type: "offer_received",
+            data: { jobId, applicationId, workerId },
+          },
+          session
+        );
+
+        return { application, notification };
       },
-      realtimePayload: {
-        jobId,
-        applicationId: application._id.toString(),
-      },
-    });
+      "Another offer or job update was completed first."
+    );
 
-    return application;
+    await emitCommittedNotification(result.notification, { jobId, applicationId });
+    return result.application;
   },
 
-  /** Worker accepts or declines an offer. */
+  /** The selected worker atomically accepts or declines an offered application. */
   async respond(applicationId: string, workerId: string, accept: boolean) {
-    const application = await applicationRepository.findById(applicationId);
-    if (!application) throw AppError.notFound("This application no longer exists.");
-    if (application.workerId.toString() !== workerId) throw AppError.forbidden("This offer isn't yours to respond to.");
-    if (application.status !== "offered") throw AppError.conflict("This application isn't awaiting a response.");
-
-    const jobId = application.jobId.toString();
-    if (accept) {
-      const rejectedApplications = await applicationRepository.listRejectableOthers(jobId, applicationId);
-      const job = await jobService.transitionStatus(jobId, "assigned", { assignedWorkerId: workerId });
-      application.status = "accepted";
-      await application.save();
-      await applicationRepository.rejectOthers(jobId, applicationId);
-
-      await createNotification({
-        recipientId: job.clientId.toString(),
-        type: "offer_accepted",
-        data: { jobId, applicationId, workerId },
-        realtimePayload: { jobId, applicationId },
-      });
-
-      await Promise.all(
-        rejectedApplications.map((rejectedApplication) =>
-          createNotification({
-            recipientId: rejectedApplication.workerId.toString(),
-            type: "application_rejected",
-            data: {
-              jobId,
-              applicationId: rejectedApplication._id.toString(),
-              workerId: rejectedApplication.workerId.toString(),
-            },
-            realtimePayload: {
-              jobId,
-              applicationId: rejectedApplication._id.toString(),
-            },
-          })
-        )
-      );
-    } else {
-      const job = await jobService.transitionStatus(jobId, "active");
-      application.status = "declined";
-      await application.save();
-      await createNotification({
-        recipientId: job.clientId.toString(),
-        type: "offer_declined",
-        data: { jobId, applicationId, workerId },
-        realtimePayload: { jobId, applicationId },
-      });
+    const existingApplication = await applicationRepository.findById(applicationId);
+    if (!existingApplication) throw AppError.notFound("This application no longer exists.");
+    if (existingApplication.workerId.toString() !== workerId) {
+      throw AppError.forbidden("This offer isn't yours to respond to.");
     }
 
-    return application;
+    const jobId = existingApplication.jobId.toString();
+    if (accept) {
+      const result = await runLifecycleTransaction(
+        async (session) => {
+          const job = await jobService.transitionStatus(jobId, "offer_pending", "assigned", {
+            assignedWorkerId: workerId,
+            session,
+          });
+          const application = await applicationRepository.acceptOfferedApplication(
+            applicationId,
+            jobId,
+            workerId,
+            session
+          );
+          if (!application) {
+            throw AppError.conflict("This application isn't awaiting a response.");
+          }
+
+          const rejectedApplications = await applicationRepository.listRejectableOthers(
+            jobId,
+            applicationId,
+            session
+          );
+          const rejection = await applicationRepository.rejectOtherApplications(
+            jobId,
+            applicationId,
+            session
+          );
+          if (rejection.matchedCount !== rejectedApplications.length) {
+            throw AppError.conflict("Applications changed while the offer was being accepted.");
+          }
+
+          const providerNotification = await createNotificationRecord(
+            {
+              recipientId: job.clientId.toString(),
+              type: "offer_accepted",
+              data: { jobId, applicationId, workerId },
+            },
+            session
+          );
+
+          const rejectedDeliveries = [];
+          for (const rejectedApplication of rejectedApplications) {
+            const rejectedWorkerId = rejectedApplication.workerId.toString();
+            const notification = await createNotificationRecord(
+              {
+                recipientId: rejectedWorkerId,
+                type: "application_rejected",
+                data: {
+                  jobId,
+                  applicationId: rejectedApplication._id.toString(),
+                  workerId: rejectedWorkerId,
+                },
+              },
+              session
+            );
+            rejectedDeliveries.push({
+              notification,
+              realtimePayload: {
+                jobId,
+                applicationId: rejectedApplication._id.toString(),
+              },
+            });
+          }
+
+          return { application, providerNotification, rejectedDeliveries };
+        },
+        "This offer was already accepted, declined, or otherwise changed."
+      );
+
+      await emitCommittedNotification(result.providerNotification, { jobId, applicationId });
+      await Promise.all(
+        result.rejectedDeliveries.map(({ notification, realtimePayload }) =>
+          emitCommittedNotification(notification, realtimePayload)
+        )
+      );
+      return result.application;
+    }
+
+    const result = await runLifecycleTransaction(
+      async (session) => {
+        const application = await applicationRepository.declineOfferedApplication(
+          applicationId,
+          jobId,
+          workerId,
+          session
+        );
+        if (!application) {
+          throw AppError.conflict("This application isn't awaiting a response.");
+        }
+
+        const job = await jobService.transitionStatus(jobId, "offer_pending", "active", {
+          clearAssignedWorkerId: true,
+          session,
+        });
+        const notification = await createNotificationRecord(
+          {
+            recipientId: job.clientId.toString(),
+            type: "offer_declined",
+            data: { jobId, applicationId, workerId },
+          },
+          session
+        );
+
+        return { application, notification };
+      },
+      "This offer was already accepted, declined, or otherwise changed."
+    );
+
+    await emitCommittedNotification(result.notification, { jobId, applicationId });
+    return result.application;
   },
 };
 
@@ -178,8 +272,4 @@ function hasMongoErrorCode(error: unknown, code: number): boolean {
 
 function isDuplicateApplicationError(error: unknown): boolean {
   return hasMongoErrorCode(error, 11000);
-}
-
-function isTransactionConflict(error: unknown): boolean {
-  return hasMongoErrorCode(error, 112) || hasMongoErrorCode(error, 251);
 }

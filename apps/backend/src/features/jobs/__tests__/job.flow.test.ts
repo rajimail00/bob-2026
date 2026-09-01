@@ -10,6 +10,7 @@ const { JobModel } = await import("../job.model.js");
 const { ApplicationModel } = await import("../../applications/application.model.js");
 const { NotificationModel } = await import("../../notifications/notification.model.js");
 const { runJobExpiration } = await import("../jobExpiration.scheduler.js");
+const { jobService } = await import("../job.service.js");
 
 const app = createApp();
 
@@ -419,5 +420,126 @@ describe("jobs", () => {
 
     const global = await request(app).get("/api/v1/jobs");
     expect(global.body.items.some((job: { _id: string }) => job._id === past.id)).toBe(false);
+  });
+
+  it("allows every legal central lifecycle transition", async () => {
+    const owner = await createVerifiedClient("legal-transition-owner@example.com");
+    const worker = await createVerifiedClient("legal-transition-worker@example.com");
+    const base = {
+      clientId: owner.userId,
+      categoryId,
+      description: "A job used to exercise the central lifecycle transition matrix.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() + 3_600_000),
+      budget: 100,
+    };
+    let sequence = 0;
+    const makeJob = (status: string, assignedWorkerId?: string) =>
+      JobModel.create({
+        ...base,
+        title: `Legal transition ${sequence++}`,
+        status,
+        ...(assignedWorkerId ? { assignedWorkerId } : {}),
+      });
+
+    const cases = [
+      { from: "draft", to: "active" },
+      { from: "draft", to: "cancelled" },
+      { from: "active", to: "offer_pending" },
+      { from: "active", to: "cancelled" },
+      { from: "active", to: "expired" },
+      { from: "offer_pending", to: "active" },
+      { from: "offer_pending", to: "assigned", assign: true },
+      { from: "offer_pending", to: "cancelled" },
+      { from: "assigned", to: "completed", assigned: true },
+      { from: "assigned", to: "cancelled", assigned: true },
+    ] as const;
+
+    for (const transition of cases) {
+      const job = await makeJob(
+        transition.from,
+        "assigned" in transition && transition.assigned ? worker.userId : undefined
+      );
+      const updated = await jobService.transitionStatus(
+        job.id,
+        transition.from,
+        transition.to,
+        "assign" in transition && transition.assign
+          ? { assignedWorkerId: worker.userId }
+          : undefined
+      );
+      expect(updated.status).toBe(transition.to);
+      if (transition.to === "assigned") {
+        expect(updated.assignedWorkerId?.toString()).toBe(worker.userId);
+      }
+    }
+  });
+
+  it("returns 409 for forbidden and incomplete central lifecycle transitions", async () => {
+    const owner = await createVerifiedClient("forbidden-transition-owner@example.com");
+    const worker = await createVerifiedClient("forbidden-transition-worker@example.com");
+    const base = {
+      clientId: owner.userId,
+      categoryId,
+      description: "A job used to reject forbidden lifecycle transitions.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() + 3_600_000),
+      budget: 100,
+    };
+    let sequence = 0;
+    const makeJob = (status: string) =>
+      JobModel.create({
+        ...base,
+        title: `Forbidden transition ${sequence++}`,
+        status,
+        ...(status === "assigned" ? { assignedWorkerId: worker.userId } : {}),
+      });
+
+    const forbidden = [
+      { from: "active", to: "completed" },
+      { from: "active", to: "assigned", options: { assignedWorkerId: worker.userId } },
+      { from: "offer_pending", to: "completed" },
+      { from: "assigned", to: "active" },
+    ] as const;
+
+    for (const transition of forbidden) {
+      const job = await makeJob(transition.from);
+      await expect(
+        jobService.transitionStatus(
+          job.id,
+          transition.from,
+          transition.to,
+          "options" in transition ? transition.options : undefined
+        )
+      ).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+      expect((await JobModel.findById(job.id))?.status).toBe(transition.from);
+    }
+
+    const missingWorker = await makeJob("offer_pending");
+    await expect(
+      jobService.transitionStatus(missingWorker.id, "offer_pending", "assigned")
+    ).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+
+    for (const terminal of ["completed", "cancelled", "expired"] as const) {
+      const job = await makeJob(terminal);
+      for (const next of [
+        "draft",
+        "active",
+        "offer_pending",
+        "assigned",
+        "completed",
+        "cancelled",
+        "expired",
+      ] as const) {
+        await expect(
+          jobService.transitionStatus(job.id, terminal, next, {
+            ...(next === "assigned" ? { assignedWorkerId: worker.userId } : {}),
+          })
+        ).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+      }
+      expect((await JobModel.findById(job.id))?.status).toBe(terminal);
+    }
   });
 });

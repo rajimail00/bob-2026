@@ -1,56 +1,74 @@
-import { ALLOWED_TRANSITIONS, type JobStatus } from "./job.model.js";
+import type { ClientSession } from "mongoose";
 import { AppError } from "../../lib/errors.js";
+import { isMongoTransactionConflict, withMongoTransaction } from "../../lib/transactions.js";
 import { applicationRepository } from "../applications/application.repository.js";
-import { createNotification } from "../notifications/notification.service.js";
+import type { NotificationDocument } from "../notifications/notification.model.js";
+import {
+  createNotificationRecord,
+  emitCommittedNotification,
+} from "../notifications/notification.service.js";
+import { ALLOWED_TRANSITIONS, type JobStatus } from "./job.model.js";
 import { jobRepository } from "./job.repository.js";
 import type { CreateJobInput, ListJobsQuery } from "./job.validation.js";
 
 type TransitionOptions = {
   assignedWorkerId?: string;
+  clearAssignedWorkerId?: boolean;
+  session?: ClientSession;
 };
 
+type NotificationDelivery = {
+  notification: NotificationDocument;
+  realtimePayload?: unknown;
+};
+
+/** The only write path for job status. Callers must supply the state they observed. */
 async function transitionJobStatus(
   jobId: string,
+  expectedCurrentStatus: JobStatus,
   nextStatus: JobStatus,
   options: TransitionOptions = {}
 ) {
-  const job = await jobRepository.findRawById(jobId);
-
-  if (!job) {
-    throw AppError.notFound("This job no longer exists.");
-  }
-
-  const currentStatus = job.status as JobStatus;
-  const allowedStatuses: readonly JobStatus[] =
-    ALLOWED_TRANSITIONS[currentStatus];
-
+  const allowedStatuses: readonly JobStatus[] = ALLOWED_TRANSITIONS[expectedCurrentStatus];
   if (!allowedStatuses.includes(nextStatus)) {
     throw AppError.conflict(
-      `Job cannot transition from ${currentStatus} to ${nextStatus}.`
+      `Job cannot transition from ${expectedCurrentStatus} to ${nextStatus}.`
     );
   }
 
   if (nextStatus === "assigned" && !options.assignedWorkerId) {
-    throw new Error(
-      "An assignedWorkerId is required when assigning a job."
-    );
+    throw AppError.conflict("A worker is required before this job can be assigned.");
+  }
+  if (nextStatus !== "assigned" && options.assignedWorkerId) {
+    throw new Error("assignedWorkerId may only be set while assigning a job.");
   }
 
   const updatedJob = await jobRepository.transitionStatus(
     jobId,
-    currentStatus,
+    expectedCurrentStatus,
     nextStatus,
-    options
+    {
+      assignedWorkerId: options.assignedWorkerId,
+      clearAssignedWorkerId: options.clearAssignedWorkerId,
+    },
+    options.session
   );
 
-  // Another request may have changed the status after our first read.
   if (!updatedJob) {
-    throw AppError.conflict(
-      "The job status changed while this request was being processed."
-    );
+    const existingJob = await jobRepository.findRawById(jobId, options.session);
+    if (!existingJob) throw AppError.notFound("This job no longer exists.");
+    throw AppError.conflict("The job status changed while this request was being processed.");
   }
 
   return updatedJob;
+}
+
+async function emitDeliveries(deliveries: NotificationDelivery[]) {
+  await Promise.all(
+    deliveries.map(({ notification, realtimePayload }) =>
+      emitCommittedNotification(notification, realtimePayload)
+    )
+  );
 }
 
 export const jobService = {
@@ -87,7 +105,9 @@ export const jobService = {
 
   async listPostedBy(clientId: string) {
     const jobs = await jobRepository.listPostedBy(clientId);
-    const pendingCounts = await applicationRepository.countPendingGroupedByJob(jobs.map((job) => job._id.toString()));
+    const pendingCounts = await applicationRepository.countPendingGroupedByJob(
+      jobs.map((job) => job._id.toString())
+    );
     return jobs.map((job) => ({
       ...job.toObject(),
       pendingApplicantsCount: pendingCounts[job._id.toString()] ?? 0,
@@ -101,81 +121,146 @@ export const jobService = {
   async assertOwner(jobId: string, clientId: string) {
     const job = await jobRepository.findRawById(jobId);
     if (!job) throw AppError.notFound("This job no longer exists.");
-    if (job.clientId.toString() !== clientId) throw AppError.forbidden("This job belongs to someone else.");
+    if (job.clientId.toString() !== clientId) {
+      throw AppError.forbidden("This job belongs to someone else.");
+    }
     return job;
   },
 
-  /** The client has picked a candidate — the job is held while the worker decides. */
-  async markOfferPending(jobId: string, clientId: string) {
-    await this.assertOwner(jobId, clientId);
-    return transitionJobStatus(jobId, "offer_pending");
-  },
-
-  /** The worker accepted the offer — the job is now theirs to do. */
-  async assignWorker(jobId: string, workerId: string) {
-    return transitionJobStatus(jobId, "assigned", { assignedWorkerId: workerId });
-  },
-
-  /** The worker declined — reopen the job so the client can offer it to someone else. */
-  async reopenAfterDecline(jobId: string) {
-    return transitionJobStatus(jobId, "active");
-  },
-
   async complete(jobId: string, clientId: string) {
-    const job = await this.assertOwner(jobId, clientId);
-    const completedJob = await transitionJobStatus(jobId, "completed");
-    const workerId = job.assignedWorkerId?.toString();
+    const existingJob = await this.assertOwner(jobId, clientId);
+    const expectedStatus = existingJob.status as JobStatus;
+    const workerId = existingJob.assignedWorkerId?.toString();
 
-    if (workerId) {
-      await createNotification({
-        recipientId: workerId,
-        type: "job_completed",
-        data: { jobId, workerId },
-        realtimePayload: { jobId },
-      });
+    if (expectedStatus === "assigned" && !workerId) {
+      throw AppError.conflict("This assigned job has no worker and cannot be completed.");
     }
 
-    return completedJob;
+    let result;
+    try {
+      result = await withMongoTransaction(async (session) => {
+        if (workerId) {
+          const acceptedApplication = await applicationRepository.findAcceptedForJob(
+            jobId,
+            workerId,
+            session
+          );
+          if (!acceptedApplication) {
+            throw AppError.conflict(
+              "This job has no accepted application and cannot be completed."
+            );
+          }
+        }
+        const job = await transitionJobStatus(jobId, expectedStatus, "completed", { session });
+        const deliveries: NotificationDelivery[] = [];
+
+        if (workerId) {
+          const notification = await createNotificationRecord(
+            {
+              recipientId: workerId,
+              type: "job_completed",
+              data: { jobId, workerId },
+            },
+            session
+          );
+          deliveries.push({ notification, realtimePayload: { jobId } });
+        }
+
+        return { job, deliveries };
+      });
+    } catch (error) {
+      if (isMongoTransactionConflict(error)) {
+        throw AppError.conflict("The job was changed by another request.");
+      }
+      throw error;
+    }
+
+    await emitDeliveries(result.deliveries);
+    return result.job;
   },
 
-  /** Either side can cancel once an offer is out or the job is in progress — e.g. the worker
-   * can't make it, or the address turned out to be wrong. */
   async cancel(jobId: string, requesterId: string) {
-    const job = await jobRepository.findRawById(jobId);
-    if (!job) throw AppError.notFound("This job no longer exists.");
+    const existingJob = await jobRepository.findRawById(jobId);
+    if (!existingJob) throw AppError.notFound("This job no longer exists.");
 
-    const isClient = job.clientId.toString() === requesterId;
-    const isAssignedWorker = job.assignedWorkerId?.toString() === requesterId;
-    if (!isClient && !isAssignedWorker) throw AppError.forbidden("This job doesn't belong to you.");
-    const updatedJob = await transitionJobStatus(jobId, "cancelled");
+    const expectedStatus = existingJob.status as JobStatus;
+    const isClient = existingJob.clientId.toString() === requesterId;
+    const assignedWorkerId = existingJob.assignedWorkerId?.toString();
+    const isAssignedWorker = expectedStatus === "assigned" && assignedWorkerId === requesterId;
+    const isRecordedWorker = assignedWorkerId === requesterId;
 
-    const recipientIds = new Set<string>();
-    if (isClient) {
-      const assignedWorkerId = job.assignedWorkerId?.toString();
-      if (assignedWorkerId) {
-        recipientIds.add(assignedWorkerId);
-      } else {
-        const affectedApplications = await applicationRepository.listAffectedByCancellation(jobId);
-        for (const application of affectedApplications) {
-          recipientIds.add(application.workerId.toString());
-        }
+    if (expectedStatus === "assigned") {
+      if (!isClient && !isAssignedWorker) {
+        throw AppError.forbidden("This assigned job doesn't belong to you.");
       }
-    } else {
-      recipientIds.add(job.clientId.toString());
+    } else if (["completed", "cancelled", "expired"].includes(expectedStatus)) {
+      if (!isClient && !isRecordedWorker) {
+        throw AppError.forbidden("This job doesn't belong to you.");
+      }
+    } else if (!isClient) {
+      throw AppError.forbidden("Only the job owner can cancel this job.");
     }
 
-    await Promise.all(
-      Array.from(recipientIds).map((recipientId) =>
-        createNotification({
-          recipientId,
-          type: "job_cancelled",
-          data: { jobId, workerId: isClient ? recipientId : requesterId },
-          realtimePayload: { jobId },
-        })
-      )
-    );
+    let result;
+    try {
+      result = await withMongoTransaction(async (session) => {
+        const affectedApplications = await applicationRepository.listAffectedByCancellation(
+          jobId,
+          session
+        );
+        const job = await transitionJobStatus(jobId, expectedStatus, "cancelled", {
+          clearAssignedWorkerId: expectedStatus !== "assigned",
+          session,
+        });
 
-    return updatedJob;
+        // Cancellation policy: pending/offered applications become rejected. Accepted and
+        // declined applications remain unchanged as durable assignment/decision history.
+        const rejection = await applicationRepository.rejectOpenApplicationsForCancellation(
+          jobId,
+          session
+        );
+        if (rejection.matchedCount !== affectedApplications.length) {
+          throw AppError.conflict("Applications changed while the job was being cancelled.");
+        }
+
+        const recipientIds = new Set<string>();
+        if (isClient) {
+          if (expectedStatus === "assigned" && assignedWorkerId) {
+            recipientIds.add(assignedWorkerId);
+          } else {
+            for (const application of affectedApplications) {
+              recipientIds.add(application.workerId.toString());
+            }
+          }
+        } else {
+          recipientIds.add(existingJob.clientId.toString());
+        }
+        recipientIds.delete(requesterId);
+
+        const deliveries: NotificationDelivery[] = [];
+        for (const recipientId of recipientIds) {
+          const notification = await createNotificationRecord(
+            {
+              recipientId,
+              type: "job_cancelled",
+              data: { jobId, workerId: isClient ? recipientId : requesterId },
+            },
+            session
+          );
+          deliveries.push({ notification, realtimePayload: { jobId } });
+        }
+
+        return { job, deliveries };
+      });
+    } catch (error) {
+      if (isMongoTransactionConflict(error)) {
+        throw AppError.conflict("The job was changed by another request.");
+      }
+      throw error;
+    }
+
+    await emitDeliveries(result.deliveries);
+    return result.job;
   },
 
   async expirePastDue(now: Date) {
@@ -184,30 +269,39 @@ export const jobService = {
 
     for (const candidate of candidates) {
       const jobId = candidate._id.toString();
+      let result;
       try {
-        await transitionJobStatus(jobId, "expired");
+        result = await withMongoTransaction(async (session) => {
+          const applications = await applicationRepository.listAffectedByExpiration(jobId, session);
+          await transitionJobStatus(jobId, "active", "expired", { session });
+
+          const recipientIds = new Set<string>([
+            candidate.clientId.toString(),
+            ...applications.map((application) => application.workerId.toString()),
+          ]);
+          const deliveries: NotificationDelivery[] = [];
+          for (const recipientId of recipientIds) {
+            const notification = await createNotificationRecord(
+              { recipientId, type: "job_expired", data: { jobId } },
+              session
+            );
+            deliveries.push({ notification, realtimePayload: { jobId } });
+          }
+
+          return { deliveries };
+        });
       } catch (error) {
         // Another lifecycle request or scheduler instance won the conditional transition.
-        if (error instanceof AppError && error.code === "CONFLICT") continue;
+        if (
+          (error instanceof AppError && error.code === "CONFLICT") ||
+          isMongoTransactionConflict(error)
+        ) {
+          continue;
+        }
         throw error;
       }
 
-      const applications = await applicationRepository.listAffectedByExpiration(jobId);
-      const recipientIds = new Set<string>([
-        candidate.clientId.toString(),
-        ...applications.map((application) => application.workerId.toString()),
-      ]);
-
-      await Promise.all(
-        Array.from(recipientIds).map((recipientId) =>
-          createNotification({
-            recipientId,
-            type: "job_expired",
-            data: { jobId },
-            realtimePayload: { jobId },
-          })
-        )
-      );
+      await emitDeliveries(result.deliveries);
       expiredJobIds.push(jobId);
     }
 
@@ -216,7 +310,11 @@ export const jobService = {
 
   async remove(jobId: string, clientId: string) {
     const job = await this.assertOwner(jobId, clientId);
-    if (job.status === "assigned" || job.status === "completed" || job.status === "offer_pending") {
+    if (
+      job.status === "assigned" ||
+      job.status === "completed" ||
+      job.status === "offer_pending"
+    ) {
       throw AppError.conflict(
         "This job is in progress and can't be deleted. Cancel or complete it first."
       );

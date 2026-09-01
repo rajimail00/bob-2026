@@ -1,8 +1,9 @@
 import { AppError } from "../../lib/errors.js";
 import { emitToUser } from "../../lib/realtime.js";
+import type { ClientSession } from "mongoose";
 import { authRepository } from "../auth/auth.repository.js";
 import { normalizeNotificationPreferences } from "../auth/auth.model.js";
-import type { NotificationData, NotificationType } from "./notification.model.js";
+import type { NotificationData, NotificationDocument, NotificationType } from "./notification.model.js";
 import { notificationRepository } from "./notification.repository.js";
 
 const LEGACY_EVENT_BY_TYPE: Partial<Record<NotificationType, string>> = {
@@ -27,31 +28,50 @@ export interface CreateNotificationInput {
   realtimePayload?: unknown;
 }
 
-export async function createNotification(input: CreateNotificationInput) {
+export async function createNotificationRecord(
+  input: Omit<CreateNotificationInput, "realtimePayload">,
+  session?: ClientSession
+) {
   const notification = await notificationRepository.create({
     recipientId: input.recipientId,
     type: input.type,
     data: input.data,
-  });
+  }, session);
+
+  return notification;
+}
+
+export async function emitCommittedNotification(
+  notification: NotificationDocument,
+  realtimePayload?: unknown
+) {
+  const recipientId = notification.recipientId.toString();
+  const type = notification.type as NotificationType;
 
   // Persistence is the source of truth. Preferences affect live delivery, never in-app history.
   let preferences;
   try {
-    const recipient = await authRepository.findById(input.recipientId);
+    const recipient = await authRepository.findById(recipientId);
     preferences = normalizeNotificationPreferences(recipient?.notificationPrefs);
   } catch {
     // A delivery-preference lookup must not turn a persisted lifecycle action into a failed request.
     return notification;
   }
-  if (!isRealtimeDeliveryEnabled(input.type, preferences)) return notification;
+  if (!isRealtimeDeliveryEnabled(type, preferences)) return notification;
 
-  emitToUser(input.recipientId, "notification:new", notification);
+  emitToUser(recipientId, "notification:new", notification);
 
-  const legacyEvent = LEGACY_EVENT_BY_TYPE[input.type];
+  const legacyEvent = LEGACY_EVENT_BY_TYPE[type];
   if (legacyEvent) {
-    emitToUser(input.recipientId, legacyEvent, input.realtimePayload ?? input.data ?? {});
+    emitToUser(recipientId, legacyEvent, realtimePayload ?? notification.data ?? {});
   }
 
+  return notification;
+}
+
+export async function createNotification(input: CreateNotificationInput) {
+  const notification = await createNotificationRecord(input);
+  await emitCommittedNotification(notification, input.realtimePayload);
   return notification;
 }
 

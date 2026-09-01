@@ -12,8 +12,9 @@ export const applicationRepository = {
     return application;
   },
 
-  findByJobAndWorker(jobId: string, workerId: string) {
-    return ApplicationModel.findOne({ jobId, workerId });
+  findByJobAndWorker(jobId: string, workerId: string, session?: ClientSession) {
+    const query = ApplicationModel.findOne({ jobId, workerId });
+    return session ? query.session(session) : query;
   },
 
   listForJob(jobId: string) {
@@ -28,35 +29,88 @@ export const applicationRepository = {
       .populate({ path: "jobId", populate: { path: "categoryId" } });
   },
 
-  findById(id: string) {
-    return ApplicationModel.findById(id);
+  findById(id: string, session?: ClientSession) {
+    const query = ApplicationModel.findById(id);
+    return session ? query.session(session) : query;
   },
 
   findOfferedForJob(jobId: string) {
     return ApplicationModel.findOne({ jobId, status: "offered" });
   },
 
-  listAffectedByExpiration(jobId: string) {
-    return ApplicationModel.find({ jobId, status: { $in: ["pending", "offered"] } }).select("workerId");
+  findAcceptedForJob(jobId: string, workerId: string, session?: ClientSession) {
+    const query = ApplicationModel.findOne({ jobId, workerId, status: "accepted" });
+    return session ? query.session(session) : query;
   },
 
-  listAffectedByCancellation(jobId: string) {
-    return ApplicationModel.find({ jobId, status: { $in: ["pending", "offered"] } }).select("workerId");
+  listAffectedByExpiration(jobId: string, session?: ClientSession) {
+    const query = ApplicationModel.find({ jobId, status: { $in: ["pending", "offered"] } }).select("workerId");
+    return session ? query.session(session) : query;
   },
 
-  listRejectableOthers(jobId: string, exceptApplicationId: string) {
-    return ApplicationModel.find({
+  listAffectedByCancellation(jobId: string, session?: ClientSession) {
+    const query = ApplicationModel.find({ jobId, status: { $in: ["pending", "offered"] } }).select("workerId");
+    return session ? query.session(session) : query;
+  },
+
+  listRejectableOthers(jobId: string, exceptApplicationId: string, session?: ClientSession) {
+    const query = ApplicationModel.find({
       jobId,
       _id: { $ne: exceptApplicationId },
       status: { $in: ["pending", "offered"] },
     });
+    return session ? query.session(session) : query;
+  },
+
+  offerPendingApplication(applicationId: string, jobId: string, session: ClientSession) {
+    return ApplicationModel.findOneAndUpdate(
+      { _id: applicationId, jobId, status: "pending" },
+      { $set: { status: "offered" } },
+      { new: true, runValidators: true, session }
+    );
+  },
+
+  acceptOfferedApplication(
+    applicationId: string,
+    jobId: string,
+    workerId: string,
+    session: ClientSession
+  ) {
+    return ApplicationModel.findOneAndUpdate(
+      { _id: applicationId, jobId, workerId, status: "offered" },
+      { $set: { status: "accepted" } },
+      { new: true, runValidators: true, session }
+    );
+  },
+
+  declineOfferedApplication(
+    applicationId: string,
+    jobId: string,
+    workerId: string,
+    session: ClientSession
+  ) {
+    return ApplicationModel.findOneAndUpdate(
+      { _id: applicationId, jobId, workerId, status: "offered" },
+      { $set: { status: "declined" } },
+      { new: true, runValidators: true, session }
+    );
   },
 
   /** Once one applicant is accepted, everyone else who was still pending or offered is rejected. */
-  async rejectOthers(jobId: string, exceptApplicationId: string) {
-    await ApplicationModel.updateMany(
+  rejectOtherApplications(jobId: string, exceptApplicationId: string, session: ClientSession) {
+    return ApplicationModel.updateMany(
       { jobId, _id: { $ne: exceptApplicationId }, status: { $in: ["pending", "offered"] } },
-      { $set: { status: "rejected" } }
+      { $set: { status: "rejected" } },
+      { session }
+    );
+  },
+
+  /** Cancellation policy: open applications become rejected; accepted/declined history is preserved. */
+  rejectOpenApplicationsForCancellation(jobId: string, session: ClientSession) {
+    return ApplicationModel.updateMany(
+      { jobId, status: { $in: ["pending", "offered"] } },
+      { $set: { status: "rejected" } },
+      { session }
     );
   },
 

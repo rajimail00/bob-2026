@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { notificationKeys } from "@/features/notifications/hooks/useNotifications";
 import { jobsApi, type CreateJobInput, type JobListParams } from "../api/jobs.api";
 import type { Job } from "../types/job.types";
 
@@ -47,6 +48,8 @@ export function useCompleteJob() {
     onSuccess: async (_data, id) => {
       await queryClient.invalidateQueries({ queryKey: ["jobs"] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", id] });
+      await queryClient.invalidateQueries({ queryKey: ["applications"] });
+      await queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },
   });
 }
@@ -58,14 +61,23 @@ export function useCancelJob() {
     onSuccess: async (_data, id) => {
       await queryClient.invalidateQueries({ queryKey: ["jobs"] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", id] });
+      await queryClient.invalidateQueries({ queryKey: ["applications"] });
+      await queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },
   });
 }
 
 export function useReportProblem() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ jobId, ...input }: { jobId: string; reason: "cancel" | "address_not_found" | "no_show" | "other"; note?: string }) =>
       jobsApi.reportProblem(jobId, input),
+    onSuccess: async (_data, input) => {
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", input.jobId] });
+      await queryClient.invalidateQueries({ queryKey: ["applications"] });
+      await queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+    },
   });
 }
 

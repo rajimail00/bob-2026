@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { notificationKeys } from "@/features/notifications/hooks/useNotifications";
 import { applicationsApi } from "../api/applications.api";
 
 export function useApplyToJob(jobId: string) {
@@ -7,6 +8,8 @@ export function useApplyToJob(jobId: string) {
     mutationFn: (input: { message: string; voiceNoteUrl?: string }) => applicationsApi.apply(jobId, input),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["applications", "mine"] });
+      await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", jobId] });
+      await queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },
   });
 }
@@ -35,6 +38,7 @@ export function useOfferApplicant(jobId: string) {
       await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", jobId] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "mine"] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "list"] });
+      await queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },
   });
 }
@@ -48,6 +52,9 @@ export function useRespondToOffer(jobId: string) {
       await queryClient.invalidateQueries({ queryKey: ["applications", "mine"] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", jobId] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "list"] });
+      await queryClient.invalidateQueries({ queryKey: ["jobs", "mine"] });
+      await queryClient.invalidateQueries({ queryKey: ["applications", "forJob", jobId] });
+      await queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },
   });
 }

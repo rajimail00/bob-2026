@@ -4,6 +4,7 @@ import type { ListJobsQuery } from "./job.validation.js";
 
 type JobTransitionUpdates = {
   assignedWorkerId?: string;
+  clearAssignedWorkerId?: boolean;
 };
 
 export const jobRepository = {
@@ -54,8 +55,9 @@ export const jobRepository = {
 
   /** Unpopulated lookup for internal ownership/status checks — findById's populated clientId
    * is a document, not an ObjectId, so `.toString()`/equality comparisons against it silently fail. */
-  findRawById(id: string) {
-    return JobModel.findById(id);
+  findRawById(id: string, session?: ClientSession) {
+    const query = JobModel.findById(id);
+    return session ? query.session(session) : query;
   },
 
   create(data: Record<string, unknown>) {
@@ -66,20 +68,23 @@ export const jobRepository = {
     id: string,
     currentStatus: JobStatus,
     nextStatus: JobStatus,
-    updates: JobTransitionUpdates = {}
+    updates: JobTransitionUpdates = {},
+    session?: ClientSession
   ) {
+    const set: Record<string, unknown> = { status: nextStatus };
+    if (updates.assignedWorkerId) set.assignedWorkerId = updates.assignedWorkerId;
+
     return JobModel.findOneAndUpdate(
       { _id: id, status: currentStatus },
       {
-        $set: {
-          status: nextStatus,
-          ...updates,
-        },
+        $set: set,
+        ...(updates.clearAssignedWorkerId ? { $unset: { assignedWorkerId: 1 } } : {}),
         $inc: { applicationRevision: 1 },
       },
       {
         new: true,
         runValidators: true,
+        session,
       }
     );
   },

@@ -169,7 +169,11 @@ export function JobDetailScreen({ route, navigation }: Props) {
         ) : null}
 
         {job.status === "assigned" && (isOwner || isAssignedWorker) ? (
-          <Button variant="outline" onPress={() => setIsProblemModalOpen(true)}>
+          <Button
+            variant="outline"
+            loading={reportProblem.isPending}
+            onPress={() => setIsProblemModalOpen(true)}
+          >
             Report a problem
           </Button>
         ) : null}

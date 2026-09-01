@@ -169,14 +169,22 @@ export const authService = {
       await deleteCloudinaryAssetByUrl(assetUrl);
     }
 
-    const { ownedJobIds, assignedJobIds, offeredJobIds } =
+    const { ownedJobs, assignedJobIds, offeredJobIds } =
       await accountDeletionRepository.collectJobLifecycleIds(userId);
 
     // Route every job status change through the central state machine.
     await Promise.all([
-      ...ownedJobIds.map((jobId) => jobService.transitionStatus(jobId, "cancelled")),
-      ...assignedJobIds.map((jobId) => jobService.transitionStatus(jobId, "cancelled")),
-      ...offeredJobIds.map((jobId) => jobService.transitionStatus(jobId, "active")),
+      ...ownedJobs.map(({ jobId, status }) =>
+        jobService.transitionStatus(jobId, status, "cancelled")
+      ),
+      ...assignedJobIds.map((jobId) =>
+        jobService.transitionStatus(jobId, "assigned", "cancelled")
+      ),
+      ...offeredJobIds.map((jobId) =>
+        jobService.transitionStatus(jobId, "offer_pending", "active", {
+          clearAssignedWorkerId: true,
+        })
+      ),
     ]);
 
     // Preserve shared history while removing personal content.

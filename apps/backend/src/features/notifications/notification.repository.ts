@@ -1,8 +1,15 @@
-import { NotificationModel, type NotificationData, type NotificationType } from "./notification.model.js";
+import type { ClientSession } from "mongoose";
+import { NotificationModel, type NotificationData, type NotificationDocument, type NotificationType } from "./notification.model.js";
 
 export const notificationRepository = {
-  create(data: { recipientId: string; type: NotificationType; data?: NotificationData }) {
-    return NotificationModel.create(data);
+  async create(
+    data: { recipientId: string; type: NotificationType; data?: NotificationData },
+    session?: ClientSession
+  ): Promise<NotificationDocument> {
+    if (!session) return NotificationModel.create(data);
+    const [notification] = await NotificationModel.create([data], { session });
+    if (!notification) throw new Error("Notification insert returned no document.");
+    return notification;
   },
 
   async listForRecipient(recipientId: string, page: number, pageSize: number) {

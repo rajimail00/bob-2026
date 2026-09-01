@@ -9,6 +9,7 @@ const { CategoryModel } = await import("../../categories/category.model.js");
 const { JobModel } = await import("../../jobs/job.model.js");
 const { ApplicationModel } = await import("../application.model.js");
 const { NotificationModel } = await import("../../notifications/notification.model.js");
+const { notificationRepository } = await import("../../notifications/notification.repository.js");
 
 const app = createApp();
 
@@ -185,6 +186,13 @@ describe("applications + job lifecycle", () => {
       (a: { _id: string; status: string }) => a._id === secondApplicationId
     );
     expect(rejected.status).toBe("rejected");
+    expect(await ApplicationModel.countDocuments({ jobId, status: "accepted" })).toBe(1);
+    expect(
+      await ApplicationModel.countDocuments({
+        jobId,
+        status: { $in: ["pending", "offered"] },
+      })
+    ).toBe(0);
 
     // A third worker can no longer apply once the job is assigned.
     const worker3 = await createVerifiedUser("worker5c@example.com");
@@ -259,6 +267,42 @@ describe("applications + job lifecycle", () => {
     expect(jobAfterDecline.body.job.status).toBe("active");
   });
 
+  it("cancels an offer-pending job atomically and resolves every open application", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("offer-cancel-client@example.com");
+    const offeredWorker = await createVerifiedUser("offer-cancel-offered@example.com");
+    const pendingWorker = await createVerifiedUser("offer-cancel-pending@example.com");
+    await Promise.all([
+      setWorkerProfile(offeredWorker.accessToken, categoryId),
+      setWorkerProfile(pendingWorker.accessToken, categoryId),
+    ]);
+    const jobId = await createJob(client.accessToken, categoryId);
+    const applications = await Promise.all(
+      [offeredWorker, pendingWorker].map((worker) =>
+        request(app)
+          .post(`/api/v1/jobs/${jobId}/applications`)
+          .set("Authorization", `Bearer ${worker.accessToken}`)
+          .send({ message: "Keep my application history" })
+      )
+    );
+    const offeredApplication = applications[0]!;
+    await request(app)
+      .patch(`/api/v1/applications/${offeredApplication.body.application._id}/offer`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+
+    const cancel = await request(app)
+      .post(`/api/v1/jobs/${jobId}/cancel`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+
+    expect(cancel.status).toBe(200);
+    expect(cancel.body.job.status).toBe("cancelled");
+    expect(await ApplicationModel.countDocuments({ jobId, status: "rejected" })).toBe(2);
+    expect(await ApplicationModel.countDocuments({ jobId, status: { $in: ["pending", "offered"] } })).toBe(0);
+    expect(
+      await NotificationModel.countDocuments({ type: "job_cancelled", "data.jobId": jobId })
+    ).toBe(2);
+  });
+
   it("lets either side cancel an assigned job, and reports a problem", async () => {
     const categoryId = await createCategory();
     const client = await createVerifiedUser("client7@example.com");
@@ -288,6 +332,18 @@ describe("applications + job lifecycle", () => {
 
     const jobAfterCancel = await request(app).get(`/api/v1/jobs/${jobId}`);
     expect(jobAfterCancel.body.job.status).toBe("cancelled");
+
+    const repeatedWorkerCancel = await request(app)
+      .post(`/api/v1/jobs/${jobId}/cancel`)
+      .set("Authorization", `Bearer ${worker.accessToken}`);
+    expect(repeatedWorkerCancel.status).toBe(409);
+    expect(
+      await NotificationModel.countDocuments({
+        recipientId: client.userId,
+        type: "job_cancelled",
+        "data.jobId": jobId,
+      })
+    ).toBe(1);
   });
 
   it("allows only one of multiple concurrent duplicate applications", async () => {
@@ -378,5 +434,220 @@ describe("applications + job lifecycle", () => {
       .send({ message: "Definitely too late" });
     expect(lateApplication.status).toBe(409);
     expect(await ApplicationModel.countDocuments({ jobId, workerId: lateWorker.userId })).toBe(0);
+  });
+
+  it("allows exactly one of two simultaneous offers for the same application", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("same-offer-client@example.com");
+    const worker = await createVerifiedUser("same-offer-worker@example.com");
+    await setWorkerProfile(worker.accessToken, categoryId);
+    const jobId = await createJob(client.accessToken, categoryId);
+    const application = await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ message: "Offer this application once" });
+    const applicationId = application.body.application._id as string;
+
+    const sendOffer = () =>
+      request(app)
+        .patch(`/api/v1/applications/${applicationId}/offer`)
+        .set("Authorization", `Bearer ${client.accessToken}`);
+    const responses = await Promise.all([sendOffer(), sendOffer()]);
+
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+    expect((await JobModel.findById(jobId))?.status).toBe("offer_pending");
+    expect((await ApplicationModel.findById(applicationId))?.status).toBe("offered");
+    expect(
+      await NotificationModel.countDocuments({
+        recipientId: worker.userId,
+        type: "offer_received",
+        "data.jobId": jobId,
+      })
+    ).toBe(1);
+  });
+
+  it("allows only one offer when two different applicants are selected concurrently", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("different-offer-client@example.com");
+    const firstWorker = await createVerifiedUser("different-offer-one@example.com");
+    const secondWorker = await createVerifiedUser("different-offer-two@example.com");
+    await Promise.all([
+      setWorkerProfile(firstWorker.accessToken, categoryId),
+      setWorkerProfile(secondWorker.accessToken, categoryId),
+    ]);
+    const jobId = await createJob(client.accessToken, categoryId);
+    const applications = await Promise.all(
+      [firstWorker, secondWorker].map((worker, index) =>
+        request(app)
+          .post(`/api/v1/jobs/${jobId}/applications`)
+          .set("Authorization", `Bearer ${worker.accessToken}`)
+          .send({ message: `Applicant ${index}` })
+      )
+    );
+
+    const responses = await Promise.all(
+      applications.map((application) =>
+        request(app)
+          .patch(`/api/v1/applications/${application.body.application._id}/offer`)
+          .set("Authorization", `Bearer ${client.accessToken}`)
+      )
+    );
+
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+    expect(await ApplicationModel.countDocuments({ jobId, status: "offered" })).toBe(1);
+    expect(await ApplicationModel.countDocuments({ jobId, status: "pending" })).toBe(1);
+    expect(
+      await NotificationModel.countDocuments({ type: "offer_received", "data.jobId": jobId })
+    ).toBe(1);
+  });
+
+  it("serializes simultaneous accept and decline requests", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("accept-decline-client@example.com");
+    const worker = await createVerifiedUser("accept-decline-worker@example.com");
+    await setWorkerProfile(worker.accessToken, categoryId);
+    const jobId = await createJob(client.accessToken, categoryId);
+    const application = await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ message: "I will answer once" });
+    const applicationId = application.body.application._id as string;
+    await request(app)
+      .patch(`/api/v1/applications/${applicationId}/offer`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+
+    const respond = (accept: boolean) =>
+      request(app)
+        .patch(`/api/v1/applications/${applicationId}/respond`)
+        .set("Authorization", `Bearer ${worker.accessToken}`)
+        .send({ accept });
+    const responses = await Promise.all([respond(true), respond(false)]);
+
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+    const storedJob = await JobModel.findById(jobId);
+    const storedApplication = await ApplicationModel.findById(applicationId);
+    if (storedJob?.status === "assigned") {
+      expect(storedApplication?.status).toBe("accepted");
+      expect(storedJob.assignedWorkerId?.toString()).toBe(worker.userId);
+    } else {
+      expect(storedJob?.status).toBe("active");
+      expect(storedApplication?.status).toBe("declined");
+      expect(storedJob?.assignedWorkerId).toBeUndefined();
+    }
+    expect(
+      await NotificationModel.countDocuments({
+        recipientId: client.userId,
+        type: { $in: ["offer_accepted", "offer_declined"] },
+        "data.jobId": jobId,
+      })
+    ).toBe(1);
+  });
+
+  it("allows exactly one of two simultaneous accepts", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("double-accept-client@example.com");
+    const worker = await createVerifiedUser("double-accept-worker@example.com");
+    await setWorkerProfile(worker.accessToken, categoryId);
+    const jobId = await createJob(client.accessToken, categoryId);
+    const application = await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ message: "Accept once" });
+    const applicationId = application.body.application._id as string;
+    await request(app)
+      .patch(`/api/v1/applications/${applicationId}/offer`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+
+    const accept = () =>
+      request(app)
+        .patch(`/api/v1/applications/${applicationId}/respond`)
+        .set("Authorization", `Bearer ${worker.accessToken}`)
+        .send({ accept: true });
+    const responses = await Promise.all([accept(), accept()]);
+
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+    expect(await ApplicationModel.countDocuments({ jobId, status: "accepted" })).toBe(1);
+    expect((await JobModel.findById(jobId))?.assignedWorkerId?.toString()).toBe(worker.userId);
+    expect(
+      await NotificationModel.countDocuments({
+        recipientId: client.userId,
+        type: "offer_accepted",
+        "data.jobId": jobId,
+      })
+    ).toBe(1);
+  });
+
+  it("serializes completion and cancellation and blocks unrelated workers", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("complete-cancel-client@example.com");
+    const worker = await createVerifiedUser("complete-cancel-worker@example.com");
+    const unrelatedWorker = await createVerifiedUser("complete-cancel-unrelated@example.com");
+    await setWorkerProfile(worker.accessToken, categoryId);
+    const jobId = await createJob(client.accessToken, categoryId);
+    const application = await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ message: "Assign me" });
+    const applicationId = application.body.application._id as string;
+    await request(app)
+      .patch(`/api/v1/applications/${applicationId}/offer`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+    await request(app)
+      .patch(`/api/v1/applications/${applicationId}/respond`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ accept: true });
+
+    const unrelatedCancel = await request(app)
+      .post(`/api/v1/jobs/${jobId}/cancel`)
+      .set("Authorization", `Bearer ${unrelatedWorker.accessToken}`);
+    expect(unrelatedCancel.status).toBe(403);
+
+    const [complete, cancel] = await Promise.all([
+      request(app)
+        .post(`/api/v1/jobs/${jobId}/complete`)
+        .set("Authorization", `Bearer ${client.accessToken}`),
+      request(app)
+        .post(`/api/v1/jobs/${jobId}/cancel`)
+        .set("Authorization", `Bearer ${client.accessToken}`),
+    ]);
+
+    expect([complete.status, cancel.status].sort()).toEqual([200, 409]);
+    expect(["completed", "cancelled"]).toContain((await JobModel.findById(jobId))?.status);
+    expect((await ApplicationModel.findById(applicationId))?.status).toBe("accepted");
+    expect(
+      await NotificationModel.countDocuments({
+        recipientId: worker.userId,
+        type: { $in: ["job_completed", "job_cancelled"] },
+        "data.jobId": jobId,
+      })
+    ).toBe(1);
+  });
+
+  it("rolls back job and application updates when notification persistence fails", async () => {
+    const categoryId = await createCategory();
+    const client = await createVerifiedUser("rollback-client@example.com");
+    const worker = await createVerifiedUser("rollback-worker@example.com");
+    await setWorkerProfile(worker.accessToken, categoryId);
+    const jobId = await createJob(client.accessToken, categoryId);
+    const application = await request(app)
+      .post(`/api/v1/jobs/${jobId}/applications`)
+      .set("Authorization", `Bearer ${worker.accessToken}`)
+      .send({ message: "Rollback this offer" });
+    const applicationId = application.body.application._id as string;
+
+    const createSpy = vi
+      .spyOn(notificationRepository, "create")
+      .mockRejectedValueOnce(new Error("Forced notification insert failure"));
+    const response = await request(app)
+      .patch(`/api/v1/applications/${applicationId}/offer`)
+      .set("Authorization", `Bearer ${client.accessToken}`);
+    createSpy.mockRestore();
+
+    expect(response.status).toBe(500);
+    expect((await JobModel.findById(jobId))?.status).toBe("active");
+    expect((await ApplicationModel.findById(applicationId))?.status).toBe("pending");
+    expect(
+      await NotificationModel.countDocuments({ type: "offer_received", "data.jobId": jobId })
+    ).toBe(0);
   });
 });

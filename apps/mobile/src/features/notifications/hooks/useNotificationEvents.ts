@@ -43,12 +43,15 @@ export function invalidateForNotification(queryClient: QueryClient, notification
       removeJobFromGlobalListCache(queryClient, jobId);
       queryClient.invalidateQueries({ queryKey: ["jobs", "list"] });
       queryClient.invalidateQueries({ queryKey: ["jobs", "mine", "posted"] });
+      queryClient.invalidateQueries({ queryKey: ["jobs", "mine", "assigned"] });
+      queryClient.invalidateQueries({ queryKey: ["applications", "mine"] });
       if (jobId) queryClient.invalidateQueries({ queryKey: ["applications", "forJob", jobId] });
       invalidateJobDetail(queryClient, jobId);
       break;
     case "offer_declined":
       queryClient.invalidateQueries({ queryKey: ["jobs", "list"] });
       queryClient.invalidateQueries({ queryKey: ["jobs", "mine", "posted"] });
+      queryClient.invalidateQueries({ queryKey: ["applications", "mine"] });
       if (jobId) queryClient.invalidateQueries({ queryKey: ["applications", "forJob", jobId] });
       invalidateJobDetail(queryClient, jobId);
       break;
@@ -56,6 +59,7 @@ export function invalidateForNotification(queryClient: QueryClient, notification
       removeJobFromGlobalListCache(queryClient, jobId);
       queryClient.invalidateQueries({ queryKey: ["jobs", "list"] });
       queryClient.invalidateQueries({ queryKey: ["applications", "mine"] });
+      queryClient.invalidateQueries({ queryKey: ["jobs", "mine"] });
       invalidateJobDetail(queryClient, jobId);
       break;
     case "job_cancelled":
@@ -66,6 +70,7 @@ export function invalidateForNotification(queryClient: QueryClient, notification
       queryClient.invalidateQueries({ queryKey: ["jobs", "mine", "posted"] });
       queryClient.invalidateQueries({ queryKey: ["applications", "mine"] });
       queryClient.invalidateQueries({ queryKey: ["jobs", "mine", "assigned"] });
+      if (jobId) queryClient.invalidateQueries({ queryKey: ["applications", "forJob", jobId] });
       invalidateJobDetail(queryClient, jobId);
       break;
     case "job_updated":
