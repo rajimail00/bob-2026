@@ -11,6 +11,8 @@ const { ApplicationModel } = await import("../../applications/application.model.
 const { NotificationModel } = await import("../../notifications/notification.model.js");
 const { runJobExpiration } = await import("../jobExpiration.scheduler.js");
 const { jobService } = await import("../job.service.js");
+const { jobRepository } = await import("../job.repository.js");
+const { notificationRepository } = await import("../../notifications/notification.repository.js");
 
 const app = createApp();
 
@@ -541,5 +543,331 @@ describe("jobs", () => {
       }
       expect((await JobModel.findById(job.id))?.status).toBe(terminal);
     }
+  });
+
+  it("lets the owner partially edit an active job and returns the populated update in detail and listing", async () => {
+    const owner = await createVerifiedClient("edit-active-owner@example.com");
+    const createResponse = await request(app)
+      .post("/api/v1/jobs")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({
+        categoryId,
+        title: "Original active title",
+        description: "This description must survive a partial job update.",
+        media: [{ url: "https://example.com/original.jpg", type: "photo" }],
+        location: { lng: 13.405, lat: 52.52 },
+        address: "Original address, Berlin",
+        date: new Date(Date.now() + 3_600_000).toISOString(),
+        peopleNeeded: 2,
+        budget: 100,
+      });
+    const jobId = createResponse.body.job._id as string;
+
+    const updateResponse = await request(app)
+      .patch(`/api/v1/jobs/${jobId}`)
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({
+        title: "Updated active title",
+        budget: 140,
+        location: { lng: 13.41, lat: 52.51 },
+      });
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body.job.title).toBe("Updated active title");
+    expect(updateResponse.body.job.description).toBe(
+      "This description must survive a partial job update."
+    );
+    expect(updateResponse.body.job.media).toHaveLength(1);
+    expect(updateResponse.body.job.location).toEqual({
+      type: "Point",
+      coordinates: [13.41, 52.51],
+    });
+    expect(updateResponse.body.job.categoryId.slug).toBe("cleaning");
+    expect(updateResponse.body.job.clientId._id).toBe(owner.userId);
+
+    const detailResponse = await request(app).get(`/api/v1/jobs/${jobId}`);
+    expect(detailResponse.body.job.title).toBe("Updated active title");
+    expect(detailResponse.body.job.address).toBe("Original address, Berlin");
+
+    const listingResponse = await request(app).get("/api/v1/jobs").query({
+      lng: 13.41,
+      lat: 52.51,
+      radiusKm: 1,
+      search: "Updated active",
+    });
+    expect(listingResponse.body.total).toBe(1);
+    expect(listingResponse.body.items[0]._id).toBe(jobId);
+  });
+
+  it("lets the owner edit a draft job", async () => {
+    const owner = await createVerifiedClient("edit-draft-owner@example.com");
+    const draft = await JobModel.create({
+      clientId: owner.userId,
+      categoryId,
+      title: "Draft job title",
+      description: "This draft has a valid and detailed description.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() + 3_600_000),
+      budget: 80,
+      status: "draft",
+    });
+
+    const response = await request(app)
+      .patch(`/api/v1/jobs/${draft.id}`)
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ description: "The owner updated this detailed draft description." });
+
+    expect(response.status).toBe(200);
+    expect(response.body.job.status).toBe("draft");
+    expect(response.body.job.description).toBe(
+      "The owner updated this detailed draft description."
+    );
+    expect(response.body.job.title).toBe("Draft job title");
+  });
+
+  it("strictly rejects empty, past-date, unexpected, and protected-field updates", async () => {
+    const owner = await createVerifiedClient("edit-validation-owner@example.com");
+    const stranger = await createVerifiedClient("edit-validation-stranger@example.com");
+    const job = await JobModel.create({
+      clientId: owner.userId,
+      categoryId,
+      title: "Protected update job",
+      description: "Protected fields on this job must never be changed.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() + 3_600_000),
+      budget: 80,
+      status: "active",
+    });
+
+    const invalidBodies = [
+      {},
+      { date: new Date(Date.now() - 60_000).toISOString() },
+      { unexpected: true },
+      { clientId: stranger.userId },
+      { status: "completed" },
+      { assignedWorkerId: stranger.userId },
+      { applicationRevision: 999 },
+      { repostedFromJobId: job.id },
+      { createdAt: new Date().toISOString() },
+      { updatedAt: new Date().toISOString() },
+      { __v: 99 },
+      { _id: stranger.userId },
+    ];
+
+    for (const body of invalidBodies) {
+      const response = await request(app)
+        .patch(`/api/v1/jobs/${job.id}`)
+        .set("Authorization", `Bearer ${owner.accessToken}`)
+        .send(body);
+      expect(response.status, JSON.stringify(body)).toBe(400);
+      expect(response.body.error.code).toBe("VALIDATION_ERROR");
+    }
+
+    const unchanged = await JobModel.findById(job.id).select("+applicationRevision");
+    expect(unchanged?.clientId.toString()).toBe(owner.userId);
+    expect(unchanged?.status).toBe("active");
+    expect(unchanged?.assignedWorkerId).toBeUndefined();
+    expect(unchanged?.applicationRevision).toBe(0);
+  });
+
+  it("returns 403 for a stranger, 404 for an unknown job, and 409 for every locked status", async () => {
+    const owner = await createVerifiedClient("edit-policy-owner@example.com");
+    const stranger = await createVerifiedClient("edit-policy-stranger@example.com");
+    const worker = await createVerifiedClient("edit-policy-worker@example.com");
+    const base = {
+      clientId: owner.userId,
+      categoryId,
+      description: "A detailed job used to verify the job editing policy.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() + 3_600_000),
+      budget: 100,
+    };
+    const active = await JobModel.create({ ...base, title: "Owned active job", status: "active" });
+
+    const strangerResponse = await request(app)
+      .patch(`/api/v1/jobs/${active.id}`)
+      .set("Authorization", `Bearer ${stranger.accessToken}`)
+      .send({ title: "A stranger must not update this" });
+    expect(strangerResponse.status).toBe(403);
+
+    const missingResponse = await request(app)
+      .patch("/api/v1/jobs/64b64b64b64b64b64b64b64b")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ title: "Unknown valid title" });
+    expect(missingResponse.status).toBe(404);
+
+    for (const status of [
+      "offer_pending",
+      "assigned",
+      "completed",
+      "cancelled",
+      "expired",
+    ] as const) {
+      const locked = await JobModel.create({
+        ...base,
+        title: `Locked ${status} job`,
+        status,
+        ...(status === "assigned" || status === "completed"
+          ? { assignedWorkerId: worker.userId }
+          : {}),
+      });
+      const response = await request(app)
+        .patch(`/api/v1/jobs/${locked.id}`)
+        .set("Authorization", `Bearer ${owner.accessToken}`)
+        .send({ title: `Updated locked ${status}` });
+      expect(response.status, status).toBe(409);
+      expect(response.body.error.code).toBe("CONFLICT");
+      expect((await JobModel.findById(locked.id))?.title).toBe(`Locked ${status} job`);
+    }
+  });
+
+  it("notifies each affected applicant once and creates no notification for a no-op edit", async () => {
+    const owner = await createVerifiedClient("edit-notify-owner@example.com");
+    const pending = await createVerifiedClient("edit-notify-pending@example.com");
+    const offered = await createVerifiedClient("edit-notify-offered@example.com");
+    const accepted = await createVerifiedClient("edit-notify-accepted@example.com");
+    const declined = await createVerifiedClient("edit-notify-declined@example.com");
+    const rejected = await createVerifiedClient("edit-notify-rejected@example.com");
+    const job = await JobModel.create({
+      clientId: owner.userId,
+      categoryId,
+      title: "Applicant notification job",
+      description: "Applicants should hear about meaningful changes to this job.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() + 3_600_000),
+      budget: 100,
+      status: "active",
+    });
+    await ApplicationModel.create([
+      { jobId: job.id, workerId: pending.userId, message: "Pending", status: "pending" },
+      { jobId: job.id, workerId: offered.userId, message: "Offered", status: "offered" },
+      { jobId: job.id, workerId: accepted.userId, message: "Accepted", status: "accepted" },
+      { jobId: job.id, workerId: declined.userId, message: "Declined", status: "declined" },
+      { jobId: job.id, workerId: rejected.userId, message: "Rejected", status: "rejected" },
+    ]);
+
+    const response = await request(app)
+      .patch(`/api/v1/jobs/${job.id}`)
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ budget: 125 });
+    expect(response.status).toBe(200);
+
+    const notifications = await NotificationModel.find({
+      type: "job_updated",
+      "data.jobId": job.id,
+    });
+    expect(notifications).toHaveLength(3);
+    expect(new Set(notifications.map((item) => item.recipientId.toString()))).toEqual(
+      new Set([pending.userId, offered.userId, accepted.userId])
+    );
+
+    const repeatResponse = await request(app)
+      .patch(`/api/v1/jobs/${job.id}`)
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ budget: 125 });
+    expect(repeatResponse.status).toBe(200);
+    expect(
+      await NotificationModel.countDocuments({ type: "job_updated", "data.jobId": job.id })
+    ).toBe(3);
+  });
+
+  it("rolls back the job edit when a transactional notification cannot be persisted", async () => {
+    const owner = await createVerifiedClient("edit-rollback-owner@example.com");
+    const worker = await createVerifiedClient("edit-rollback-worker@example.com");
+    const job = await JobModel.create({
+      clientId: owner.userId,
+      categoryId,
+      title: "Original transactional title",
+      description: "The edit must roll back if its notification cannot be stored.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() + 3_600_000),
+      budget: 100,
+      status: "active",
+    });
+    await ApplicationModel.create({
+      jobId: job.id,
+      workerId: worker.userId,
+      message: "I am interested",
+      status: "pending",
+    });
+    const notificationSpy = vi
+      .spyOn(notificationRepository, "create")
+      .mockRejectedValueOnce(new Error("notification insert failed"));
+
+    try {
+      const response = await request(app)
+        .patch(`/api/v1/jobs/${job.id}`)
+        .set("Authorization", `Bearer ${owner.accessToken}`)
+        .send({ title: "This title must be rolled back" });
+      expect(response.status).toBe(500);
+    } finally {
+      notificationSpy.mockRestore();
+    }
+
+    expect((await JobModel.findById(job.id))?.title).toBe("Original transactional title");
+    expect(
+      await NotificationModel.countDocuments({ type: "job_updated", "data.jobId": job.id })
+    ).toBe(0);
+  });
+
+  it("returns 409 when a lifecycle transition wins a concurrent race with an edit", async () => {
+    const owner = await createVerifiedClient("edit-race-owner@example.com");
+    const job = await JobModel.create({
+      clientId: owner.userId,
+      categoryId,
+      title: "Concurrent edit title",
+      description: "A lifecycle transition must be able to lock out a stale edit.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() + 3_600_000),
+      budget: 100,
+      status: "active",
+    });
+
+    const originalUpdate = jobRepository.updateEditable.bind(jobRepository);
+    let releaseUpdate!: () => void;
+    let reachedUpdate!: () => void;
+    const releasePromise = new Promise<void>((resolve) => {
+      releaseUpdate = resolve;
+    });
+    const reachedPromise = new Promise<void>((resolve) => {
+      reachedUpdate = resolve;
+    });
+    const updateSpy = vi.spyOn(jobRepository, "updateEditable").mockImplementation(
+      ((...args: Parameters<typeof jobRepository.updateEditable>) => {
+        reachedUpdate();
+        return releasePromise.then(() => originalUpdate(...args)) as never;
+      }) as typeof jobRepository.updateEditable
+    );
+
+    try {
+      const editPromise = request(app)
+        .patch(`/api/v1/jobs/${job.id}`)
+        .set("Authorization", `Bearer ${owner.accessToken}`)
+        .send({ title: "Stale concurrent title" })
+        .then((response) => response);
+      await reachedPromise;
+      await jobService.transitionStatus(job.id, "active", "cancelled");
+      releaseUpdate();
+
+      const editResponse = await editPromise;
+      expect(editResponse.status).toBe(409);
+      expect(editResponse.body.error.code).toBe("CONFLICT");
+    } finally {
+      releaseUpdate();
+      updateSpy.mockRestore();
+    }
+
+    const stored = await JobModel.findById(job.id);
+    expect(stored?.status).toBe("cancelled");
+    expect(stored?.title).toBe("Concurrent edit title");
+    expect(
+      await NotificationModel.countDocuments({ type: "job_updated", "data.jobId": job.id })
+    ).toBe(0);
   });
 });

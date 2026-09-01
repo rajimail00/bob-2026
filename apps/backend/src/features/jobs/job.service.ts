@@ -7,9 +7,9 @@ import {
   createNotificationRecord,
   emitCommittedNotification,
 } from "../notifications/notification.service.js";
-import { ALLOWED_TRANSITIONS, type JobStatus } from "./job.model.js";
-import { jobRepository } from "./job.repository.js";
-import type { CreateJobInput, ListJobsQuery } from "./job.validation.js";
+import { ALLOWED_TRANSITIONS, type JobDocument, type JobStatus } from "./job.model.js";
+import { jobRepository, type JobEditableUpdates } from "./job.repository.js";
+import type { CreateJobInput, ListJobsQuery, UpdateJobInput } from "./job.validation.js";
 
 type TransitionOptions = {
   assignedWorkerId?: string;
@@ -101,6 +101,89 @@ export const jobService = {
       paymentPreference: input.paymentPreference,
       status: "active",
     });
+  },
+
+  async update(jobId: string, requesterId: string, input: UpdateJobInput) {
+    const existingJob = await jobRepository.findRawById(jobId);
+    if (!existingJob) throw AppError.notFound("This job no longer exists.");
+    if (existingJob.clientId.toString() !== requesterId) {
+      throw AppError.forbidden("Only the job owner can edit this job.");
+    }
+    if (existingJob.status !== "draft" && existingJob.status !== "active") {
+      throw AppError.conflict("This job can no longer be edited.");
+    }
+
+    const expectedStatus = existingJob.status;
+    const updates = normalizeEditableUpdates(input);
+    let result;
+    try {
+      result = await withMongoTransaction(async (session) => {
+        // Re-read inside the transaction so retries can detect a repeated/no-op save and so a
+        // lifecycle change that won the race is never overwritten by stale form data.
+        const currentJob = await jobRepository.findRawById(jobId, session);
+        if (!currentJob) throw AppError.notFound("This job no longer exists.");
+        if (currentJob.clientId.toString() !== requesterId) {
+          throw AppError.forbidden("Only the job owner can edit this job.");
+        }
+        if (currentJob.status !== expectedStatus) {
+          throw AppError.conflict("This job can no longer be edited.");
+        }
+        if (!hasMeaningfulChanges(currentJob, updates)) {
+          return { job: null, deliveries: [] as NotificationDelivery[] };
+        }
+
+        const job = await jobRepository.updateEditable(
+          jobId,
+          requesterId,
+          expectedStatus,
+          updates,
+          session
+        );
+        if (!job) {
+          throw AppError.conflict("This job can no longer be edited.");
+        }
+
+        const deliveries: NotificationDelivery[] = [];
+        if (expectedStatus === "active") {
+          const affectedApplications = await applicationRepository.listAffectedByJobUpdate(
+            jobId,
+            session
+          );
+          const workerIds = new Set(
+            affectedApplications.map((application) => application.workerId.toString())
+          );
+          workerIds.delete(requesterId);
+
+          for (const workerId of workerIds) {
+            const notification = await createNotificationRecord(
+              {
+                recipientId: workerId,
+                type: "job_updated",
+                data: { jobId, workerId },
+              },
+              session
+            );
+            deliveries.push({ notification, realtimePayload: { jobId } });
+          }
+        }
+
+        return { job, deliveries };
+      });
+    } catch (error) {
+      if (isMongoTransactionConflict(error)) {
+        throw AppError.conflict("This job changed while your edits were being saved.");
+      }
+      throw error;
+    }
+
+    if (!result.job) {
+      const unchangedJob = await jobRepository.findById(jobId);
+      if (!unchangedJob) throw AppError.notFound("This job no longer exists.");
+      return unchangedJob;
+    }
+
+    await emitDeliveries(result.deliveries);
+    return result.job;
   },
 
   async listPostedBy(clientId: string) {
@@ -324,3 +407,60 @@ export const jobService = {
     await jobRepository.deleteById(jobId);
   },
 };
+
+function normalizeEditableUpdates(input: UpdateJobInput): JobEditableUpdates {
+  const updates: JobEditableUpdates = {};
+  if (input.categoryId !== undefined) updates.categoryId = input.categoryId;
+  if (input.title !== undefined) updates.title = input.title;
+  if (input.description !== undefined) updates.description = input.description;
+  if (input.media !== undefined) updates.media = input.media;
+  if (input.location !== undefined) {
+    updates.location = {
+      type: "Point",
+      coordinates: [input.location.lng, input.location.lat],
+    };
+  }
+  if (input.address !== undefined) updates.address = input.address;
+  if (input.date !== undefined) updates.date = input.date;
+  if (input.peopleNeeded !== undefined) updates.peopleNeeded = input.peopleNeeded;
+  if (input.budget !== undefined) updates.budget = input.budget;
+  if (input.recurrence !== undefined) updates.recurrence = input.recurrence;
+  if (input.isEmergency !== undefined) updates.isEmergency = input.isEmergency;
+  if (input.paymentPreference !== undefined) {
+    updates.paymentPreference = input.paymentPreference;
+  }
+  return updates;
+}
+
+function hasMeaningfulChanges(job: JobDocument, updates: JobEditableUpdates) {
+  if (updates.categoryId !== undefined && job.categoryId.toString() !== updates.categoryId) return true;
+  if (updates.title !== undefined && job.title !== updates.title) return true;
+  if (updates.description !== undefined && job.description !== updates.description) return true;
+  if (
+    updates.media !== undefined &&
+    JSON.stringify(job.media.map(({ url, type }) => ({ url, type }))) !== JSON.stringify(updates.media)
+  ) {
+    return true;
+  }
+  if (
+    updates.location !== undefined &&
+    (!job.location ||
+      job.location.coordinates[0] !== updates.location.coordinates[0] ||
+      job.location.coordinates[1] !== updates.location.coordinates[1])
+  ) {
+    return true;
+  }
+  if (updates.address !== undefined && job.address !== updates.address) return true;
+  if (updates.date !== undefined && job.date.getTime() !== updates.date.getTime()) return true;
+  if (updates.peopleNeeded !== undefined && job.peopleNeeded !== updates.peopleNeeded) return true;
+  if (updates.budget !== undefined && job.budget !== updates.budget) return true;
+  if (updates.recurrence !== undefined && job.recurrence !== updates.recurrence) return true;
+  if (updates.isEmergency !== undefined && job.isEmergency !== updates.isEmergency) return true;
+  if (
+    updates.paymentPreference !== undefined &&
+    job.paymentPreference !== updates.paymentPreference
+  ) {
+    return true;
+  }
+  return false;
+}

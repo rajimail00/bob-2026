@@ -126,6 +126,15 @@
     "cancelledMessage": "Dieser Auftrag wurde storniert.",
     "expiredMessage": "Dieser Auftrag ist abgelaufen."
   },
+  "jobEditing": {
+    "title": "Auftrag bearbeiten",
+    "editAction": "Auftrag bearbeiten",
+    "saveChanges": "Änderungen speichern",
+    "successTitle": "Auftrag erfolgreich aktualisiert",
+    "updateError": "Auftrag konnte nicht aktualisiert werden",
+    "lockedError": "Dieser Auftrag kann nicht mehr bearbeitet werden",
+    "discardChanges": "Änderungen verwerfen"
+  },
   "notifications": {
     "title": "Benachrichtigungen",
     "loading": "Benachrichtigungen werden geladen…",

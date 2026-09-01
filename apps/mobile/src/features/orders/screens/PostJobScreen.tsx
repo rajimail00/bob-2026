@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useEffect, useState } from "react";
+import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,19 +16,27 @@ import { PillTabs } from "@/components/ui/PillTabs";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { LoadingState } from "@/components/ui/states/LoadingState";
+import { ErrorState } from "@/components/ui/states/ErrorState";
 import { CategoryTile } from "@/features/home/components/CategoryTile";
 import { IconValue } from "@/features/home/components/IconValue";
 import { MediaCarousel } from "@/features/home/components/MediaCarousel";
-import { useCategories, useCreateJob } from "@/features/home/hooks/useJobs";
+import {
+  useCategories,
+  useCreateJob,
+  useJob,
+  useUpdateJob,
+} from "@/features/home/hooks/useJobs";
 import type { UploadedMedia } from "@/features/media/api/media.api";
 import { color } from "@/design/tokens";
 import { getApiErrorMessage } from "@/lib/apiClient";
 import type { SupportedLocale } from "@/lib/i18n";
 import { useCurrentLocation } from "@/lib/useCurrentLocation";
+import type { OrdersStackParamList } from "@/navigation/types";
 import { LocationPickerMap } from "../components/LocationPickerMap";
 import { MediaPicker } from "../components/MediaPicker";
 import { StepDots } from "../components/StepDots";
 import { postJobSchema, type PostJobFormValues } from "../validation/postJob.schema";
+import { buildJobMutationInput, getEditJobFormState } from "../utils/jobForm";
 
 const STEP_COUNT = 5;
 const MAX_PEOPLE = 15;
@@ -45,13 +54,32 @@ const TIME_PICKER_CLOCK_RADIUS = 108;
 const TIME_PICKER_CLOCK_NUMBER_SIZE = 50;
 const TIME_PICKER_HAND_LENGTH = 88;
 
-export function PostJobScreen() {
+interface PostJobScreenProps {
+  route?: { params?: { jobId?: string } };
+}
+
+export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const { t, i18n } = useTranslation();
   const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<OrdersStackParamList>>();
+  const jobId = route?.params?.jobId;
+  const isEditMode = Boolean(jobId);
   const categoriesQuery = useCategories();
   const createJob = useCreateJob();
-  const { location, requestLocation, setLocation } = useCurrentLocation();
+  const updateJob = useUpdateJob(jobId ?? "");
+  const jobQuery = useJob(jobId);
+  // Edit mode starts from the persisted coordinates and does not request or substitute the
+  // phone's current location. The map can still be moved intentionally by the Provider.
+  const currentLocation = useCurrentLocation(!isEditMode);
+  const [editLocation, setEditLocation] = useState<
+    | { status: "loading" }
+    | { status: "granted"; coords: { lng: number; lat: number } }
+    | { status: "denied" }
+  >({ status: "loading" });
+  const location = isEditMode ? editLocation : currentLocation.location;
+  const setLocation = isEditMode ? setEditLocation : currentLocation.setLocation;
+  const requestLocation = currentLocation.requestLocation;
+  const initializedEditJobId = useRef<string | null>(null);
 
   const [step, setStep] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -91,11 +119,28 @@ export function PostJobScreen() {
   const selectedCategory = categoriesQuery.data?.find((category) => category._id === values.categoryId);
 
   useEffect(() => {
+    if (!isEditMode || !jobId || !jobQuery.data || initializedEditJobId.current === jobId) {
+      return;
+    }
+
+    const initial = getEditJobFormState(jobQuery.data);
+    reset(initial.values);
+    setMedia(initial.media);
+    setEditLocation({ status: "granted", coords: initial.location });
+    setDraftDate(initial.values.date);
+    setDraftTime(initial.values.date);
+    setDatePickerMonth(startOfMonth(initial.values.date));
+    initializedEditJobId.current = jobId;
+  }, [isEditMode, jobId, jobQuery.data, reset]);
+
+  useEffect(() => {
     const unsubscribe = navigation.addListener("blur", () => {
       setStep(0);
       setSubmitError(null);
       setPublished(false);
       setMedia([]);
+      setEditLocation({ status: "loading" });
+      initializedEditJobId.current = null;
       reset();
     });
     return unsubscribe;
@@ -130,27 +175,32 @@ export function PostJobScreen() {
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null);
     if (location.status !== "granted") {
-      setSubmitError("We need your location to post a job. Enable location access and try again.");
+      setSubmitError(
+        isEditMode
+          ? t("jobEditing.updateError")
+          : "We need your location to post a job. Enable location access and try again."
+      );
       return;
     }
     try {
-      await createJob.mutateAsync({
-        categoryId: formValues.categoryId,
-        title: formValues.title,
-        description: formValues.description,
-        media,
-        location: location.coords,
-        address: formValues.address,
-        date: formValues.date.toISOString(),
-        peopleNeeded: formValues.peopleNeeded,
-        budget: formValues.budget,
-        recurrence: formValues.recurrence,
-        isEmergency: formValues.isEmergency,
-        paymentPreference: formValues.paymentPreference,
-      });
-      setPublished(true);
+      const input = buildJobMutationInput(formValues, media, location.coords);
+      if (jobId) {
+        await updateJob.mutateAsync(input);
+        Alert.alert(t("jobEditing.successTitle"));
+        // Return to an existing detail route when it is below this screen, or open the
+        // edited detail when edit mode was entered from the Home tab.
+        navigation.navigate("JobDetail", { jobId });
+      } else {
+        await createJob.mutateAsync(input);
+        setPublished(true);
+      }
     } catch (err) {
-      setSubmitError(getApiErrorMessage(err, t("common.genericError")));
+      setSubmitError(
+        getApiErrorMessage(
+          err,
+          isEditMode ? t("jobEditing.updateError") : t("common.genericError")
+        )
+      );
     }
   });
 
@@ -176,7 +226,18 @@ export function PostJobScreen() {
     );
   }
 
-  if (categoriesQuery.isLoading) return <LoadingState label={t("common.loading")} />;
+  if (categoriesQuery.isLoading || (isEditMode && jobQuery.isLoading)) {
+    return <LoadingState label={t("common.loading")} />;
+  }
+  if (isEditMode && (jobQuery.isError || !jobQuery.data)) {
+    return (
+      <ErrorState
+        title={t("jobEditing.updateError")}
+        retryLabel={t("common.retry")}
+        onRetry={() => jobQuery.refetch()}
+      />
+    );
+  }
 
   const isTomorrow =
     new Date(values.date).toDateString() === new Date(Date.now() + 86400000).toDateString();
@@ -538,8 +599,12 @@ export function PostJobScreen() {
                 {t("common.continue")}
               </Button>
             ) : (
-              <Button onPress={onSubmit} loading={createJob.isPending} fullWidth>
-                Publish
+              <Button
+                onPress={onSubmit}
+                loading={isEditMode ? updateJob.isPending : createJob.isPending}
+                fullWidth
+              >
+                {isEditMode ? t("jobEditing.saveChanges") : "Publish"}
               </Button>
             )}
           </XStack>

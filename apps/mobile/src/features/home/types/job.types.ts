@@ -47,6 +47,7 @@ interface JobBase {
   status: JobStatus;
   assignedWorkerId?: string;
   createdAt: string;
+  updatedAt: string;
   /** Only present on the "my posted jobs" list — applicants awaiting a decision. */
   pendingApplicantsCount?: number;
 }

@@ -126,6 +126,15 @@
     "cancelledMessage": "Este encargo fue cancelado.",
     "expiredMessage": "Este encargo ha caducado."
   },
+  "jobEditing": {
+    "title": "Editar encargo",
+    "editAction": "Editar encargo",
+    "saveChanges": "Guardar cambios",
+    "successTitle": "Encargo actualizado correctamente",
+    "updateError": "No se pudo actualizar el encargo",
+    "lockedError": "Este encargo ya no se puede editar",
+    "discardChanges": "Descartar cambios"
+  },
   "notifications": {
     "title": "Notificaciones",
     "loading": "Cargando notificaciones…",

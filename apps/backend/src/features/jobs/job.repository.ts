@@ -1,10 +1,14 @@
 import type { ClientSession } from "mongoose";
 import { JobModel, type JobStatus } from "./job.model.js";
-import type { ListJobsQuery } from "./job.validation.js";
+import type { ListJobsQuery, UpdateJobInput } from "./job.validation.js";
 
 type JobTransitionUpdates = {
   assignedWorkerId?: string;
   clearAssignedWorkerId?: boolean;
+};
+
+export type JobEditableUpdates = Omit<UpdateJobInput, "location"> & {
+  location?: { type: "Point"; coordinates: [number, number] };
 };
 
 export const jobRepository = {
@@ -62,6 +66,22 @@ export const jobRepository = {
 
   create(data: Record<string, unknown>) {
     return JobModel.create(data);
+  },
+
+  updateEditable(
+    id: string,
+    ownerId: string,
+    expectedStatus: "draft" | "active",
+    updates: JobEditableUpdates,
+    session: ClientSession
+  ) {
+    return JobModel.findOneAndUpdate(
+      { _id: id, clientId: ownerId, status: expectedStatus },
+      { $set: updates, $inc: { applicationRevision: 1 } },
+      { new: true, runValidators: true, session }
+    )
+      .populate("categoryId")
+      .populate("clientId", "firstName lastName photoUrl rating");
   },
 
   transitionStatus(

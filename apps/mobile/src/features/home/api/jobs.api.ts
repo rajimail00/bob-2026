@@ -28,6 +28,8 @@ export interface CreateJobInput {
   paymentPreference: "cash" | "paypal" | "both";
 }
 
+export type UpdateJobInput = Partial<CreateJobInput>;
+
 export const jobsApi = {
   async list(params: JobListParams) {
     const { data } = await apiClient.get<JobListResponse>("/jobs", { params });
@@ -41,6 +43,11 @@ export const jobsApi = {
 
   async create(input: CreateJobInput) {
     const { data } = await apiClient.post<{ job: JobDetail }>("/jobs", input);
+    return data.job;
+  },
+
+  async update(id: string, input: UpdateJobInput) {
+    const { data } = await apiClient.patch<{ job: JobDetail }>(`/jobs/${id}`, input);
     return data.job;
   },
 

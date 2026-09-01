@@ -14,6 +14,7 @@ jobRouter.get("/mine/posted", requireAuth, asyncHandler(jobController.listMinePo
 jobRouter.get("/mine/assigned", requireAuth, asyncHandler(jobController.listMineAssigned));
 jobRouter.get("/:id", asyncHandler(jobController.getById));
 jobRouter.post("/", requireAuth, asyncHandler(jobController.create));
+jobRouter.patch("/:id", requireAuth, asyncHandler(jobController.update));
 jobRouter.post("/:id/complete", requireAuth, asyncHandler(jobController.complete));
 jobRouter.post("/:id/cancel", requireAuth, asyncHandler(jobController.cancel));
 jobRouter.delete("/:id", requireAuth, asyncHandler(jobController.remove));

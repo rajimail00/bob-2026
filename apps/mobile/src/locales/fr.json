@@ -116,6 +116,15 @@
     "cancelledMessage": "Cette mission a été annulée.",
     "expiredMessage": "Cette mission a expiré."
   },
+  "jobEditing": {
+    "title": "Modifier la mission",
+    "editAction": "Modifier la mission",
+    "saveChanges": "Enregistrer les modifications",
+    "successTitle": "Mission mise à jour",
+    "updateError": "Impossible de mettre à jour la mission",
+    "lockedError": "Cette mission ne peut plus être modifiée",
+    "discardChanges": "Ignorer les modifications"
+  },
   "notifications": {
     "title": "Notifications",
     "loading": "Chargement des notifications…",

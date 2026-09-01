@@ -12,7 +12,7 @@ export type CurrentLocationState =
  * switches — re-checks on every focus while still "denied" so granting permission
  * (in-app or via OS settings) and coming back is picked up without a full remount.
  */
-export function useCurrentLocation() {
+export function useCurrentLocation(enabled = true) {
   const [location, setLocation] = useState<CurrentLocationState>({ status: "loading" });
 
   const requestLocation = useCallback(async () => {
@@ -33,10 +33,10 @@ export function useCurrentLocation() {
   locationStatusRef.current = location.status;
   useFocusEffect(
     useCallback(() => {
-      if (locationStatusRef.current !== "granted") {
+      if (enabled && locationStatusRef.current !== "granted") {
         void requestLocation();
       }
-    }, [requestLocation])
+    }, [enabled, requestLocation])
   );
 
   return { location, requestLocation, setLocation };

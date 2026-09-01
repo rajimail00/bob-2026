@@ -22,6 +22,7 @@ export type HomeStackParamList = {
 export type OrdersStackParamList = {
   OrdersList: undefined;
   JobDetail: { jobId: string };
+  EditJob: { jobId: string };
   ApplicantProfile: {
     jobId: string;
     applicationId: string;

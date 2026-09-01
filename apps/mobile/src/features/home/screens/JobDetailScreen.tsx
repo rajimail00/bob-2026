@@ -30,6 +30,7 @@ import { JobCountdown } from "../components/JobCountdown";
 import { MediaCarousel } from "../components/MediaCarousel";
 import { ReportProblemModal, type ProblemReason } from "../components/ReportProblemModal";
 import { useCancelJob, useCompleteJob, useDeleteJob, useJob, useReportProblem } from "../hooks/useJobs";
+import { canEditJob } from "../utils/jobEditing";
 
 const STATUS_TONE = {
   active: "active",
@@ -60,6 +61,15 @@ interface Props {
     ): void;
 
     navigate(screen: "WorkerProfileSetup"): void;
+
+    getParent():
+      | {
+          navigate(
+            screen: "Orders",
+            params: { screen: "EditJob"; params: { jobId: string } }
+          ): void;
+        }
+      | undefined;
 
     goBack(): void;
   };
@@ -100,6 +110,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const job = jobQuery.data;
   const isOwner = user?.id === job.clientId._id;
   const isAssignedWorker = Boolean(user?.id && job.assignedWorkerId === user.id);
+  const canEdit = canEditJob(job, user?.id);
   const hasWorkerProfile = Boolean(user?.workerProfile);
   const myApplication = (myApplicationsQuery.data ?? []).find((a) => a.jobId._id === jobId);
   const pendingApplicantsCount = (applicantsQuery.data ?? []).filter((a) => a.status === "pending").length;
@@ -135,6 +146,22 @@ export function JobDetailScreen({ route, navigation }: Props) {
         <Text variant="body" muted>
           {job.description}
         </Text>
+
+        {canEdit ? (
+          <Button
+            variant="outline"
+            role="button"
+            aria-label={t("jobEditing.editAction")}
+            onPress={() =>
+              navigation.getParent()?.navigate("Orders", {
+                screen: "EditJob",
+                params: { jobId },
+              })
+            }
+          >
+            {t("jobEditing.editAction")}
+          </Button>
+        ) : null}
 
         <Card gap="$3">
           <XStack flexWrap="wrap" gap="$4">

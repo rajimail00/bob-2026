@@ -53,6 +53,15 @@ export const applicationRepository = {
     return session ? query.session(session) : query;
   },
 
+  listAffectedByJobUpdate(jobId: string, session: ClientSession) {
+    return ApplicationModel.find({
+      jobId,
+      status: { $in: ["pending", "offered", "accepted"] },
+    })
+      .select("workerId")
+      .session(session);
+  },
+
   listRejectableOthers(jobId: string, exceptApplicationId: string, session?: ClientSession) {
     const query = ApplicationModel.find({
       jobId,

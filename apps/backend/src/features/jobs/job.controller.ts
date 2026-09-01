@@ -1,7 +1,12 @@
 import type { Request, Response } from "express";
 import { AppError } from "../../lib/errors.js";
 import { jobService } from "./job.service.js";
-import { createJobSchema, jobIdParamsSchema, listJobsQuerySchema } from "./job.validation.js";
+import {
+  createJobSchema,
+  jobIdParamsSchema,
+  listJobsQuerySchema,
+  updateJobSchema,
+} from "./job.validation.js";
 
 export const jobController = {
   async list(req: Request, res: Response) {
@@ -21,6 +26,14 @@ export const jobController = {
     const input = createJobSchema.parse(req.body);
     const job = await jobService.create(req.auth.userId, input);
     res.status(201).json({ job });
+  },
+
+  async update(req: Request, res: Response) {
+    if (!req.auth) throw AppError.unauthorized();
+    const { id } = jobIdParamsSchema.parse(req.params);
+    const input = updateJobSchema.parse(req.body);
+    const job = await jobService.update(id, req.auth.userId, input);
+    res.status(200).json({ job });
   },
 
   async listMinePosted(req: Request, res: Response) {

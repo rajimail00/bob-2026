@@ -126,6 +126,15 @@
     "cancelledMessage": "This job was cancelled.",
     "expiredMessage": "This job has expired."
   },
+  "jobEditing": {
+    "title": "Edit job",
+    "editAction": "Edit job",
+    "saveChanges": "Save changes",
+    "successTitle": "Job updated successfully",
+    "updateError": "Unable to update job",
+    "lockedError": "This job can no longer be edited",
+    "discardChanges": "Discard changes"
+  },
   "notifications": {
     "title": "Notifications",
     "loading": "Loading notifications…",
