@@ -125,6 +125,17 @@
     "lockedError": "Cette mission ne peut plus être modifiée",
     "discardChanges": "Ignorer les modifications"
   },
+  "jobReposting": {
+    "action": "Republier la mission",
+    "confirmTitle": "Republier cette mission ?",
+    "confirmBody": "Une nouvelle mission active sera créée. La mission d’origine restera dans votre historique.",
+    "chooseNewDate": "Choisir une nouvelle date",
+    "publish": "Publier la nouvelle mission",
+    "success": "Mission republiée avec succès",
+    "error": "Impossible de republier la mission",
+    "notAllowed": "Cette mission ne peut pas être republiée",
+    "discardChanges": "Ignorer les modifications de republication"
+  },
   "notifications": {
     "title": "Notifications",
     "loading": "Chargement des notifications…",

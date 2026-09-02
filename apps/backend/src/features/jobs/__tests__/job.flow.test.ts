@@ -8,6 +8,9 @@ const { UserModel } = await import("../../auth/auth.model.js");
 const { CategoryModel } = await import("../../categories/category.model.js");
 const { JobModel } = await import("../job.model.js");
 const { ApplicationModel } = await import("../../applications/application.model.js");
+const { MessageModel } = await import("../../messages/message.model.js");
+const { ReviewModel } = await import("../../reviews/review.model.js");
+const { ProblemReportModel } = await import("../../problems/problem.model.js");
 const { NotificationModel } = await import("../../notifications/notification.model.js");
 const { runJobExpiration } = await import("../jobExpiration.scheduler.js");
 const { jobService } = await import("../job.service.js");
@@ -869,5 +872,301 @@ describe("jobs", () => {
     expect(
       await NotificationModel.countDocuments({ type: "job_updated", "data.jobId": job.id })
     ).toBe(0);
+  });
+
+  it("reposts a completed job as a new active job while preserving all source history", async () => {
+    const owner = await createVerifiedClient("repost-completed-owner@example.com");
+    const worker = await createVerifiedClient("repost-completed-worker@example.com");
+    const original = await JobModel.create({
+      clientId: owner.userId,
+      categoryId,
+      title: "Historical completed job",
+      description: "This completed job has related history that must remain attached.",
+      media: [{ url: "https://example.com/history.jpg", type: "photo" }],
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Historical address, Berlin",
+      date: new Date(Date.now() - 86_400_000),
+      peopleNeeded: 2,
+      budget: 180,
+      recurrence: "weekly",
+      isEmergency: true,
+      paymentPreference: "both",
+      status: "completed",
+      assignedWorkerId: worker.userId,
+    });
+    await ApplicationModel.create({
+      jobId: original.id,
+      workerId: worker.userId,
+      message: "Original accepted application",
+      status: "accepted",
+    });
+    await MessageModel.create({
+      jobId: original.id,
+      workerId: worker.userId,
+      senderId: owner.userId,
+      text: "Original conversation",
+    });
+    await ReviewModel.create({
+      jobId: original.id,
+      fromUserId: owner.userId,
+      toUserId: worker.userId,
+      stars: 5,
+      comment: "Original review",
+    });
+    await ProblemReportModel.create({
+      jobId: original.id,
+      reporterId: owner.userId,
+      reason: "other",
+      note: "Original problem report",
+    });
+    const originalBefore = (await JobModel.findById(original.id))!;
+    const newDate = new Date(Date.now() + 7 * 86_400_000);
+
+    const response = await request(app)
+      .post(`/api/v1/jobs/${original.id}/repost`)
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send({ date: newDate.toISOString() });
+
+    expect(response.status).toBe(201);
+    const reposted = response.body.job;
+    expect(reposted._id).not.toBe(original.id);
+    expect(reposted.status).toBe("active");
+    expect(reposted.assignedWorkerId).toBeUndefined();
+    expect(reposted.repostedFromJobId).toBe(original.id);
+    expect(reposted.date).toBe(newDate.toISOString());
+    expect(reposted.title).toBe(original.title);
+    expect(reposted.description).toBe(original.description);
+    expect(reposted.media).toEqual([{ url: "https://example.com/history.jpg", type: "photo" }]);
+    expect(reposted.location).toEqual({ type: "Point", coordinates: [13.405, 52.52] });
+    expect(reposted.address).toBe(original.address);
+    expect(reposted.peopleNeeded).toBe(2);
+    expect(reposted.budget).toBe(180);
+    expect(reposted.recurrence).toBe("weekly");
+    expect(reposted.isEmergency).toBe(true);
+    expect(reposted.paymentPreference).toBe("both");
+    expect(reposted.categoryId.slug).toBe("cleaning");
+    expect(reposted.clientId._id).toBe(owner.userId);
+
+    const originalAfter = (await JobModel.findById(original.id))!;
+    expect(originalAfter.status).toBe("completed");
+    expect(originalAfter.assignedWorkerId?.toString()).toBe(worker.userId);
+    expect(originalAfter.updatedAt.getTime()).toBe(originalBefore.updatedAt.getTime());
+
+    for (const model of [ApplicationModel, MessageModel, ReviewModel, ProblemReportModel]) {
+      expect(await model.countDocuments({ jobId: original.id })).toBe(1);
+      expect(await model.countDocuments({ jobId: reposted._id })).toBe(0);
+    }
+
+    const global = await request(app).get("/api/v1/jobs");
+    expect(global.body.items.map((job: { _id: string }) => job._id)).toContain(reposted._id);
+    expect(global.body.items.map((job: { _id: string }) => job._id)).not.toContain(original.id);
+
+    const posted = await request(app)
+      .get("/api/v1/jobs/mine/posted")
+      .set("Authorization", `Bearer ${owner.accessToken}`);
+    expect(posted.body.jobs).toHaveLength(2);
+    expect(posted.body.jobs.map((job: { status: string }) => job.status)).toEqual(
+      expect.arrayContaining(["completed", "active"])
+    );
+
+    const notifications = await NotificationModel.find({
+      recipientId: owner.userId,
+      type: "job_reposted",
+    });
+    expect(notifications).toHaveLength(1);
+    expect(notifications[0]?.data.jobId).toBe(reposted._id);
+    expect(notifications[0]?.data.originalJobId).toBe(original.id);
+  });
+
+  it("allows cancelled and expired jobs to be reposted with safe overrides", async () => {
+    const owner = await createVerifiedClient("repost-terminal-owner@example.com");
+    const replacementCategory = await CategoryModel.create({
+      slug: "gardening",
+      icon: "leaf",
+      name: { en: "Gardening", de: "Garten", es: "Jardinería", fr: "Jardinage" },
+      order: 1,
+    });
+    const base = {
+      clientId: owner.userId,
+      categoryId,
+      description: "A historical job with values that can be safely overridden.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Old address",
+      date: new Date(Date.now() - 86_400_000),
+      budget: 50,
+    };
+
+    for (const status of ["cancelled", "expired"] as const) {
+      const original = await JobModel.create({
+        ...base,
+        title: `Original ${status} job`,
+        status,
+      });
+      const response = await request(app)
+        .post(`/api/v1/jobs/${original.id}/repost`)
+        .set("Authorization", `Bearer ${owner.accessToken}`)
+        .send({
+          date: new Date(Date.now() + 3_600_000).toISOString(),
+          categoryId: replacementCategory.id,
+          title: `Overridden ${status} job`,
+          description: "Every safe repost field in this request is intentionally overridden.",
+          media: [{ url: "https://example.com/new.jpg", type: "photo" }],
+          location: { lng: 13.41, lat: 52.51 },
+          address: "New address",
+          peopleNeeded: 3,
+          budget: 225,
+          recurrence: "monthly",
+          isEmergency: true,
+          paymentPreference: "paypal",
+        });
+
+      expect(response.status, status).toBe(201);
+      expect(response.body.job).toMatchObject({
+        title: `Overridden ${status} job`,
+        description: "Every safe repost field in this request is intentionally overridden.",
+        media: [{ url: "https://example.com/new.jpg", type: "photo" }],
+        location: { type: "Point", coordinates: [13.41, 52.51] },
+        address: "New address",
+        peopleNeeded: 3,
+        budget: 225,
+        recurrence: "monthly",
+        isEmergency: true,
+        paymentPreference: "paypal",
+        status: "active",
+        repostedFromJobId: original.id,
+      });
+      expect(response.body.job.categoryId._id).toBe(replacementCategory.id);
+      expect((await JobModel.findById(original.id))?.status).toBe(status);
+    }
+  });
+
+  it("enforces repost ownership, existence, and source-status policy", async () => {
+    const owner = await createVerifiedClient("repost-policy-owner@example.com");
+    const stranger = await createVerifiedClient("repost-policy-stranger@example.com");
+    const worker = await createVerifiedClient("repost-policy-worker@example.com");
+    const base = {
+      clientId: owner.userId,
+      categoryId,
+      description: "A source job used to verify the repost policy.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() + 86_400_000),
+      budget: 100,
+    };
+    const closed = await JobModel.create({ ...base, title: "Owned closed job", status: "cancelled" });
+    const validPayload = { date: new Date(Date.now() + 172_800_000).toISOString() };
+
+    const unauthenticated = await request(app)
+      .post(`/api/v1/jobs/${closed.id}/repost`)
+      .send(validPayload);
+    expect(unauthenticated.status).toBe(401);
+
+    const strangerResponse = await request(app)
+      .post(`/api/v1/jobs/${closed.id}/repost`)
+      .set("Authorization", `Bearer ${stranger.accessToken}`)
+      .send(validPayload);
+    expect(strangerResponse.status).toBe(403);
+
+    const missingResponse = await request(app)
+      .post("/api/v1/jobs/64b64b64b64b64b64b64b64b/repost")
+      .set("Authorization", `Bearer ${owner.accessToken}`)
+      .send(validPayload);
+    expect(missingResponse.status).toBe(404);
+
+    for (const status of ["draft", "active", "offer_pending", "assigned"] as const) {
+      const source = await JobModel.create({
+        ...base,
+        title: `Ineligible ${status} job`,
+        status,
+        ...(status === "assigned" ? { assignedWorkerId: worker.userId } : {}),
+      });
+      const response = await request(app)
+        .post(`/api/v1/jobs/${source.id}/repost`)
+        .set("Authorization", `Bearer ${owner.accessToken}`)
+        .send(validPayload);
+      expect(response.status, status).toBe(409);
+      expect(response.body.error.code).toBe("CONFLICT");
+    }
+
+    expect(await NotificationModel.countDocuments({ type: "job_reposted" })).toBe(0);
+  });
+
+  it("requires a future date and rejects protected repost fields", async () => {
+    const owner = await createVerifiedClient("repost-validation-owner@example.com");
+    const source = await JobModel.create({
+      clientId: owner.userId,
+      categoryId,
+      title: "Protected repost source",
+      description: "Protected and invalid repost fields must be rejected strictly.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() - 86_400_000),
+      budget: 100,
+      status: "cancelled",
+    });
+    const protectedFields = [
+      "_id",
+      "clientId",
+      "status",
+      "assignedWorkerId",
+      "applicationRevision",
+      "repostedFromJobId",
+      "createdAt",
+      "updatedAt",
+      "__v",
+    ];
+    const invalidBodies: Record<string, unknown>[] = [
+      {},
+      { date: new Date(Date.now() - 60_000).toISOString() },
+      { date: new Date(Date.now() + 86_400_000).toISOString(), unexpected: true },
+      ...protectedFields.map((field) => ({
+        date: new Date(Date.now() + 86_400_000).toISOString(),
+        [field]: field === "status" ? "active" : source.id,
+      })),
+    ];
+
+    for (const body of invalidBodies) {
+      const response = await request(app)
+        .post(`/api/v1/jobs/${source.id}/repost`)
+        .set("Authorization", `Bearer ${owner.accessToken}`)
+        .send(body);
+      expect(response.status, JSON.stringify(body)).toBe(400);
+      expect(response.body.error.code).toBe("VALIDATION_ERROR");
+    }
+
+    expect(await JobModel.countDocuments({ clientId: owner.userId })).toBe(1);
+    expect(await NotificationModel.countDocuments({ type: "job_reposted" })).toBe(0);
+  });
+
+  it("rolls back a repost when its notification cannot be persisted", async () => {
+    const owner = await createVerifiedClient("repost-rollback-owner@example.com");
+    const source = await JobModel.create({
+      clientId: owner.userId,
+      categoryId,
+      title: "Transactional repost source",
+      description: "The new job must roll back when its notification cannot be stored.",
+      location: { type: "Point", coordinates: [13.405, 52.52] },
+      address: "Berlin",
+      date: new Date(Date.now() - 86_400_000),
+      budget: 100,
+      status: "expired",
+    });
+    const notificationSpy = vi
+      .spyOn(notificationRepository, "create")
+      .mockRejectedValueOnce(new Error("repost notification insert failed"));
+
+    try {
+      const response = await request(app)
+        .post(`/api/v1/jobs/${source.id}/repost`)
+        .set("Authorization", `Bearer ${owner.accessToken}`)
+        .send({ date: new Date(Date.now() + 86_400_000).toISOString() });
+      expect(response.status).toBe(500);
+    } finally {
+      notificationSpy.mockRestore();
+    }
+
+    expect(await JobModel.countDocuments({ clientId: owner.userId })).toBe(1);
+    expect((await JobModel.findById(source.id))?.status).toBe("expired");
+    expect(await NotificationModel.countDocuments({ type: "job_reposted" })).toBe(0);
   });
 });

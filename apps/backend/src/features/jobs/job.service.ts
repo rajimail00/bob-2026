@@ -9,7 +9,12 @@ import {
 } from "../notifications/notification.service.js";
 import { ALLOWED_TRANSITIONS, type JobDocument, type JobStatus } from "./job.model.js";
 import { jobRepository, type JobEditableUpdates } from "./job.repository.js";
-import type { CreateJobInput, ListJobsQuery, UpdateJobInput } from "./job.validation.js";
+import type {
+  CreateJobInput,
+  ListJobsQuery,
+  RepostJobInput,
+  UpdateJobInput,
+} from "./job.validation.js";
 
 type TransitionOptions = {
   assignedWorkerId?: string;
@@ -101,6 +106,50 @@ export const jobService = {
       paymentPreference: input.paymentPreference,
       status: "active",
     });
+  },
+
+  async repost(originalJobId: string, requesterId: string, input: RepostJobInput) {
+    const source = await jobRepository.findRawById(originalJobId);
+    assertRepostAllowed(source, requesterId);
+
+    let result;
+    try {
+      result = await withMongoTransaction(async (session) => {
+        // Re-check policy inside the transaction. Terminal source jobs are immutable, but this
+        // also keeps authorization and creation in one consistent workflow if that changes later.
+        const currentSource = await jobRepository.findRawById(originalJobId, session);
+        assertRepostAllowed(currentSource, requesterId);
+
+        const newJob = await jobRepository.create(
+          buildRepostedJob(currentSource!, requesterId, originalJobId, input),
+          session
+        );
+        const newJobId = newJob._id.toString();
+        const notification = await createNotificationRecord(
+          {
+            recipientId: requesterId,
+            type: "job_reposted",
+            data: { jobId: newJobId, originalJobId },
+          },
+          session
+        );
+
+        return { newJobId, notification };
+      });
+    } catch (error) {
+      if (isMongoTransactionConflict(error)) {
+        throw AppError.conflict("The source job changed while it was being reposted.");
+      }
+      throw error;
+    }
+
+    await emitCommittedNotification(result.notification, {
+      jobId: result.newJobId,
+      originalJobId,
+    });
+    const populatedJob = await jobRepository.findById(result.newJobId);
+    if (!populatedJob) throw new Error("The reposted job could not be loaded after creation.");
+    return populatedJob;
   },
 
   async update(jobId: string, requesterId: string, input: UpdateJobInput) {
@@ -463,4 +512,51 @@ function hasMeaningfulChanges(job: JobDocument, updates: JobEditableUpdates) {
     return true;
   }
   return false;
+}
+
+const REPOSTABLE_STATUSES: readonly JobStatus[] = ["completed", "cancelled", "expired"];
+
+function assertRepostAllowed(
+  job: JobDocument | null,
+  requesterId: string
+): asserts job is JobDocument {
+  if (!job) throw AppError.notFound("This job no longer exists.");
+  if (job.clientId.toString() !== requesterId) {
+    throw AppError.forbidden("Only the job owner can repost this job.");
+  }
+  if (!REPOSTABLE_STATUSES.includes(job.status as JobStatus)) {
+    throw AppError.conflict("This job cannot be reposted.");
+  }
+}
+
+function buildRepostedJob(
+  source: JobDocument,
+  ownerId: string,
+  originalJobId: string,
+  input: RepostJobInput
+) {
+  const sourceCoordinates = source.location?.coordinates as number[] | undefined;
+  if (!sourceCoordinates || sourceCoordinates.length < 2) {
+    throw new Error("The source job has no valid location to copy.");
+  }
+  return {
+    clientId: ownerId,
+    categoryId: input.categoryId ?? source.categoryId,
+    title: input.title ?? source.title,
+    description: input.description ?? source.description,
+    media:
+      input.media ?? source.media.map(({ url, type }) => ({ url, type })),
+    location: input.location
+      ? { type: "Point", coordinates: [input.location.lng, input.location.lat] }
+      : { type: "Point", coordinates: [sourceCoordinates[0], sourceCoordinates[1]] },
+    address: input.address ?? source.address,
+    date: input.date,
+    peopleNeeded: input.peopleNeeded ?? source.peopleNeeded,
+    budget: input.budget ?? source.budget,
+    recurrence: input.recurrence ?? source.recurrence,
+    isEmergency: input.isEmergency ?? source.isEmergency,
+    paymentPreference: input.paymentPreference ?? source.paymentPreference,
+    status: "active",
+    repostedFromJobId: originalJobId,
+  };
 }

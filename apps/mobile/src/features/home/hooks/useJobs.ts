@@ -4,6 +4,7 @@ import {
   jobsApi,
   type CreateJobInput,
   type JobListParams,
+  type RepostJobInput,
   type UpdateJobInput,
 } from "../api/jobs.api";
 import type { Job } from "../types/job.types";
@@ -53,6 +54,22 @@ export function useUpdateJob(jobId: string) {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["jobs"] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", jobId] });
+      await queryClient.invalidateQueries({ queryKey: ["jobs", "mine", "posted"] });
+      await queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+    },
+  });
+}
+
+export function useRepostJob(originalJobId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RepostJobInput) => jobsApi.repost(originalJobId, input),
+    onSuccess: async (job) => {
+      await queryClient.invalidateQueries({ queryKey: ["jobs"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["jobs", "detail", originalJobId],
+      });
+      await queryClient.invalidateQueries({ queryKey: ["jobs", "detail", job._id] });
       await queryClient.invalidateQueries({ queryKey: ["jobs", "mine", "posted"] });
       await queryClient.invalidateQueries({ queryKey: notificationKeys.all });
     },

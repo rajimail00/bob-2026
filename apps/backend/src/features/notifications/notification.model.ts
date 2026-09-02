@@ -18,6 +18,7 @@ export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export interface NotificationData {
   jobId?: string;
+  originalJobId?: string;
   applicationId?: string;
   workerId?: string;
   messageId?: string;
@@ -26,6 +27,7 @@ export interface NotificationData {
 const notificationDataSchema = new Schema(
   {
     jobId: { type: String },
+    originalJobId: { type: String },
     applicationId: { type: String },
     workerId: { type: String },
     messageId: { type: String },

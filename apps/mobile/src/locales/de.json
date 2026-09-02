@@ -135,6 +135,17 @@
     "lockedError": "Dieser Auftrag kann nicht mehr bearbeitet werden",
     "discardChanges": "Änderungen verwerfen"
   },
+  "jobReposting": {
+    "action": "Auftrag erneut veröffentlichen",
+    "confirmTitle": "Diesen Auftrag erneut veröffentlichen?",
+    "confirmBody": "Ein neuer aktiver Auftrag wird erstellt. Der ursprüngliche Auftrag bleibt im Verlauf erhalten.",
+    "chooseNewDate": "Neues Datum auswählen",
+    "publish": "Erneut veröffentlichten Auftrag einstellen",
+    "success": "Auftrag erfolgreich erneut veröffentlicht",
+    "error": "Auftrag konnte nicht erneut veröffentlicht werden",
+    "notAllowed": "Dieser Auftrag kann nicht erneut veröffentlicht werden",
+    "discardChanges": "Änderungen am erneuten Auftrag verwerfen"
+  },
   "notifications": {
     "title": "Benachrichtigungen",
     "loading": "Benachrichtigungen werden geladen…",

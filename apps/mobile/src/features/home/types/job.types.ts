@@ -46,6 +46,7 @@ interface JobBase {
   paymentPreference: "cash" | "paypal" | "both";
   status: JobStatus;
   assignedWorkerId?: string;
+  repostedFromJobId?: string;
   createdAt: string;
   updatedAt: string;
   /** Only present on the "my posted jobs" list — applicants awaiting a decision. */

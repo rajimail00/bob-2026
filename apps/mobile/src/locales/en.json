@@ -135,6 +135,17 @@
     "lockedError": "This job can no longer be edited",
     "discardChanges": "Discard changes"
   },
+  "jobReposting": {
+    "action": "Repost job",
+    "confirmTitle": "Repost this job?",
+    "confirmBody": "A new active job will be created. The original job will remain in your history.",
+    "chooseNewDate": "Choose a new date",
+    "publish": "Publish reposted job",
+    "success": "Job reposted successfully",
+    "error": "Unable to repost job",
+    "notAllowed": "This job cannot be reposted",
+    "discardChanges": "Discard repost changes"
+  },
   "notifications": {
     "title": "Notifications",
     "loading": "Loading notifications…",

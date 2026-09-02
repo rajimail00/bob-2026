@@ -16,6 +16,7 @@ export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export interface NotificationData {
   jobId?: string;
+  originalJobId?: string;
   applicationId?: string;
   workerId?: string;
   messageId?: string;

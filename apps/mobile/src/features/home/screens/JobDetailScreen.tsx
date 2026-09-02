@@ -30,7 +30,7 @@ import { JobCountdown } from "../components/JobCountdown";
 import { MediaCarousel } from "../components/MediaCarousel";
 import { ReportProblemModal, type ProblemReason } from "../components/ReportProblemModal";
 import { useCancelJob, useCompleteJob, useDeleteJob, useJob, useReportProblem } from "../hooks/useJobs";
-import { canEditJob } from "../utils/jobEditing";
+import { canEditJob, canRepostJob } from "../utils/jobEditing";
 
 const STATUS_TONE = {
   active: "active",
@@ -66,7 +66,9 @@ interface Props {
       | {
           navigate(
             screen: "Orders",
-            params: { screen: "EditJob"; params: { jobId: string } }
+            params:
+              | { screen: "EditJob"; params: { jobId: string } }
+              | { screen: "RepostJob"; params: { jobId: string } }
           ): void;
         }
       | undefined;
@@ -111,6 +113,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
   const isOwner = user?.id === job.clientId._id;
   const isAssignedWorker = Boolean(user?.id && job.assignedWorkerId === user.id);
   const canEdit = canEditJob(job, user?.id);
+  const canRepost = canRepostJob(job, user?.id);
   const hasWorkerProfile = Boolean(user?.workerProfile);
   const myApplication = (myApplicationsQuery.data ?? []).find((a) => a.jobId._id === jobId);
   const pendingApplicantsCount = (applicantsQuery.data ?? []).filter((a) => a.status === "pending").length;
@@ -160,6 +163,33 @@ export function JobDetailScreen({ route, navigation }: Props) {
             }
           >
             {t("jobEditing.editAction")}
+          </Button>
+        ) : null}
+
+        {canRepost ? (
+          <Button
+            variant="outline"
+            role="button"
+            aria-label={t("jobReposting.action")}
+            onPress={() =>
+              Alert.alert(
+                t("jobReposting.confirmTitle"),
+                t("jobReposting.confirmBody"),
+                [
+                  { text: t("common.cancel"), style: "cancel" },
+                  {
+                    text: t("jobReposting.action"),
+                    onPress: () =>
+                      navigation.getParent()?.navigate("Orders", {
+                        screen: "RepostJob",
+                        params: { jobId },
+                      }),
+                  },
+                ]
+              )
+            }
+          >
+            {t("jobReposting.action")}
           </Button>
         ) : null}
 

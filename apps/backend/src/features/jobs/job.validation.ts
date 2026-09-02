@@ -70,6 +70,24 @@ export const updateJobSchema = z
   });
 export type UpdateJobInput = z.infer<typeof updateJobSchema>;
 
+export const repostJobSchema = z
+  .object({
+    date: futureDateSchema,
+    categoryId: categoryIdSchema.optional(),
+    title: titleSchema.optional(),
+    description: descriptionSchema.optional(),
+    media: mediaSchema.optional(),
+    location: locationSchema.optional(),
+    address: addressSchema.optional(),
+    peopleNeeded: peopleNeededSchema.optional(),
+    budget: budgetSchema.optional(),
+    recurrence: recurrenceSchema.optional(),
+    isEmergency: emergencySchema.optional(),
+    paymentPreference: paymentPreferenceSchema.optional(),
+  })
+  .strict();
+export type RepostJobInput = z.infer<typeof repostJobSchema>;
+
 export const listJobsQuerySchema = z.object({
   lng: z.coerce.number().min(-180).max(180).optional(),
   lat: z.coerce.number().min(-90).max(90).optional(),

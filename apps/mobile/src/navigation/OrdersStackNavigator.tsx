@@ -21,6 +21,11 @@ export function OrdersStackNavigator() {
         component={PostJobScreen}
         options={{ headerShown: true, title: t("jobEditing.title") }}
       />
+      <Stack.Screen
+        name="RepostJob"
+        component={PostJobScreen}
+        options={{ headerShown: true, title: t("jobReposting.action") }}
+      />
       <Stack.Screen name="ApplicantProfile" component={ApplicantProfileScreen} options={{ headerShown: true, title: t("applications.profileTitle") }} />
       <Stack.Screen name="Chat" component={ChatScreen} options={{ headerShown: true, title: t("chat.title") }} />
       <Stack.Screen

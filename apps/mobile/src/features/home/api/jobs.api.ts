@@ -29,6 +29,8 @@ export interface CreateJobInput {
 }
 
 export type UpdateJobInput = Partial<CreateJobInput>;
+export type RepostJobInput = Pick<CreateJobInput, "date"> &
+  Partial<Omit<CreateJobInput, "date">>;
 
 export const jobsApi = {
   async list(params: JobListParams) {
@@ -48,6 +50,11 @@ export const jobsApi = {
 
   async update(id: string, input: UpdateJobInput) {
     const { data } = await apiClient.patch<{ job: JobDetail }>(`/jobs/${id}`, input);
+    return data.job;
+  },
+
+  async repost(id: string, input: RepostJobInput) {
+    const { data } = await apiClient.post<{ job: JobDetail }>(`/jobs/${id}/repost`, input);
     return data.job;
   },
 

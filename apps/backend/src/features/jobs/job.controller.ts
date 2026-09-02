@@ -5,6 +5,7 @@ import {
   createJobSchema,
   jobIdParamsSchema,
   listJobsQuerySchema,
+  repostJobSchema,
   updateJobSchema,
 } from "./job.validation.js";
 
@@ -34,6 +35,14 @@ export const jobController = {
     const input = updateJobSchema.parse(req.body);
     const job = await jobService.update(id, req.auth.userId, input);
     res.status(200).json({ job });
+  },
+
+  async repost(req: Request, res: Response) {
+    if (!req.auth) throw AppError.unauthorized();
+    const { id } = jobIdParamsSchema.parse(req.params);
+    const input = repostJobSchema.parse(req.body);
+    const job = await jobService.repost(id, req.auth.userId, input);
+    res.status(201).json({ job });
   },
 
   async listMinePosted(req: Request, res: Response) {

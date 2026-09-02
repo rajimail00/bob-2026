@@ -53,6 +53,7 @@ const jobSchema = new Schema(
 
     status: { type: String, enum: JOB_STATUSES, default: "draft", index: true },
     assignedWorkerId: { type: Schema.Types.ObjectId, ref: "User" },
+    repostedFromJobId: { type: Schema.Types.ObjectId, ref: "Job", index: true },
     // Both application creation and lifecycle transitions write this field, forcing MongoDB
     // to serialize concurrent attempts against the same job document.
     applicationRevision: { type: Number, default: 0, min: 0, select: false },

@@ -135,6 +135,17 @@
     "lockedError": "Este encargo ya no se puede editar",
     "discardChanges": "Descartar cambios"
   },
+  "jobReposting": {
+    "action": "Volver a publicar encargo",
+    "confirmTitle": "¿Volver a publicar este encargo?",
+    "confirmBody": "Se creará un nuevo encargo activo. El encargo original permanecerá en tu historial.",
+    "chooseNewDate": "Elige una nueva fecha",
+    "publish": "Publicar encargo de nuevo",
+    "success": "Encargo publicado de nuevo correctamente",
+    "error": "No se pudo volver a publicar el encargo",
+    "notAllowed": "Este encargo no se puede volver a publicar",
+    "discardChanges": "Descartar cambios de la nueva publicación"
+  },
   "notifications": {
     "title": "Notificaciones",
     "loading": "Cargando notificaciones…",

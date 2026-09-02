@@ -30,6 +30,30 @@ export function getEditJobFormState(job: JobDetail) {
   };
 }
 
+export function getRepostJobFormState(job: JobDetail, now = new Date()) {
+  const copied = getEditJobFormState(job);
+  const suggestedDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  suggestedDate.setSeconds(0, 0);
+
+  return {
+    ...copied,
+    values: {
+      ...copied.values,
+      // This is only a safe picker starting point. RepostJobScreen still requires the
+      // Provider to explicitly confirm a new date before it will submit.
+      date: suggestedDate,
+    } satisfies PostJobFormValues,
+  };
+}
+
+export function canSubmitRepost(hasSelectedNewDate: boolean, isPending: boolean) {
+  return hasSelectedNewDate && !isPending;
+}
+
+export function getRepostJobDetailParams(job: Pick<JobDetail, "_id">) {
+  return { jobId: job._id };
+}
+
 export function buildJobMutationInput(
   values: PostJobFormValues,
   media: UploadedMedia[],

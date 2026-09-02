@@ -64,8 +64,11 @@ export const jobRepository = {
     return session ? query.session(session) : query;
   },
 
-  create(data: Record<string, unknown>) {
-    return JobModel.create(data);
+  async create(data: Record<string, unknown>, session?: ClientSession) {
+    if (!session) return JobModel.create(data);
+    const [job] = await JobModel.create([data], { session });
+    if (!job) throw new Error("Job insert returned no document.");
+    return job;
   },
 
   updateEditable(

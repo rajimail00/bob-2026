@@ -24,6 +24,7 @@ import {
   useCategories,
   useCreateJob,
   useJob,
+  useRepostJob,
   useUpdateJob,
 } from "@/features/home/hooks/useJobs";
 import type { UploadedMedia } from "@/features/media/api/media.api";
@@ -36,7 +37,13 @@ import { LocationPickerMap } from "../components/LocationPickerMap";
 import { MediaPicker } from "../components/MediaPicker";
 import { StepDots } from "../components/StepDots";
 import { postJobSchema, type PostJobFormValues } from "../validation/postJob.schema";
-import { buildJobMutationInput, getEditJobFormState } from "../utils/jobForm";
+import {
+  buildJobMutationInput,
+  canSubmitRepost,
+  getEditJobFormState,
+  getRepostJobDetailParams,
+  getRepostJobFormState,
+} from "../utils/jobForm";
 
 const STEP_COUNT = 5;
 const MAX_PEOPLE = 15;
@@ -55,7 +62,7 @@ const TIME_PICKER_CLOCK_NUMBER_SIZE = 50;
 const TIME_PICKER_HAND_LENGTH = 88;
 
 interface PostJobScreenProps {
-  route?: { params?: { jobId?: string } };
+  route?: { name?: string; params?: { jobId?: string } };
 }
 
 export function PostJobScreen({ route }: PostJobScreenProps = {}) {
@@ -63,23 +70,27 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
   const navigation = useNavigation<NativeStackNavigationProp<OrdersStackParamList>>();
   const jobId = route?.params?.jobId;
-  const isEditMode = Boolean(jobId);
+  const isRepostMode = route?.name === "RepostJob";
+  const isEditMode = Boolean(jobId) && !isRepostMode;
+  const isExistingJobMode = Boolean(jobId);
   const categoriesQuery = useCategories();
   const createJob = useCreateJob();
   const updateJob = useUpdateJob(jobId ?? "");
+  const repostJob = useRepostJob(jobId ?? "");
   const jobQuery = useJob(jobId);
-  // Edit mode starts from the persisted coordinates and does not request or substitute the
-  // phone's current location. The map can still be moved intentionally by the Provider.
-  const currentLocation = useCurrentLocation(!isEditMode);
+  // Edit/repost modes start from persisted coordinates and never substitute the phone's
+  // current location. The Provider can still move the map intentionally.
+  const currentLocation = useCurrentLocation(!isExistingJobMode);
   const [editLocation, setEditLocation] = useState<
     | { status: "loading" }
     | { status: "granted"; coords: { lng: number; lat: number } }
     | { status: "denied" }
   >({ status: "loading" });
-  const location = isEditMode ? editLocation : currentLocation.location;
-  const setLocation = isEditMode ? setEditLocation : currentLocation.setLocation;
+  const location = isExistingJobMode ? editLocation : currentLocation.location;
+  const setLocation = isExistingJobMode ? setEditLocation : currentLocation.setLocation;
   const requestLocation = currentLocation.requestLocation;
   const initializedEditJobId = useRef<string | null>(null);
+  const submitInFlight = useRef(false);
 
   const [step, setStep] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -90,6 +101,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const [datePickerMonth, setDatePickerMonth] = useState(startOfMonth(new Date()));
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [draftTime, setDraftTime] = useState(new Date());
+  const [hasSelectedRepostDate, setHasSelectedRepostDate] = useState(false);
 
   const {
     control,
@@ -119,19 +131,22 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const selectedCategory = categoriesQuery.data?.find((category) => category._id === values.categoryId);
 
   useEffect(() => {
-    if (!isEditMode || !jobId || !jobQuery.data || initializedEditJobId.current === jobId) {
+    if (!isExistingJobMode || !jobId || !jobQuery.data || initializedEditJobId.current === jobId) {
       return;
     }
 
-    const initial = getEditJobFormState(jobQuery.data);
+    const initial = isRepostMode
+      ? getRepostJobFormState(jobQuery.data)
+      : getEditJobFormState(jobQuery.data);
     reset(initial.values);
     setMedia(initial.media);
     setEditLocation({ status: "granted", coords: initial.location });
     setDraftDate(initial.values.date);
     setDraftTime(initial.values.date);
     setDatePickerMonth(startOfMonth(initial.values.date));
+    setHasSelectedRepostDate(!isRepostMode);
     initializedEditJobId.current = jobId;
-  }, [isEditMode, jobId, jobQuery.data, reset]);
+  }, [isExistingJobMode, isRepostMode, jobId, jobQuery.data, reset]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener("blur", () => {
@@ -140,6 +155,8 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
       setPublished(false);
       setMedia([]);
       setEditLocation({ status: "loading" });
+      setHasSelectedRepostDate(false);
+      submitInFlight.current = false;
       initializedEditJobId.current = null;
       reset();
     });
@@ -155,8 +172,15 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   ];
 
   const goNext = async () => {
+    if (isRepostMode && step === 2 && !hasSelectedRepostDate) {
+      setSubmitError(t("jobReposting.chooseNewDate"));
+      return;
+    }
     const isValid = await trigger(STEP_FIELDS[step]);
-    if (isValid) setStep((s) => Math.min(s + 1, STEP_COUNT - 1));
+    if (isValid) {
+      setSubmitError(null);
+      setStep((s) => Math.min(s + 1, STEP_COUNT - 1));
+    }
   };
   const goBack = () => setStep((s) => Math.max(s - 1, 0));
 
@@ -174,17 +198,33 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null);
+    if (
+      isRepostMode &&
+      !canSubmitRepost(hasSelectedRepostDate, repostJob.isPending)
+    ) {
+      if (repostJob.isPending) return;
+      setSubmitError(t("jobReposting.chooseNewDate"));
+      return;
+    }
     if (location.status !== "granted") {
       setSubmitError(
-        isEditMode
+        isRepostMode
+          ? t("jobReposting.error")
+          : isEditMode
           ? t("jobEditing.updateError")
           : "We need your location to post a job. Enable location access and try again."
       );
       return;
     }
+    if (submitInFlight.current) return;
+    submitInFlight.current = true;
     try {
       const input = buildJobMutationInput(formValues, media, location.coords);
-      if (jobId) {
+      if (isRepostMode && jobId) {
+        const newJob = await repostJob.mutateAsync(input);
+        Alert.alert(t("jobReposting.success"));
+        navigation.navigate("JobDetail", getRepostJobDetailParams(newJob));
+      } else if (jobId) {
         await updateJob.mutateAsync(input);
         Alert.alert(t("jobEditing.successTitle"));
         // Return to an existing detail route when it is below this screen, or open the
@@ -198,9 +238,15 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
       setSubmitError(
         getApiErrorMessage(
           err,
-          isEditMode ? t("jobEditing.updateError") : t("common.genericError")
+          isRepostMode
+            ? t("jobReposting.error")
+            : isEditMode
+              ? t("jobEditing.updateError")
+              : t("common.genericError")
         )
       );
+    } finally {
+      submitInFlight.current = false;
     }
   });
 
@@ -226,13 +272,13 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
     );
   }
 
-  if (categoriesQuery.isLoading || (isEditMode && jobQuery.isLoading)) {
+  if (categoriesQuery.isLoading || (isExistingJobMode && jobQuery.isLoading)) {
     return <LoadingState label={t("common.loading")} />;
   }
-  if (isEditMode && (jobQuery.isError || !jobQuery.data)) {
+  if (isExistingJobMode && (jobQuery.isError || !jobQuery.data)) {
     return (
       <ErrorState
-        title={t("jobEditing.updateError")}
+        title={isRepostMode ? t("jobReposting.error") : t("jobEditing.updateError")}
         retryLabel={t("common.retry")}
         onRetry={() => jobQuery.refetch()}
       />
@@ -324,6 +370,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                 <Text variant="h3">When and where?</Text>
                 <YStack gap="$2">
                   <Text variant="label">Date</Text>
+                  {isRepostMode && !hasSelectedRepostDate ? (
+                    <Text variant="small" color="$danger">
+                      {t("jobReposting.chooseNewDate")}
+                    </Text>
+                  ) : null}
                   <XStack gap="$2" alignItems="center">
                     <YStack flex={1}>
                       <PillTabs
@@ -333,8 +384,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                         ]}
                         value={isTomorrow ? "tomorrow" : "today"}
                         onChange={(v) => {
-                          const d = v === "tomorrow" ? new Date(Date.now() + 86400000) : new Date();
+                          const d = new Date(
+                            Date.now() + (v === "tomorrow" ? 86400000 : 3600000)
+                          );
                           setValue("date", d);
+                          if (isRepostMode) setHasSelectedRepostDate(true);
                         }}
                       />
                     </YStack>
@@ -353,6 +407,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                     onCancel={() => setShowDatePicker(false)}
                     onConfirm={() => {
                       setValue("date", draftDate);
+                      if (isRepostMode) setHasSelectedRepostDate(true);
                       setShowDatePicker(false);
                     }}
                   />
@@ -601,10 +656,24 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
             ) : (
               <Button
                 onPress={onSubmit}
-                loading={isEditMode ? updateJob.isPending : createJob.isPending}
+                loading={
+                  isRepostMode
+                    ? repostJob.isPending
+                    : isEditMode
+                      ? updateJob.isPending
+                      : createJob.isPending
+                }
+                disabled={
+                  isRepostMode &&
+                  !canSubmitRepost(hasSelectedRepostDate, repostJob.isPending)
+                }
                 fullWidth
               >
-                {isEditMode ? t("jobEditing.saveChanges") : "Publish"}
+                {isRepostMode
+                  ? t("jobReposting.publish")
+                  : isEditMode
+                    ? t("jobEditing.saveChanges")
+                    : "Publish"}
               </Button>
             )}
           </XStack>
