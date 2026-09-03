@@ -31,7 +31,7 @@ export function OrdersStackNavigator() {
       <Stack.Screen
         name="WorkerProfileSetup"
         component={WorkerProfileSetupScreen}
-        options={{ headerShown: true, title: "Worker profile" }}
+        options={{ headerShown: true, title: t("workerProfile.title") }}
       />
     </Stack.Navigator>
   );

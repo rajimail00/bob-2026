@@ -42,7 +42,7 @@ const [photoError, setPhotoError] = useState<string | null>(null);
 });
       // RootNavigator now sees a fully-set-up user and routes to the main tabs automatically.
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error, t("auth.errors.firstNameRequired")));
+      setSubmitError(getApiErrorMessage(error, t("profile.saveError")));
     }
   });
 
@@ -52,7 +52,7 @@ const pickProfilePhoto = async () => {
   try {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      setPhotoError("Photo library access is off.");
+      setPhotoError(t("profile.photoPermission"));
       return;
     }
 
@@ -72,7 +72,7 @@ setIsUploadingPhoto(true);
 const uploaded = await uploadMedia(asset.uri, "photo");
 setPhotoUrl(uploaded.url);
   } catch (error) {
-    setPhotoError(getApiErrorMessage(error, "Couldn't upload that photo."));
+    setPhotoError(getApiErrorMessage(error, t("profile.photoUploadError")));
   } finally {
     setIsUploadingPhoto(false);
   }
@@ -97,7 +97,7 @@ const displayPhotoUri = photoPreviewUri ?? photoUrl;
     source={{ uri: displayPhotoUri }}
     resizeMode="cover"
     style={{ width: 104, height: 104, borderRadius: 52 }}
-    onError={() => setPhotoError("Selected photo could not be displayed.")}
+    onError={() => setPhotoError(t("profile.photoDisplayError"))}
   />
 ) : isUploadingPhoto ? (
       <ActivityIndicator color="white" />
@@ -107,7 +107,7 @@ const displayPhotoUri = photoPreviewUri ?? photoUrl;
   </YStack>
 
   <Text variant="small" color="$primary" onPress={pickProfilePhoto}>
-    change
+    {t("profile.changePhoto")}
   </Text>
 
   {photoError ? (

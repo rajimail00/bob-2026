@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -13,6 +14,7 @@ interface RatingFormProps {
 }
 
 export function RatingForm({ jobId, onDone }: RatingFormProps) {
+  const { t } = useTranslation();
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -24,22 +26,23 @@ export function RatingForm({ jobId, onDone }: RatingFormProps) {
       await createReview.mutateAsync({ stars, comment: comment.trim() || undefined });
       onDone();
     } catch (err) {
-      setError(getApiErrorMessage(err, "Couldn't submit your review."));
+      setError(getApiErrorMessage(err, t("reviews.error")));
     }
   };
 
   return (
     <YStack gap="$3">
-      <Text variant="h4">Rate your experience</Text>
+      <Text variant="h4">{t("reviews.title")}</Text>
       <XStack gap="$2">
         {[1, 2, 3, 4, 5].map((value) => (
-          <XStack key={value} onPress={() => setStars(value)} accessibilityRole="button">
+          <XStack key={value} onPress={() => setStars(value)} role="button" aria-label={t("reviews.starLabel", { count: value })}>
             <Ionicons name={value <= stars ? "star" : "star-outline"} size={32} color="#4F8266" />
           </XStack>
         ))}
       </XStack>
       <Input
-        placeholder="Describe your experience (optional)"
+        placeholder={t("reviews.placeholder")}
+        accessibilityLabel={t("reviews.placeholder")}
         value={comment}
         onChangeText={setComment}
         multiline
@@ -52,7 +55,7 @@ export function RatingForm({ jobId, onDone }: RatingFormProps) {
         </Text>
       ) : null}
       <Button onPress={onSubmit} loading={createReview.isPending} disabled={stars === 0} fullWidth>
-        Submit rating
+        {t("reviews.submit")}
       </Button>
     </YStack>
   );

@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
 import { XStack, YStack } from "tamagui";
@@ -15,6 +16,7 @@ interface JobMapViewProps {
 }
 
 export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
+  const { t } = useTranslation();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   const initialRegion: Region = useMemo(() => {
@@ -49,7 +51,7 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
           onPress={() => setSelectedJobId(null)}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
           accessibilityRole="button"
-          accessibilityLabel="Close preview"
+          accessibilityLabel={t("filters.closePreview")}
         >
           <BlurView intensity={35} tint="dark" style={{ flex: 1 }} />
         </Pressable>
@@ -74,7 +76,7 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
               shadowRadius={4}
               onPress={() => setSelectedJobId(null)}
               accessibilityRole="button"
-              accessibilityLabel="Close preview"
+              accessibilityLabel={t("filters.closePreview")}
             >
               <Ionicons name="close" size={16} color="#232920" />
             </XStack>

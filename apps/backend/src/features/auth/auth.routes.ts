@@ -30,4 +30,5 @@ authRouter.patch(
   requireAuth,
   asyncHandler(authController.updateNotificationPreferences)
 );
+authRouter.patch("/locale", requireAuth, asyncHandler(authController.updateLocale));
 authRouter.get("/me", requireAuth, asyncHandler(authController.me));

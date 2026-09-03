@@ -51,4 +51,9 @@ export const authApi = {
     );
     return data.user;
   },
+
+  async updateLocale(locale: Locale) {
+    const { data } = await apiClient.patch<{ user: AuthUser }>("/auth/locale", { locale });
+    return data.user;
+  },
 };

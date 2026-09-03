@@ -1,5 +1,5 @@
 import type { ClientSession } from "mongoose";
-import { AppError } from "../../lib/errors.js";
+import { AppError, type UserFacingErrorId } from "../../lib/errors.js";
 import { isMongoTransactionConflict, withMongoTransaction } from "../../lib/transactions.js";
 import { authRepository } from "../auth/auth.repository.js";
 import { jobRepository } from "../jobs/job.repository.js";
@@ -14,12 +14,13 @@ import type { CreateApplicationInput } from "./application.validation.js";
 
 async function runLifecycleTransaction<T>(
   work: (session: ClientSession) => Promise<T>,
-  conflictMessage: string
+  conflictMessage: string,
+  errorId?: UserFacingErrorId
 ) {
   try {
     return await withMongoTransaction(work);
   } catch (error) {
-    if (isMongoTransactionConflict(error)) throw AppError.conflict(conflictMessage);
+    if (isMongoTransactionConflict(error)) throw AppError.conflict(conflictMessage, errorId);
     throw error;
   }
 }
@@ -27,9 +28,9 @@ async function runLifecycleTransaction<T>(
 export const applicationService = {
   async apply(jobId: string, workerId: string, input: CreateApplicationInput) {
     const job = await jobRepository.findRawById(jobId);
-    if (!job) throw AppError.notFound("This job no longer exists.");
+    if (!job) throw AppError.notFound("This job no longer exists.", "JOB_NOT_FOUND");
     if (job.status !== "active" || job.date.getTime() <= Date.now()) {
-      throw AppError.conflict("This job is no longer accepting applicants.");
+      throw AppError.conflict("This job is no longer accepting applicants.", "JOB_NOT_ACTIVE");
     }
     if (job.clientId.toString() === workerId) {
       throw AppError.badRequest("You can't apply to your own job.");
@@ -37,11 +38,11 @@ export const applicationService = {
 
     const worker = await authRepository.findById(workerId);
     if (!worker?.workerProfile) {
-      throw AppError.forbidden("Set up your worker profile before applying to jobs.");
+      throw AppError.forbidden("Set up your worker profile before applying to jobs.", "APPLICATION_FORBIDDEN");
     }
 
     const existing = await applicationRepository.findByJobAndWorker(jobId, workerId);
-    if (existing) throw AppError.conflict("You've already applied to this job.");
+    if (existing) throw AppError.conflict("You've already applied to this job.", "APPLICATION_DUPLICATE");
 
     let result;
     try {
@@ -49,7 +50,7 @@ export const applicationService = {
         async (session) => {
           const lockedJob = await jobRepository.lockForApplication(jobId, new Date(), session);
           if (!lockedJob) {
-            throw AppError.conflict("This job is no longer accepting applicants.");
+            throw AppError.conflict("This job is no longer accepting applicants.", "JOB_NOT_ACTIVE");
           }
 
           const application = await applicationRepository.create(
@@ -72,11 +73,12 @@ export const applicationService = {
 
           return { application, notification };
         },
-        "This job is no longer accepting applicants."
+        "This job is no longer accepting applicants.",
+        "JOB_NOT_ACTIVE"
       );
     } catch (error) {
       if (isDuplicateApplicationError(error)) {
-        throw AppError.conflict("You've already applied to this job.");
+        throw AppError.conflict("You've already applied to this job.", "APPLICATION_DUPLICATE");
       }
       throw error;
     }

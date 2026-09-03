@@ -9,9 +9,20 @@ import fr from "@/locales/fr.json";
 export const SUPPORTED_LOCALES = ["en", "de", "es", "fr"] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
+export const LANGUAGE_OPTIONS: ReadonlyArray<{
+  code: SupportedLocale;
+  label: string;
+  flag: string;
+}> = [
+  { code: "en", label: "English", flag: "\u{1F1FA}\u{1F1F8}" },
+  { code: "de", label: "Deutsch", flag: "\u{1F1E9}\u{1F1EA}" },
+  { code: "es", label: "Español", flag: "\u{1F1EA}\u{1F1F8}" },
+  { code: "fr", label: "Français", flag: "\u{1F1EB}\u{1F1F7}" },
+];
+
 const resources = { en: { translation: en }, de: { translation: de }, es: { translation: es }, fr: { translation: fr } };
 
-function resolveDeviceLocale(): SupportedLocale {
+export function resolveDeviceLocale(): SupportedLocale {
   const deviceLanguage = Localization.getLocales()[0]?.languageCode ?? "en";
   return (SUPPORTED_LOCALES as readonly string[]).includes(deviceLanguage)
     ? (deviceLanguage as SupportedLocale)
@@ -23,13 +34,11 @@ void i18n.use(initReactI18next).init({
   lng: resolveDeviceLocale(),
   fallbackLng: "en",
   interpolation: { escapeValue: false },
-  // This app doesn't use i18next's plural key suffixes (e.g. "_one"/"_other"), and several
-  // Hermes/Android builds ship without Intl.PluralRules — pin v3 so it never tries to use it.
-  compatibilityJSON: "v3",
+  compatibilityJSON: "v4",
 });
 
 export function setAppLocale(locale: SupportedLocale) {
-  void i18n.changeLanguage(locale);
+  return i18n.changeLanguage(locale);
 }
 
 export default i18n;

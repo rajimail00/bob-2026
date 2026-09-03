@@ -6,7 +6,7 @@ import type { CreateReviewInput } from "./review.validation.js";
 export const reviewService = {
   async create(jobId: string, fromUserId: string, input: CreateReviewInput) {
     const job = await jobRepository.findRawById(jobId);
-    if (!job) throw AppError.notFound("This job no longer exists.");
+    if (!job) throw AppError.notFound("This job no longer exists.", "JOB_NOT_FOUND");
     if (job.status !== "completed") throw AppError.conflict("You can only review a completed job.");
 
     const clientId = job.clientId.toString();
@@ -19,7 +19,7 @@ export const reviewService = {
     if (!toUserId) throw AppError.conflict("This job has no counterpart to review.");
 
     const existing = await reviewRepository.findByJobAndAuthor(jobId, fromUserId);
-    if (existing) throw AppError.conflict("You've already reviewed this job.");
+    if (existing) throw AppError.conflict("You've already reviewed this job.", "REVIEW_DUPLICATE");
 
     const review = await reviewRepository.create({
       jobId,

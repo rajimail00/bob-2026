@@ -60,8 +60,8 @@ const RECURRENCE_OPTIONS = ["none", "daily", "weekly", "monthly"] as const;
 const PAYMENT_OPTIONS = ["cash", "paypal", "both"] as const;
 const DATE_PICKER_BRAND_COLOR = color.brand500;
 const DATE_PICKER_DAY_SIZE = 36;
-const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"] as const;
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index + 1));
+const HOUR_OPTIONS_24 = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
 const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, "0"));
 const MERIDIEM_OPTIONS = ["AM", "PM"] as const;
 const TIME_PICKER_CLOCK_SIZE = 260;
@@ -244,7 +244,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
           ? t("jobReposting.error")
           : isEditMode
           ? t("jobEditing.updateError")
-          : "We need your location to post a job. Enable location access and try again."
+          : t("postJob.locationRequired")
       );
       return;
     }
@@ -287,7 +287,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
       <Screen>
         <YStack flex={1} alignItems="center" justifyContent="center" gap="$4">
           <Text variant="h2" textAlign="center">
-            Your job is online!
+            {t("postJob.successTitle")}
           </Text>
           <Button
             onPress={() => {
@@ -297,7 +297,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
               reset();
             }}
           >
-            Post another job
+            {t("postJob.postAnother")}
           </Button>
         </YStack>
       </Screen>
@@ -345,7 +345,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
           <YStack gap="$5">
             {step === 0 ? (
               <YStack gap="$4">
-                <Text variant="h3">What do you need help with?</Text>
+                <Text variant="h3">{t("postJob.helpHeading")}</Text>
                 <Controller
                   control={control}
                   name="categoryId"
@@ -365,7 +365,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                 />
                 {errors.categoryId ? (
                   <Text variant="small" color="$danger">
-                    {errors.categoryId.message}
+                    {t(errors.categoryId.message ?? "")}
                   </Text>
                 ) : null}
               </YStack>
@@ -373,9 +373,9 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
             {step === 1 ? (
               <YStack gap="$4">
-                <Text variant="h3">Describe the job</Text>
+                <Text variant="h3">{t("postJob.describeHeading")}</Text>
                 <YStack gap="$2">
-                  <Text variant="label">Photos &amp; videos (optional)</Text>
+                  <Text variant="label">{t("postJob.mediaOptional")}</Text>
                   <MediaPicker media={media} onChange={setMedia} />
                 </YStack>
                 <View
@@ -388,12 +388,12 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                     name="title"
                     render={({ field }) => (
                       <Input
-                        label="Title"
+                        label={t("postJob.titleLabel")}
                         value={field.value}
                         onChangeText={field.onChange}
                         onFocus={() => scrollFormFieldIntoView("title")}
                         onBlur={field.onBlur}
-                        error={errors.title?.message}
+                        error={errors.title ? t(errors.title.message ?? "") : undefined}
                       />
                     )}
                   />
@@ -408,7 +408,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                     name="description"
                     render={({ field }) => (
                       <Input
-                        label="Description"
+                        label={t("postJob.descriptionLabel")}
                         value={field.value}
                         onChangeText={field.onChange}
                         onFocus={() => scrollFormFieldIntoView("description")}
@@ -416,7 +416,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                         multiline
                         numberOfLines={4}
                         style={{ height: 110, textAlignVertical: "top" }}
-                        error={errors.description?.message}
+                        error={errors.description ? t(errors.description.message ?? "") : undefined}
                       />
                     )}
                   />
@@ -426,9 +426,9 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
             {step === 2 ? (
               <YStack gap="$4">
-                <Text variant="h3">When and where?</Text>
+                <Text variant="h3">{t("postJob.whenWhereHeading")}</Text>
                 <YStack gap="$2">
-                  <Text variant="label">Date</Text>
+                  <Text variant="label">{t("postJob.dateLabel")}</Text>
                   {isRepostMode && !hasSelectedRepostDate ? (
                     <Text variant="small" color="$danger">
                       {t("jobReposting.chooseNewDate")}
@@ -438,8 +438,8 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                     <YStack flex={1}>
                       <PillTabs
                         options={[
-                          { value: "today", label: "Today" },
-                          { value: "tomorrow", label: "Tomorrow" },
+                          { value: "today", label: t("postJob.today") },
+                          { value: "tomorrow", label: t("postJob.tomorrow") },
                         ]}
                         value={isTomorrow ? "tomorrow" : "today"}
                         onChange={(v) => {
@@ -452,7 +452,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                       />
                     </YStack>
                     <Button variant={isCustomDate ? "primary" : "outline"} size="sm" onPress={openDatePicker}>
-                      {isCustomDate ? values.date.toLocaleDateString(locale) : "Pick date"}
+                      {isCustomDate ? values.date.toLocaleDateString(locale) : t("postJob.pickDate")}
                     </Button>
                   </XStack>
                   <BrandDatePicker
@@ -473,13 +473,12 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                 </YStack>
 
                 <YStack gap="$2">
-                  <Text variant="label">Select time</Text>
+                  <Text variant="label">{t("postJob.timeLabel")}</Text>
 
                   <Button variant="outline" onPress={openTimePicker}>
                     {values.date.toLocaleTimeString(locale, {
                       hour: "numeric",
                       minute: "2-digit",
-                      hour12: true,
                     })}
                   </Button>
 
@@ -497,7 +496,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                 </YStack>
 
                 <YStack gap="$2">
-                  <Text variant="label">Address</Text>
+                  <Text variant="label">{t("postJob.addressLabel")}</Text>
                   {location.status === "granted" ? (
                     <Controller
                       control={control}
@@ -517,25 +516,25 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                     <YStack gap="$2">
                       <Text variant="small" color="$danger">
                         {location.status === "denied"
-                          ? "Location access is off — turn it on in settings to pick your address on the map."
-                          : "Getting your location…"}
+                          ? t("postJob.locationOff")
+                          : t("postJob.locationLoading")}
                       </Text>
                       {location.status === "denied" ? (
                         <Button variant="outline" onPress={() => void requestLocation()}>
-                          I've enabled it — retry
+                          {t("postJob.locationRetry")}
                         </Button>
                       ) : null}
                     </YStack>
                   )}
                   {errors.address ? (
                     <Text variant="small" color="$danger">
-                      {errors.address.message}
+                      {t(errors.address.message ?? "")}
                     </Text>
                   ) : null}
                 </YStack>
 
                 <YStack gap="$2">
-                  <Text variant="label">People needed</Text>
+                  <Text variant="label">{t("postJob.peopleNeeded")}</Text>
                   <Controller
                     control={control}
                     name="peopleNeeded"
@@ -555,12 +554,12 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                     name="budget"
                     render={({ field }) => (
                       <Input
-                        label="Budget (€)"
+                        label={t("postJob.budgetLabel")}
                         keyboardType="number-pad"
                         value={field.value ? String(field.value) : ""}
                         onChangeText={(v) => field.onChange(Number(v.replace(/[^0-9]/g, "")) || 0)}
                         onFocus={() => scrollFormFieldIntoView("budget")}
-                        error={errors.budget?.message}
+                        error={errors.budget ? t(errors.budget.message ?? "") : undefined}
                       />
                     )}
                   />
@@ -570,9 +569,9 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
             {step === 3 ? (
               <YStack gap="$5">
-                <Text variant="h3">Options</Text>
+                <Text variant="h3">{t("postJob.optionsHeading")}</Text>
                 <YStack gap="$2">
-                  <Text variant="label">How often?</Text>
+                  <Text variant="label">{t("postJob.recurrenceHeading")}</Text>
                   <XStack flexWrap="wrap" gap="$2">
                     {RECURRENCE_OPTIONS.map((option) => {
                       const isSelected = values.recurrence === option;
@@ -586,9 +585,12 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                           paddingHorizontal="$4"
                           paddingVertical="$2"
                           onPress={() => setValue("recurrence", option)}
+                          accessibilityRole="button"
+                          accessibilityLabel={t(`postJob.recurrence.${option}`)}
+                          accessibilityState={{ selected: isSelected }}
                         >
                           <Text variant="small" fontWeight="600" color={isSelected ? "$primaryText" : "$color"}>
-                            {option}
+                            {t(`postJob.recurrence.${option}`)}
                           </Text>
                         </XStack>
                       );
@@ -597,7 +599,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                 </YStack>
 
                 <YStack gap="$2">
-                  <Text variant="label">Payment method</Text>
+                  <Text variant="label">{t("postJob.paymentHeading")}</Text>
                   <XStack flexWrap="wrap" gap="$2">
                     {PAYMENT_OPTIONS.map((option) => {
                       const isSelected = values.paymentPreference === option;
@@ -615,9 +617,12 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                               paddingHorizontal="$4"
                               paddingVertical="$2"
                               onPress={() => field.onChange(option)}
+                              accessibilityRole="button"
+                              accessibilityLabel={t(`postJob.payment.${option}`)}
+                              accessibilityState={{ selected: isSelected }}
                             >
                               <Text variant="small" fontWeight="600" color={isSelected ? "$primaryText" : "$color"}>
-                                {option}
+                                {t(`postJob.payment.${option}`)}
                               </Text>
                             </XStack>
                           )}
@@ -635,8 +640,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                       justifyContent="space-between"
                       alignItems="center"
                       onPress={() => field.onChange(!field.value)}
+                      accessibilityRole="switch"
+                      accessibilityLabel={t("postJob.emergency")}
+                      accessibilityState={{ checked: field.value }}
                     >
-                      <Text variant="body">This is an emergency</Text>
+                      <Text variant="body">{t("postJob.emergency")}</Text>
                       <XStack
                         width={48}
                         height={28}
@@ -655,7 +663,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
             {step === 4 ? (
               <YStack gap="$4">
-                <Text variant="h3">Review</Text>
+                <Text variant="h3">{t("postJob.reviewHeading")}</Text>
 
                 {media.length > 0 ? <MediaCarousel media={media} /> : null}
 
@@ -670,17 +678,16 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
                 <Card gap="$3">
                   <XStack flexWrap="wrap" gap="$4">
-                    <IconValue icon="pricetag-outline" value={`€${values.budget}`} />
+                    <IconValue icon="pricetag-outline" value={new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(values.budget)} />
                     <IconValue icon="calendar-outline" value={new Date(values.date).toLocaleDateString(locale)} />
                     <IconValue
                       icon="time-outline"
                       value={new Date(values.date).toLocaleTimeString(locale, {
                         hour: "numeric",
                         minute: "2-digit",
-                        hour12: true,
                       })}
                     />
-                    <IconValue icon="person-outline" value={`${values.peopleNeeded} people`} />
+                    <IconValue icon="person-outline" value={t("postJob.peopleCount", { count: values.peopleNeeded })} />
                   </XStack>
                   <XStack alignItems="flex-start" gap="$2">
                     <Ionicons name="location-outline" size={16} color="#4F8266" style={{ marginTop: 2 }} />
@@ -688,7 +695,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                       {values.address}
                     </Text>
                   </XStack>
-                  <IconValue icon="card-outline" value={`Payment: ${values.paymentPreference}`} muted />
+                  <IconValue icon="card-outline" value={t("postJob.paymentReview", { method: t(`postJob.payment.${values.paymentPreference}`) })} muted />
                 </Card>
               </YStack>
             ) : null}
@@ -703,7 +710,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
               </Text>
               {location.status === "denied" ? (
                 <Button variant="outline" onPress={() => void requestLocation()}>
-                  I've enabled it — retry
+                  {t("postJob.locationRetry")}
                 </Button>
               ) : null}
             </YStack>
@@ -739,7 +746,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                   ? t("jobReposting.publish")
                   : isEditMode
                     ? t("jobEditing.saveChanges")
-                    : "Publish"}
+                    : t("postJob.publish")}
               </Button>
             )}
           </XStack>
@@ -773,8 +780,12 @@ function BrandDatePicker({
   onCancel,
   onConfirm,
 }: BrandDatePickerProps) {
+  const { t } = useTranslation();
   const minimumDay = startOfDay(minimumDate);
   const calendarWeeks = getCalendarWeeks(month);
+  const weekdayLabels = Array.from({ length: 7 }, (_, index) =>
+    new Intl.DateTimeFormat(locale, { weekday: "narrow" }).format(new Date(2023, 0, index + 1))
+  );
   const canGoPreviousMonth = startOfMonth(month).getTime() > startOfMonth(minimumDay).getTime();
 
   return (
@@ -802,7 +813,7 @@ function BrandDatePicker({
                   opacity={canGoPreviousMonth ? 1 : 0.3}
                   onPress={canGoPreviousMonth ? () => onMonthChange(addMonths(month, -1)) : undefined}
                   accessibilityRole="button"
-                  accessibilityLabel="Previous month"
+                  accessibilityLabel={t("datePicker.previousMonth")}
                 >
                   <Ionicons name="chevron-back" size={24} color={DATE_PICKER_BRAND_COLOR} />
                 </XStack>
@@ -817,14 +828,14 @@ function BrandDatePicker({
                   justifyContent="center"
                   onPress={() => onMonthChange(addMonths(month, 1))}
                   accessibilityRole="button"
-                  accessibilityLabel="Next month"
+                  accessibilityLabel={t("datePicker.nextMonth")}
                 >
                   <Ionicons name="chevron-forward" size={24} color={DATE_PICKER_BRAND_COLOR} />
                 </XStack>
               </XStack>
 
               <XStack justifyContent="space-between">
-                {WEEKDAY_LABELS.map((day, index) => (
+                {weekdayLabels.map((day, index) => (
                   <YStack key={`${day}-${index}`} width={DATE_PICKER_DAY_SIZE} alignItems="center">
                     <Text variant="body" muted>
                       {day}
@@ -882,10 +893,10 @@ function BrandDatePicker({
 
               <XStack justifyContent="flex-end" gap="$2" paddingTop="$2">
                 <Button variant="ghost" size="sm" onPress={onCancel}>
-                  CANCEL
+                  {t("datePicker.cancel")}
                 </Button>
                 <Button variant="ghost" size="sm" onPress={onConfirm}>
-                  OK
+                  {t("datePicker.confirm")}
                 </Button>
               </XStack>
             </YStack>
@@ -913,13 +924,20 @@ function BrandTimePicker({
   onCancel,
   onConfirm,
 }: BrandTimePickerProps) {
+  const { t } = useTranslation();
   const [clockMode, setClockMode] = useState<"hour" | "minute">("hour");
-  const selectedHour = getDisplayHour(selectedTime);
+  const uses12HourClock = localeUses12HourClock(locale);
+  const selectedHour = uses12HourClock
+    ? getDisplayHour(selectedTime)
+    : String(selectedTime.getHours()).padStart(2, "0");
   const selectedMinute = String(selectedTime.getMinutes()).padStart(2, "0");
   const selectedMeridiem = getMeridiem(selectedTime);
-  const clockOptions = clockMode === "hour" ? HOUR_OPTIONS : MINUTE_OPTIONS;
+  const clockOptions = clockMode === "hour"
+    ? (uses12HourClock ? HOUR_OPTIONS : HOUR_OPTIONS_24)
+    : MINUTE_OPTIONS;
   const selectedClockValue = clockMode === "hour" ? selectedHour : selectedMinute;
   const handAngle = getClockAngle(clockMode, selectedClockValue);
+  const usesHourGrid = clockMode === "hour" && !uses12HourClock;
 
   useEffect(() => {
     if (visible) setClockMode("hour");
@@ -933,7 +951,12 @@ function BrandTimePicker({
             <YStack backgroundColor="$primary" padding="$4" style={styles.timePickerHeader}>
               <XStack alignItems="center" justifyContent="space-between">
                 <XStack alignItems="center">
-                  <Pressable onPress={() => setClockMode("hour")}>
+                  <Pressable
+                    onPress={() => setClockMode("hour")}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: clockMode === "hour" }}
+                    accessibilityLabel={t("datePicker.hour", { value: selectedHour })}
+                  >
                     <Text color="$primaryText" style={styles.timePickerHeaderTime}>
                       {selectedHour}
                     </Text>
@@ -941,7 +964,12 @@ function BrandTimePicker({
                   <Text color="$primaryText" opacity={0.65} style={styles.timePickerHeaderTime}>
                     :
                   </Text>
-                  <Pressable onPress={() => setClockMode("minute")}>
+                  <Pressable
+                    onPress={() => setClockMode("minute")}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: clockMode === "minute" }}
+                    accessibilityLabel={t("datePicker.minute", { value: selectedMinute })}
+                  >
                     <Text
                       color="$primaryText"
                       opacity={clockMode === "minute" ? 1 : 0.65}
@@ -952,16 +980,17 @@ function BrandTimePicker({
                   </Pressable>
                 </XStack>
 
-                <YStack gap="$2" alignItems="center">
+                {uses12HourClock ? <YStack gap="$2" alignItems="center">
                   {MERIDIEM_OPTIONS.map((meridiem) => {
                     const isSelected = selectedMeridiem === meridiem;
+                    const localizedMeridiem = getLocalizedMeridiem(locale, meridiem);
                     return (
                       <Pressable
                         key={meridiem}
                         onPress={() => onSelectTime(setTimeMeridiem(selectedTime, meridiem))}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isSelected }}
-                        accessibilityLabel={meridiem}
+                        accessibilityLabel={localizedMeridiem}
                       >
                         <Text
                           variant="h3"
@@ -969,42 +998,46 @@ function BrandTimePicker({
                           opacity={isSelected ? 1 : 0.58}
                           fontWeight="700"
                         >
-                          {meridiem}
+                          {localizedMeridiem}
                         </Text>
                       </Pressable>
                     );
                   })}
-                </YStack>
+                </YStack> : null}
               </XStack>
             </YStack>
 
             <YStack padding="$4" gap="$3" alignItems="center">
-              <View style={styles.timePickerClockFace}>
-                <View
+              <View style={usesHourGrid ? styles.timePickerHourGrid : styles.timePickerClockFace}>
+                {!usesHourGrid ? <View
                   style={[
                     styles.timePickerHand,
                     {
                       transform: [{ rotate: `${handAngle}deg` }],
                     },
                   ]}
-                />
-                <View style={styles.timePickerCenterDot} />
+                /> : null}
+                {!usesHourGrid ? <View style={styles.timePickerCenterDot} /> : null}
 
                 {clockOptions.map((option) => {
                   const isSelected = selectedClockValue === option;
-                  const position = getClockOptionPosition(clockMode, option);
+                  const position = usesHourGrid ? null : getClockOptionPosition(clockMode, option);
 
                   return (
                     <Pressable
                       key={option}
                       style={[
-                        styles.timePickerNumber,
+                        usesHourGrid ? styles.timePickerHourGridNumber : styles.timePickerNumber,
                         position,
                         isSelected ? styles.timePickerNumberSelected : null,
                       ]}
                       onPress={() => {
                         if (clockMode === "hour") {
-                          onSelectTime(setTimeHour(selectedTime, option));
+                          onSelectTime(
+                            uses12HourClock
+                              ? setTimeHour(selectedTime, option)
+                              : setTimeHour24(selectedTime, option)
+                          );
                           setClockMode("minute");
                         } else {
                           onSelectTime(setTimeMinute(selectedTime, option));
@@ -1012,7 +1045,7 @@ function BrandTimePicker({
                       }}
                       accessibilityRole="button"
                       accessibilityState={{ selected: isSelected }}
-                      accessibilityLabel={clockMode === "hour" ? `Hour ${option}` : `Minute ${option}`}
+                      accessibilityLabel={clockMode === "hour" ? t("datePicker.hour", { value: option }) : t("datePicker.minute", { value: option })}
                     >
                       <Text
                         variant="h4"
@@ -1029,10 +1062,10 @@ function BrandTimePicker({
               <XStack justifyContent="flex-end" alignItems="center" width="100%" paddingTop="$2">
                 <XStack gap="$2">
                   <Button variant="ghost" size="sm" onPress={onCancel}>
-                    CANCEL
+                    {t("datePicker.cancel")}
                   </Button>
                   <Button variant="ghost" size="sm" onPress={onConfirm}>
-                    OK
+                    {t("datePicker.confirm")}
                   </Button>
                 </XStack>
               </XStack>
@@ -1081,6 +1114,27 @@ function setTimeHour(time: Date, hourValue: string) {
   const hour = Number(hourValue) % 12;
   updated.setHours(getMeridiem(time) === "PM" ? hour + 12 : hour);
   return updated;
+}
+
+function setTimeHour24(time: Date, hourValue: string) {
+  const updated = new Date(time);
+  updated.setHours(Number(hourValue));
+  return updated;
+}
+
+function localeUses12HourClock(locale: SupportedLocale) {
+  return new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions().hour12 ?? false;
+}
+
+function getLocalizedMeridiem(
+  locale: SupportedLocale,
+  meridiem: (typeof MERIDIEM_OPTIONS)[number]
+) {
+  const hour = meridiem === "AM" ? 9 : 21;
+  const parts = new Intl.DateTimeFormat(locale, { hour: "numeric", hour12: true }).formatToParts(
+    new Date(2026, 0, 1, hour)
+  );
+  return parts.find((part) => part.type === "dayPeriod")?.value ?? meridiem;
 }
 
 function setTimeMinute(time: Date, minuteValue: string) {
@@ -1164,6 +1218,24 @@ const styles = StyleSheet.create({
     height: TIME_PICKER_CLOCK_SIZE,
     position: "relative",
     width: TIME_PICKER_CLOCK_SIZE,
+  },
+  timePickerHourGrid: {
+    alignContent: "center",
+    backgroundColor: color.neutral100,
+    borderRadius: 16,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    height: TIME_PICKER_CLOCK_SIZE,
+    justifyContent: "center",
+    padding: 10,
+    width: TIME_PICKER_CLOCK_SIZE,
+  },
+  timePickerHourGridNumber: {
+    alignItems: "center",
+    borderRadius: 20,
+    height: 40,
+    justifyContent: "center",
+    width: "25%",
   },
   timePickerHand: {
     backgroundColor: color.brand500,

@@ -3,6 +3,7 @@ import { AppError } from "../../lib/errors.js";
 import { authService } from "./auth.service.js";
 import {
   createProfileSchema,
+  localePreferenceSchema,
   loginSchema,
   notificationPreferencesSchema,
   refreshSchema,
@@ -74,6 +75,13 @@ export const authController = {
     if (!req.auth) throw AppError.unauthorized();
     const input = notificationPreferencesSchema.parse(req.body);
     const user = await authService.updateNotificationPreferences(req.auth.userId, input);
+    res.status(200).json({ user });
+  },
+
+  async updateLocale(req: Request, res: Response) {
+    if (!req.auth) throw AppError.unauthorized();
+    const input = localePreferenceSchema.parse(req.body);
+    const user = await authService.updateLocale(req.auth.userId, input);
     res.status(200).json({ user });
   },
 

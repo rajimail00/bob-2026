@@ -12,37 +12,28 @@ import {
   useCompleteProfile,
   useDeleteAccount,
   useLogout,
+  useUpdateLocale,
   useUpdateNotificationPreferences,
 } from "@/features/auth/hooks/useAuthMutations";
 import type { EditableNotificationPreference } from "@/features/auth/types/auth.types";
-import { setAppLocale, type SupportedLocale } from "@/lib/i18n";
+import { LANGUAGE_OPTIONS, type SupportedLocale } from "@/lib/i18n";
 import { getApiErrorMessage } from "@/lib/apiClient";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { uploadMedia } from "@/features/media/api/media.api";
 
-const LANGUAGES: Array<{
-  code: SupportedLocale;
-  label: string;
-  flag: string;
-}> = [
-  { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "de", label: "German", flag: "🇩🇪" },
-  { code: "fr", label: "France", flag: "🇫🇷" },
-];
- 
 const PHONE_COUNTRIES = [
-  { iso: "DE", name: "Germany", flag: "🇩🇪", dialCode: "+49" },
-  { iso: "US", name: "United States", flag: "🇺🇸", dialCode: "+1" },
-  { iso: "GB", name: "United Kingdom", flag: "🇬🇧", dialCode: "+44" },
-  { iso: "FR", name: "France", flag: "🇫🇷", dialCode: "+33" },
-  { iso: "ES", name: "Spain", flag: "🇪🇸", dialCode: "+34" },
-  { iso: "IN", name: "India", flag: "🇮🇳", dialCode: "+91" },
-  { iso: "IT", name: "Italy", flag: "🇮🇹", dialCode: "+39" },
-  { iso: "NL", name: "Netherlands", flag: "🇳🇱", dialCode: "+31" },
-  { iso: "AT", name: "Austria", flag: "🇦🇹", dialCode: "+43" },
-  { iso: "CH", name: "Switzerland", flag: "🇨🇭", dialCode: "+41" },
+  { iso: "DE", flag: "🇩🇪", dialCode: "+49" },
+  { iso: "US", flag: "🇺🇸", dialCode: "+1" },
+  { iso: "GB", flag: "🇬🇧", dialCode: "+44" },
+  { iso: "FR", flag: "🇫🇷", dialCode: "+33" },
+  { iso: "ES", flag: "🇪🇸", dialCode: "+34" },
+  { iso: "IN", flag: "🇮🇳", dialCode: "+91" },
+  { iso: "IT", flag: "🇮🇹", dialCode: "+39" },
+  { iso: "NL", flag: "🇳🇱", dialCode: "+31" },
+  { iso: "AT", flag: "🇦🇹", dialCode: "+43" },
+  { iso: "CH", flag: "🇨🇭", dialCode: "+41" },
 ] as const;
 
 type PhoneCountryIso = (typeof PHONE_COUNTRIES)[number]["iso"];
@@ -148,6 +139,7 @@ function PhoneNumberInput({
   onCountryChange,
   onChangeText,
 }: PhoneNumberInputProps) {
+  const { t } = useTranslation();
   const inputRef = useRef<RNTextInput>(null);
   const scrollFocusedInput = useKeyboardScroll();
 
@@ -170,7 +162,7 @@ function PhoneNumberInput({
           gap="$1"
           onPress={onCountryPress}
           accessibilityRole="button"
-          accessibilityLabel="Select phone country code"
+          accessibilityLabel={t("profile.phoneCountry")}
         >
           <Text fontSize={18}>{country.flag}</Text>
           <Text fontSize={13}>{country.dialCode}</Text>
@@ -192,10 +184,10 @@ function PhoneNumberInput({
           onChangeText={onChangeText}
           onFocus={() => scrollFocusedInput(inputRef.current)}
           paddingHorizontal="$3"
-          placeholder="Add phone number"
+          placeholder={t("profile.phonePlaceholder")}
           placeholderTextColor="#6B7280"
           value={value}
-          accessibilityLabel="Phone number"
+          accessibilityLabel={t("profile.phoneLabel")}
         />
       </XStack>
 
@@ -218,11 +210,14 @@ function PhoneNumberInput({
               borderBottomColor="#E5E7EB"
               onPress={() => onCountryChange(phoneCountry)}
               accessibilityRole="button"
-              accessibilityLabel={`Use ${phoneCountry.name} ${phoneCountry.dialCode}`}
+              accessibilityLabel={t("profile.useCountry", {
+                country: t(`countries.${phoneCountry.iso}`),
+                dialCode: phoneCountry.dialCode,
+              })}
             >
               <Text fontSize={18}>{phoneCountry.flag}</Text>
               <Text flex={1} fontSize={13}>
-                {phoneCountry.name}
+                {t(`countries.${phoneCountry.iso}`)}
               </Text>
               <Text fontSize={13} color="#4A4A4A">
                 {phoneCountry.dialCode}
@@ -241,6 +236,7 @@ export function ProfileScreen() {
   const logout = useLogout();
   const deleteAccount = useDeleteAccount();
   const completeProfile = useCompleteProfile();
+  const updateLocale = useUpdateLocale();
   const updateNotificationPreferences = useUpdateNotificationPreferences();
   const currentLocale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
   const [showSettings, setShowSettings] = useState(false);
@@ -248,6 +244,7 @@ export function ProfileScreen() {
   const [notificationPreferenceError, setNotificationPreferenceError] = useState<string | null>(null);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
+  const [languageError, setLanguageError] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] =
     useState<SupportedLocale | null>(currentLocale);
   const [selectedPhoneCountry, setSelectedPhoneCountry] = useState(() =>
@@ -262,9 +259,29 @@ export function ProfileScreen() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
-  const selectedLanguageDetails = LANGUAGES.find(
+  useEffect(() => {
+    if (user?.locale) setSelectedLanguage(user.locale);
+  }, [user?.locale]);
+
+  const selectedLanguageDetails = LANGUAGE_OPTIONS.find(
     (language) => language.code === selectedLanguage
   );
+
+  const changeLanguage = async (locale: SupportedLocale) => {
+    if (updateLocale.isPending || locale === user?.locale) {
+      setIsLanguageOpen(false);
+      return;
+    }
+
+    setLanguageError(null);
+    try {
+      const updatedUser = await updateLocale.mutateAsync(locale);
+      setSelectedLanguage(updatedUser.locale);
+      setIsLanguageOpen(false);
+    } catch (error) {
+      setLanguageError(getApiErrorMessage(error, t("language.updateError")));
+    }
+  };
 
   const openProfileEdit = () => {
     const phoneCountry = getPhoneCountry(user?.phone, currentLocale);
@@ -283,7 +300,7 @@ export function ProfileScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        setEditError("Photo library access is off.");
+        setEditError(t("profile.photoPermission"));
         return;
       }
 
@@ -303,7 +320,7 @@ export function ProfileScreen() {
       const uploaded = await uploadMedia(asset.uri, "photo");
       setEditPhotoUrl(uploaded.url);
     } catch (error) {
-      setEditError(getApiErrorMessage(error, "Couldn't upload that photo."));
+      setEditError(getApiErrorMessage(error, t("profile.photoUploadError")));
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -314,7 +331,7 @@ export function ProfileScreen() {
     const lastName = user?.lastName?.trim();
 
     if (!firstName || !lastName) {
-      setEditError("Your registered first and last name are missing.");
+      setEditError(t("profile.missingName"));
       return;
     }
 
@@ -329,30 +346,30 @@ export function ProfileScreen() {
       });
       setShowProfileEdit(false);
     } catch (error) {
-      setEditError(getApiErrorMessage(error, "Profile could not be saved."));
+      setEditError(getApiErrorMessage(error, t("profile.saveError")));
     }
   };
 
   const confirmAccountDeletion = () => {
     Alert.alert(
-      "Deactivate account",
-      "This will permanently delete your account. This action cannot be undone.",
+      t("profile.deactivateTitle"),
+      t("profile.deactivateBody"),
       [
         {
-          text: "Cancel",
+          text: t("common.cancel"),
           style: "cancel",
         },
         {
-          text: "OK",
+          text: t("profile.deactivateTitle"),
           style: "destructive",
           onPress: () => {
             deleteAccount.mutate(undefined, {
               onError: (error) => {
                 Alert.alert(
-                  "Unable to delete account",
+                  t("profile.deleteErrorTitle"),
                   getApiErrorMessage(
                     error,
-                    "Your account could not be deleted. Please try again."
+                    t("profile.deleteError")
                   )
                 );
               },
@@ -452,17 +469,17 @@ export function ProfileScreen() {
             <Pressable
               onPress={() => setShowProfileEdit(false)}
               accessibilityRole="button"
-              accessibilityLabel="Go back to settings"
+              accessibilityLabel={t("profile.backToSettings")}
             >
               <Text fontSize={13} color="#4A4A4A" fontWeight="600">
-                BACK
+                {t("common.back").toUpperCase()}
               </Text>
             </Pressable>
 
             <Pressable
               onPress={isUploadingPhoto || completeProfile.isPending ? undefined : saveProfileEdit}
               accessibilityRole="button"
-              accessibilityLabel="Save profile"
+              accessibilityLabel={t("profile.saveProfile")}
               accessibilityState={{
                 busy: isUploadingPhoto || completeProfile.isPending,
                 disabled: isUploadingPhoto || completeProfile.isPending,
@@ -473,7 +490,7 @@ export function ProfileScreen() {
                 color={isUploadingPhoto || completeProfile.isPending ? "#9CA3AF" : "#4A4A4A"}
                 fontWeight="600"
               >
-                SAVE
+                {t("common.save").toUpperCase()}
               </Text>
             </Pressable>
           </XStack>
@@ -482,7 +499,7 @@ export function ProfileScreen() {
             <Pressable
               onPress={pickProfilePhoto}
               accessibilityRole="button"
-              accessibilityLabel="Change profile photo"
+              accessibilityLabel={t("profile.changePhoto")}
               disabled={isUploadingPhoto}
             >
               <YStack
@@ -501,7 +518,7 @@ export function ProfileScreen() {
                     source={{ uri: displayPhotoUri }}
                     resizeMode="cover"
                     style={{ width: 86, height: 86, borderRadius: 3 }}
-                    onError={() => setEditError("Selected photo could not be displayed.")}
+                    onError={() => setEditError(t("profile.photoDisplayError"))}
                   />
                 ) : isUploadingPhoto ? (
                   <ActivityIndicator color="#4F8266" />
@@ -512,7 +529,7 @@ export function ProfileScreen() {
             </Pressable>
 
             <Text fontSize={14} color="#4A4A4A" onPress={pickProfilePhoto}>
-              change
+              {t("profile.changePhoto")}
             </Text>
           </YStack>
 
@@ -521,14 +538,14 @@ export function ProfileScreen() {
               <YStack flex={1}>
                 <ProfilePillInput
                   value={user?.firstName ?? ""}
-                  accessibilityLabel="Registered first name"
+                  accessibilityLabel={t("profile.registeredFirstName")}
                 />
               </YStack>
 
               <YStack flex={1}>
                 <ProfilePillInput
                   value={user?.lastName ?? ""}
-                  accessibilityLabel="Registered last name"
+                  accessibilityLabel={t("profile.registeredLastName")}
                 />
               </YStack>
             </XStack>
@@ -548,7 +565,7 @@ export function ProfileScreen() {
             <ProfilePillInput
               value={user?.email ?? ""}
               keyboardType="email-address"
-              accessibilityLabel="Registered email address"
+              accessibilityLabel={t("profile.registeredEmail")}
             />
           </YStack>
 
@@ -567,7 +584,11 @@ export function ProfileScreen() {
       <Screen scroll>
         <YStack gap="$4" paddingTop="$4">
           <XStack>
-            <Pressable onPress={() => setShowSettings(false)}>
+            <Pressable
+              onPress={() => setShowSettings(false)}
+              accessibilityRole="button"
+              accessibilityLabel={t("common.back")}
+            >
               <Ionicons name="chevron-back" size={24} color="#4F8266" />
             </Pressable>
           </XStack>
@@ -582,7 +603,7 @@ export function ProfileScreen() {
             <Pressable
               onPress={openProfileEdit}
               accessibilityRole="button"
-              accessibilityLabel="Edit profile"
+              accessibilityLabel={t("profile.edit")}
             >
               <YStack
                 width={36}
@@ -632,10 +653,11 @@ export function ProfileScreen() {
                 gap="$2"
                 onPress={() => { }}
                 accessibilityRole="button"
+                accessibilityLabel={t("profile.invite")}
               >
                 <Ionicons name="share-social-outline" size={16} color="#232920" />
                 <Text fontSize={11} fontWeight="600">
-                  INVITE FRIENDS
+                  {t("profile.invite").toUpperCase()}
                 </Text>
               </XStack>
             </XStack>
@@ -655,10 +677,11 @@ export function ProfileScreen() {
                 gap="$2"
                 onPress={() => { }}
                 accessibilityRole="button"
+                accessibilityLabel={t("profile.feedback")}
               >
                 <Ionicons name="heart-outline" size={16} color="#232920" />
                 <Text fontSize={11} fontWeight="600">
-                  YOUR FEEDBACK
+                  {t("profile.feedback").toUpperCase()}
                 </Text>
               </XStack>
 
@@ -671,10 +694,11 @@ export function ProfileScreen() {
                 gap="$2"
                 onPress={() => { }}
                 accessibilityRole="button"
+                accessibilityLabel={t("profile.help")}
               >
                 <Ionicons name="help-circle-outline" size={16} color="#232920" />
                 <Text fontSize={11} fontWeight="600">
-                  HELP
+                  {t("profile.help").toUpperCase()}
                 </Text>
               </XStack>
             </XStack>
@@ -692,10 +716,10 @@ export function ProfileScreen() {
               backgroundColor="$backgroundStrong"
               onPress={() => setIsLanguageOpen((current) => !current)}
               accessibilityRole="button"
-              accessibilityLabel="Select language"
+              accessibilityLabel={t("language.select")}
             >
               <Text variant="body" muted={!selectedLanguageDetails}>
-                {selectedLanguageDetails?.label ?? "Select Language"}
+                {selectedLanguageDetails?.label ?? t("language.select")}
               </Text>
 
               <Ionicons
@@ -713,7 +737,7 @@ export function ProfileScreen() {
                 backgroundColor="$backgroundStrong"
                 overflow="hidden"
               >
-                {LANGUAGES.map((language) => (
+                {LANGUAGE_OPTIONS.map((language) => (
                   <XStack
                     key={language.code}
                     height={48}
@@ -722,19 +746,21 @@ export function ProfileScreen() {
                     gap="$3"
                     borderBottomWidth={1}
                     borderBottomColor="$borderColor"
-                    onPress={() => {
-                      setSelectedLanguage(language.code);
-                      setAppLocale(language.code);
-                      setIsLanguageOpen(false);
-                    }}
+                    opacity={updateLocale.isPending ? 0.6 : 1}
+                    onPress={() => void changeLanguage(language.code)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Select ${language.label}`}
+                    accessibilityLabel={t("language.selectOption", { language: language.label })}
                   >
                     <Text fontSize={24}>{language.flag}</Text>
                     <Text variant="body">{language.label}</Text>
                   </XStack>
                 ))}
               </YStack>
+            ) : null}
+            {languageError ? (
+              <Text variant="small" color="$danger">
+                {languageError}
+              </Text>
             ) : null}
           </YStack>
         </YStack>
@@ -746,7 +772,11 @@ export function ProfileScreen() {
     <Screen scroll>
       <YStack gap="$4" paddingTop="$4">
         <XStack justifyContent="flex-end">
-          <Pressable onPress={() => setShowSettings(true)}>
+          <Pressable
+            onPress={() => setShowSettings(true)}
+            accessibilityRole="button"
+            accessibilityLabel={t("accessibility.profileSettings")}
+          >
             <Ionicons name="settings-outline" size={28} color="#4F8266" />
           </Pressable>
         </XStack>
@@ -763,16 +793,16 @@ export function ProfileScreen() {
         </XStack>
 
         <Card>
-          <Text variant="label">Rating</Text>
+          <Text variant="label">{t("profile.rating")}</Text>
           <Text variant="h3">
-            {(user?.rating.average ?? 0).toFixed(1)} / 5 · {user?.rating.count ?? 0} reviews
+            {(user?.rating.average ?? 0).toFixed(1)} / 5 · {t("profile.reviewCount", { count: user?.rating.count ?? 0 })}
           </Text>
         </Card>
 
         <Card>
-          <Text variant="label">Subscription</Text>
+          <Text variant="label">{t("profile.subscription")}</Text>
           <Text variant="h4" textTransform="capitalize">
-            BOB-{user?.subscriptionTier ?? "free"}
+            BOB-{t(`subscriptionTiers.${user?.subscriptionTier ?? "free"}`)}
           </Text>
         </Card>
 
@@ -784,7 +814,7 @@ export function ProfileScreen() {
           onPress={confirmAccountDeletion}
           loading={deleteAccount.isPending}
         >
-          Deactivate account
+          {t("profile.deactivateTitle")}
         </Button>
       </YStack>
     </Screen>

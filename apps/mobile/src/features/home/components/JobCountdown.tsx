@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { YStack } from "tamagui";
 import { Text } from "@/components/ui/Text";
 
@@ -18,6 +19,7 @@ interface JobCountdownProps {
 /** Time-until-start display for an assigned job — ticks down to the scheduled date/time,
  * then flips to an "underway" state once it's passed. */
 export function JobCountdown({ targetDate }: JobCountdownProps) {
+  const { t } = useTranslation();
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export function JobCountdown({ targetDate }: JobCountdownProps) {
 
   return (
     <YStack alignItems="center" gap="$1">
-      <Text variant="label">{isUnderway ? "Job is underway" : "Job starts in"}</Text>
+      <Text variant="label">{isUnderway ? t("countdown.underway") : t("countdown.startsIn")}</Text>
       {!isUnderway ? (
         <Text variant="display" color="$primary">
           {formatCountdown(remainingMs)}

@@ -9,6 +9,7 @@ import {
   useAudioRecorderState,
 } from "expo-audio";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
@@ -31,6 +32,7 @@ function formatDuration(milliseconds: number) {
 }
 
 export function ApplyForm({ jobId, onApplied }: ApplyFormProps) {
+  const { t } = useTranslation();
   const [message, setMessage] = useState("");
   const [voiceNoteUri, setVoiceNoteUri] = useState<string | null>(null);
   const [voiceNoteUrl, setVoiceNoteUrl] = useState<string | null>(null);
@@ -56,7 +58,7 @@ function formatSeconds(secondsValue: number) {
       const uploaded = await uploadAudio(uri);
       setVoiceNoteUrl(uploaded.url);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Couldn't upload that voice note. You can retry or delete it."));
+      setError(getApiErrorMessage(err, t("applicationForm.uploadError")));
     } finally {
       setIsUploadingVoice(false);
     }
@@ -71,7 +73,7 @@ function formatSeconds(secondsValue: number) {
     try {
       const permission = await AudioModule.requestRecordingPermissionsAsync();
       if (!permission.granted) {
-        setError("Microphone access is off. Enable it in settings to record a voice note.");
+        setError(t("applicationForm.microphoneOff"));
         return;
       }
 
@@ -79,7 +81,7 @@ function formatSeconds(secondsValue: number) {
       await audioRecorder.prepareToRecordAsync();
       audioRecorder.record();
     } catch (err) {
-      setError(getApiErrorMessage(err, "Couldn't start recording. Please try again."));
+      setError(getApiErrorMessage(err, t("applicationForm.startError")));
     }
   };
 
@@ -91,14 +93,14 @@ function formatSeconds(secondsValue: number) {
       await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
 
       if (!audioRecorder.uri) {
-        setError("Couldn't save that recording. Please try again.");
+        setError(t("applicationForm.saveError"));
         return;
       }
 
       setVoiceNoteUri(audioRecorder.uri);
       await uploadVoiceNote(audioRecorder.uri);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Couldn't stop recording. Please try again."));
+      setError(getApiErrorMessage(err, t("applicationForm.stopError")));
     }
   };
 
@@ -125,7 +127,7 @@ function formatSeconds(secondsValue: number) {
       // }
       player.play();
     } catch (err) {
-      setError(getApiErrorMessage(err, "Couldn't play that voice note."));
+      setError(getApiErrorMessage(err, t("applicationForm.playError")));
     }
   };
 
@@ -145,7 +147,7 @@ function formatSeconds(secondsValue: number) {
       });
       onApplied();
     } catch (err) {
-      setError(getApiErrorMessage(err, "Couldn't submit your application. Please try again."));
+      setError(getApiErrorMessage(err, t("applicationForm.submitError")));
     }
   };
 
@@ -161,7 +163,8 @@ function formatSeconds(secondsValue: number) {
   return (
     <YStack gap="$3">
       <Input
-        placeholder="Tell them why you're a good fit…"
+        placeholder={t("applicationForm.placeholder")}
+        accessibilityLabel={t("applicationForm.placeholder")}
         value={message}
         onChangeText={setMessage}
         multiline
@@ -188,7 +191,7 @@ function formatSeconds(secondsValue: number) {
         </Text>
       ) : null}
       <Button onPress={onSubmit} loading={apply.isPending} disabled={!canSubmit} fullWidth>
-        Apply
+        {t("applicationForm.apply")}
       </Button>
     </YStack>
   );
@@ -221,13 +224,14 @@ function VoiceNoteControls({
   onStartRecording,
   onStopRecording,
 }: VoiceNoteControlsProps) {
+  const { t } = useTranslation();
   const label = isRecording
-    ? "Recording..."
+    ? t("applicationForm.recording")
     : uploadFailed
-      ? "Upload failed"
+      ? t("applicationForm.uploadFailed")
       : hasVoiceNote
-        ? "Voice note ready"
-        : "Add voice note";
+        ? t("applicationForm.ready")
+        : t("applicationForm.addVoice");
 
   return (
     <XStack
@@ -249,16 +253,16 @@ function VoiceNoteControls({
       {isUploading ? <ActivityIndicator color="white" /> : null}
 
       {uploadFailed ? (
-        <CircleIconButton icon="refresh" label="Retry voice upload" onPress={onRetryUpload} />
+        <CircleIconButton icon="refresh" label={t("applicationForm.retryUpload")} onPress={onRetryUpload} />
       ) : hasVoiceNote ? (
         <>
-          <CircleIconButton icon="trash" label="Delete voice note" onPress={onDelete} />
-          <CircleIconButton icon={isPlaying ? "pause" : "play"} label={isPlaying ? "Pause voice note" : "Play voice note"} onPress={onPlayPause} />
+          <CircleIconButton icon="trash" label={t("applicationForm.deleteVoice")} onPress={onDelete} />
+          <CircleIconButton icon={isPlaying ? "pause" : "play"} label={isPlaying ? t("applicationForm.pauseVoice") : t("applicationForm.playVoice")} onPress={onPlayPause} />
         </>
       ) : (
         <CircleIconButton
           icon={isRecording ? "stop" : "mic"}
-          label={isRecording ? "Stop voice recording" : "Start voice recording"}
+          label={isRecording ? t("applicationForm.stopRecording") : t("applicationForm.startRecording")}
           onPress={isRecording ? onStopRecording : onStartRecording}
         />
       )}
@@ -284,8 +288,8 @@ function CircleIconButton({
       alignItems="center"
       justifyContent="center"
       onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
+      role="button"
+      aria-label={label}
     >
       <Ionicons name={icon} size={20} color="#4F8266" />
     </XStack>

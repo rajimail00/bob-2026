@@ -37,7 +37,17 @@
       "firstNameRequired": "Saisissez votre prénom",
       "lastNameRequired": "Saisissez votre nom"
     }
-    },
+  },
+  "home": {
+    "map": "Carte",
+    "list": "Liste",
+    "searchPlaceholder": "Rechercher",
+    "emptyTitle": "Aucune mission à proximité",
+    "emptyBody": "Élargissez le rayon de recherche ou effacez les filtres.",
+    "errorTitle": "Impossible de charger les missions",
+    "budget": "Budget",
+    "people": "Personnes"
+  },
   "orders": {
     "postedTab": "Mes demandes",
     "appliedTab": "Mes candidatures",
@@ -69,7 +79,8 @@
       "declined": "Refusée",
       "rejected": "Non sélectionné"
     },
-    "rating": "{{average}} sur 5 · {{count}} avis",
+    "rating_one": "{{average}} sur 5 · {{count}} avis",
+    "rating_other": "{{average}} sur 5 · {{count}} avis",
     "noMessage": "Aucun message de candidature",
     "openProfile": "Ouvrir le profil de {{name}}",
     "messageApplicant": "Envoyer un message à {{name}}",
@@ -192,5 +203,39 @@
     "orders": "Demandes",
     "post": "Publier",
     "profile": "Profil"
+  },
+  "language": { "select": "Choisir la langue", "selectOption": "Choisir {{language}}", "updateError": "Votre langue préférée n’a pas pu être enregistrée." },
+  "postJob": {
+    "helpHeading": "De quelle aide avez-vous besoin ?", "describeHeading": "Décrire la mission", "mediaOptional": "Photos et vidéos (facultatif)", "titleLabel": "Titre", "descriptionLabel": "Description", "whenWhereHeading": "Quand et où ?", "dateLabel": "Date", "today": "Aujourd’hui", "tomorrow": "Demain", "pickDate": "Choisir une date", "timeLabel": "Choisir l’heure", "addressLabel": "Adresse",
+    "locationRequired": "Votre position est nécessaire pour publier une mission. Activez l’accès et réessayez.", "locationOff": "L’accès à la position est désactivé. Activez-le dans les réglages pour choisir l’adresse sur la carte.", "locationLoading": "Recherche de votre position…", "locationRetry": "Je l’ai activé — réessayer", "peopleNeeded": "Personnes nécessaires", "budgetLabel": "Budget (€)", "optionsHeading": "Options", "recurrenceHeading": "À quelle fréquence ?",
+    "recurrence": { "none": "Aucune répétition", "daily": "Tous les jours", "weekly": "Toutes les semaines", "monthly": "Tous les mois" },
+    "paymentHeading": "Mode de paiement", "payment": { "cash": "Espèces", "paypal": "PayPal", "both": "Espèces ou PayPal" }, "emergency": "C’est une urgence", "reviewHeading": "Vérification", "paymentReview": "Paiement : {{method}}", "peopleCount_one": "{{count}} personne", "peopleCount_other": "{{count}} personnes", "publish": "Publier", "successTitle": "Votre mission est en ligne !", "postAnother": "Publier une autre mission",
+    "validation": { "category": "Choisissez une catégorie", "title": "Ajoutez un titre court", "description": "Ajoutez quelques détails", "address": "L’adresse est obligatoire", "date": "Choisissez une date et une heure valides", "people": "Choisissez entre 1 et 15 personnes", "budget": "Saisissez un budget" }
+  },
+  "datePicker": { "previousMonth": "Mois précédent", "nextMonth": "Mois suivant", "cancel": "Annuler", "confirm": "OK", "hour": "Heure {{value}}", "minute": "Minute {{value}}" },
+  "mediaPicker": {
+    "libraryPermission": "L’accès à la photothèque est désactivé. Activez-le dans les réglages.", "cameraPermission": "L’accès à l’appareil photo est désactivé. Activez-le dans les réglages.", "filesTooLarge": "Un fichier dépasse 10 Mo. Choisissez une vidéo plus courte ou une photo plus petite.", "fileTooLarge": "Ce fichier dépasse 10 Mo. Choisissez une vidéo plus courte ou une photo plus petite.", "error": "Impossible d’ajouter ce fichier. Réessayez.", "remove": "Supprimer le média", "photoGallery": "Photo de la galerie ({{count}}/{{max}})", "videoGallery": "Vidéo de la galerie ({{count}}/{{max}})", "camera": "Utiliser l’appareil photo", "limits": "Jusqu’à {{photos}} photos et {{videos}} vidéos de 10 Mo chacune. La galerie est recommandée."
+  },
+  "locationPicker": { "selected": "Position sélectionnée", "finding": "Recherche de l’adresse…", "instruction": "Touchez la carte ou déplacez le repère pour définir l’adresse" },
+  "filters": { "title": "Filtres", "done": "Terminé", "category": "Catégorie (plusieurs choix possibles)", "budget": "Budget", "min": "Min.", "max": "Max.", "peopleNeeded": "Personnes nécessaires", "clear": "Effacer les filtres", "clearSearch": "Effacer la recherche", "open": "Ouvrir les filtres", "closePreview": "Fermer l’aperçu de la mission" },
+  "jobDetail": {
+    "peopleCount_one": "{{count}} personne", "peopleCount_other": "{{count}} personnes", "posted": "Publiée le {{date}}", "messages": "Messages", "reportProblem": "Signaler un problème", "deleteTitle": "Supprimer cette mission ?", "deleteBody": "« {{title}} » sera supprimée définitivement.", "delete": "Supprimer", "deleteLabel": "Supprimer la mission", "complete": "Faites glisser pour terminer", "rateWorker": "Évaluer le prestataire", "rateClient": "Évaluer le client", "setupWorker": "Configurez votre profil de prestataire pour postuler.", "setupWorkerAction": "Configurer le profil prestataire", "alreadyApplied": "Vous avez déjà postulé à cette mission.", "offerReceived": "Vous avez reçu une offre pour cette mission !", "decline": "Refuser", "accept": "Accepter", "offeredElsewhere": "Cette mission est actuellement proposée à une autre personne.", "assignedToYou": "Cette mission vous est attribuée."
+  },
+  "countdown": { "underway": "La mission est en cours", "startsIn": "La mission commence dans" },
+  "problem": { "title": "Quel est le problème avec cette mission ?", "workerUnavailable": "Le prestataire ne peut pas venir", "cancel": "Je dois annuler", "addressNotFound": "Adresse introuvable", "support": "Contacter l’assistance", "dismiss": "Plus tard" },
+  "applicationForm": {
+    "placeholder": "Expliquez pourquoi votre profil convient…", "apply": "Postuler", "microphoneOff": "L’accès au microphone est désactivé. Activez-le dans les réglages.", "uploadError": "La note vocale n’a pas pu être envoyée. Réessayez ou supprimez-la.", "startError": "Impossible de démarrer l’enregistrement.", "saveError": "Impossible d’enregistrer la note vocale.", "stopError": "Impossible d’arrêter l’enregistrement.", "playError": "Impossible de lire la note vocale.", "submitError": "Impossible d’envoyer votre candidature.", "recording": "Enregistrement…", "uploadFailed": "Échec de l’envoi", "ready": "Note vocale prête", "addVoice": "Ajouter une note vocale", "retryUpload": "Réessayer l’envoi", "deleteVoice": "Supprimer la note vocale", "pauseVoice": "Mettre la note vocale en pause", "playVoice": "Lire la note vocale", "stopRecording": "Arrêter l’enregistrement", "startRecording": "Démarrer l’enregistrement"
+  },
+  "applicant": { "awaiting": "Réponse en attente", "rating_one": "{{average}}/5 · {{count}} avis", "rating_other": "{{average}}/5 · {{count}} avis", "listen": "Écouter", "playing": "Lecture", "reply": "Répondre", "offer": "Proposer la mission" },
+  "workerProfile": { "title": "Profil prestataire", "chooseCategories": "Choisissez jusqu’à {{count}} catégories", "availability": "Disponibilité", "standard": "Standard", "allDay": "24 heures" },
+  "profile": {
+    "photoPermission": "L’accès à la photothèque est désactivé.", "photoUploadError": "Impossible d’envoyer cette photo.", "photoDisplayError": "Impossible d’afficher la photo sélectionnée.", "missingName": "Votre prénom et votre nom enregistrés sont manquants.", "saveError": "Impossible d’enregistrer le profil.", "deactivateTitle": "Désactiver le compte", "deactivateBody": "Votre compte sera supprimé définitivement. Cette action est irréversible.", "deleteErrorTitle": "Impossible de supprimer le compte", "deleteError": "Votre compte n’a pas pu être supprimé. Réessayez.", "backToSettings": "Retour aux réglages", "saveProfile": "Enregistrer le profil", "changePhoto": "Changer la photo de profil", "phoneCountry": "Choisir l’indicatif pays", "phonePlaceholder": "Ajouter un numéro de téléphone", "phoneLabel": "Numéro de téléphone", "useCountry": "Utiliser {{country}} {{dialCode}}", "registeredFirstName": "Prénom enregistré", "registeredLastName": "Nom enregistré", "registeredEmail": "Adresse e-mail enregistrée", "edit": "Modifier le profil", "rating": "Note", "reviewCount_one": "{{count}} avis", "reviewCount_other": "{{count}} avis", "subscription": "Abonnement", "invite": "Inviter des amis", "feedback": "Commentaires", "help": "Aide"
+  },
+  "subscriptionTiers": { "free": "Gratuit", "pro": "Pro", "unlimited": "Illimité" },
+  "reviews": { "title": "Évaluez votre expérience", "placeholder": "Décrivez votre expérience (facultatif)", "submit": "Envoyer l’évaluation", "error": "Impossible d’envoyer votre évaluation.", "starLabel_one": "{{count}} étoile", "starLabel_other": "{{count}} étoiles" },
+  "accessibility": { "showPassword": "Afficher le mot de passe", "hidePassword": "Masquer le mot de passe", "decrease": "Diminuer", "increase": "Augmenter", "openConversation": "Ouvrir la conversation avec {{name}}", "profileSettings": "Ouvrir les réglages du profil" },
+  "countries": { "DE": "Allemagne", "US": "États-Unis", "GB": "Royaume-Uni", "FR": "France", "ES": "Espagne", "IN": "Inde", "IT": "Italie", "NL": "Pays-Bas", "AT": "Autriche", "CH": "Suisse" },
+  "apiErrors": {
+    "AUTH_REQUIRED": "Connectez-vous pour continuer.", "SESSION_EXPIRED": "Votre session a expiré. Reconnectez-vous.", "EMAIL_EXISTS": "Un compte existe déjà avec cette adresse e-mail.", "INVALID_CREDENTIALS": "L’adresse e-mail ou le mot de passe est incorrect.", "EMAIL_NOT_VERIFIED": "Vérifiez votre adresse e-mail avant de vous connecter.", "VERIFICATION_INVALID": "Le code est incorrect. Réessayez.", "VERIFICATION_EXPIRED": "Le code a expiré. Demandez-en un nouveau.", "JOB_NOT_FOUND": "Cette mission n’existe plus.", "JOB_NOT_ACTIVE": "Cette mission n’accepte plus de candidatures.", "JOB_EDIT_LOCKED": "Cette mission ne peut plus être modifiée.", "JOB_REPOST_LOCKED": "Cette mission ne peut pas être republiée.", "APPLICATION_DUPLICATE": "Vous avez déjà postulé à cette mission.", "APPLICATION_FORBIDDEN": "Configurez votre profil prestataire avant de postuler.", "MESSAGE_FORBIDDEN": "Vous ne participez pas à cette conversation.", "REVIEW_DUPLICATE": "Vous avez déjà évalué cette mission.", "MEDIA_TOO_LARGE": "Le fichier sélectionné est trop volumineux.", "MEDIA_UNSUPPORTED": "Ce type de fichier n’est pas pris en charge.", "ACCOUNT_DELETE_FORBIDDEN": "Seul un compte actif peut être supprimé."
   }
 }

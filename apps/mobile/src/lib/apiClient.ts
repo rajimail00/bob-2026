@@ -1,5 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import Constants from "expo-constants";
+import i18n from "@/lib/i18n";
 import { useAuthStore } from "@/features/auth/store/authStore";
 
 const apiUrl = (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? "http://localhost:4000/api/v1";
@@ -55,13 +56,17 @@ async function refreshAccessToken(): Promise<string | null> {
 }
 
 export interface ApiErrorBody {
-  error: { code: string; message: string; details?: unknown };
+  error: { code: string; errorId?: string; message: string; details?: unknown };
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError(error)) {
     const body = error.response?.data as ApiErrorBody | undefined;
-    if (body?.error?.message) return body.error.message;
+    const errorId = body?.error?.errorId;
+    if (errorId) {
+      const translationKey = `apiErrors.${errorId}`;
+      if (i18n.exists(translationKey)) return i18n.t(translationKey);
+    }
   }
   return fallback;
 }

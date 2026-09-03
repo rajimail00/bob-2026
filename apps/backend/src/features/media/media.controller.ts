@@ -13,7 +13,7 @@ export const mediaController = {
       throw AppError.badRequest("Attach a photo or video as `file`.");
     }
     if (req.file.size > MAX_UPLOAD_BYTES) {
-      throw AppError.badRequest("File is too large (max 10MB).");
+      throw AppError.badRequest("File is too large (max 10MB).", undefined, "MEDIA_TOO_LARGE");
     }
 
     const isVideo = req.file.mimetype.startsWith("video/");
@@ -21,7 +21,7 @@ export const mediaController = {
     const isAudio = req.file.mimetype.startsWith("audio/");
 
     if (!isVideo && !isImage && !isAudio) {
-      throw AppError.badRequest("Only image, video, or audio files are supported.");
+      throw AppError.badRequest("Only image, video, or audio files are supported.", undefined, "MEDIA_UNSUPPORTED");
     }
 
     const { url } = await uploadBuffer(req.file.buffer, isImage ? "image" : "video");

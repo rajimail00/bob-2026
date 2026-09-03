@@ -141,7 +141,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
             {isOwner && job.status === "active" && pendingApplicantsCount > 0 ? (
               <NotificationBell count={pendingApplicantsCount} />
             ) : null}
-            <StatusPill label={job.status.replace("_", " ")} tone={STATUS_TONE[job.status]} />
+            <StatusPill label={t(`jobs.status.${job.status}`)} tone={STATUS_TONE[job.status]} />
           </XStack>
         </XStack>
 
@@ -195,9 +195,9 @@ export function JobDetailScreen({ route, navigation }: Props) {
 
         <Card gap="$3">
           <XStack flexWrap="wrap" gap="$4">
-            <IconValue icon="pricetag-outline" value={`€${job.budget}`} />
+            <IconValue icon="pricetag-outline" value={new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(job.budget)} />
             <IconValue icon="calendar-outline" value={new Date(job.date).toLocaleDateString(locale)} />
-            <IconValue icon="person-outline" value={`${job.peopleNeeded} people`} />
+            <IconValue icon="person-outline" value={t("jobDetail.peopleCount", { count: job.peopleNeeded })} />
           </XStack>
           <XStack alignItems="flex-start" gap="$2">
             <Ionicons name="location-outline" size={16} color="#4F8266" style={{ marginTop: 2 }} />
@@ -205,7 +205,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
               {job.address}
             </Text>
           </XStack>
-          <IconValue icon="time-outline" value={`Posted ${new Date(job.createdAt).toLocaleDateString(locale)}`} muted />
+          <IconValue icon="time-outline" value={t("jobDetail.posted", { date: new Date(job.createdAt).toLocaleDateString(locale) })} muted />
         </Card>
 
         {job.status === "assigned" ? (
@@ -221,7 +221,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
               navigation.navigate("Chat", { jobId, workerId: isOwner ? job.assignedWorkerId! : (user!.id as string) })
             }
           >
-            Messages
+            {t("jobDetail.messages")}
           </Button>
         ) : null}
 
@@ -231,7 +231,7 @@ export function JobDetailScreen({ route, navigation }: Props) {
             loading={reportProblem.isPending}
             onPress={() => setIsProblemModalOpen(true)}
           >
-            Report a problem
+            {t("jobDetail.reportProblem")}
           </Button>
         ) : null}
 
@@ -261,10 +261,10 @@ export function JobDetailScreen({ route, navigation }: Props) {
             showRatingForm={showRatingForm}
             onStartRating={() => setShowRatingForm(true)}
             onDelete={() => {
-              Alert.alert("Delete this job?", `"${job.title}" will be removed and can't be recovered.`, [
-                { text: "Cancel", style: "cancel" },
+              Alert.alert(t("jobDetail.deleteTitle"), t("jobDetail.deleteBody", { title: job.title }), [
+                { text: t("common.cancel"), style: "cancel" },
                 {
-                  text: "Delete",
+                  text: t("jobDetail.delete"),
                   style: "destructive",
                   onPress: async () => {
                     setDeleteError(null);
@@ -317,8 +317,9 @@ export function JobDetailScreen({ route, navigation }: Props) {
 }
 
 function NotificationBell({ count }: { count: number }) {
+  const { t } = useTranslation();
   return (
-    <XStack position="relative" width={28} height={28} alignItems="center" justifyContent="center">
+    <XStack position="relative" width={28} height={28} alignItems="center" justifyContent="center" accessibilityLabel={t("orders.applicationCount", { count })}>
       <Ionicons name="notifications" size={20} color="#4F8266" />
       <XStack
         position="absolute"
@@ -397,7 +398,7 @@ function OwnerActions({
               justifyContent="center"
               onPress={onDelete}
               accessibilityRole="button"
-              accessibilityLabel="Delete job"
+              accessibilityLabel={t("jobDetail.deleteLabel")}
             >
               {isDeleting ? null : (
                 <Ionicons
@@ -455,7 +456,7 @@ function OwnerActions({
             {completeError}
           </Text>
         ) : null}
-        <SwipeToConfirm label="Swipe to mark complete" onConfirm={onComplete} loading={isCompleting} />
+        <SwipeToConfirm label={t("jobDetail.complete")} onConfirm={onComplete} loading={isCompleting} />
       </YStack>
     );
   }
@@ -464,7 +465,7 @@ function OwnerActions({
     if (showRatingForm) return <RatingForm jobId={jobId} onDone={() => undefined} />;
     return (
       <Button variant="outline" onPress={onStartRating} fullWidth>
-        Rate the worker
+        {t("jobDetail.rateWorker")}
       </Button>
     );
   }
@@ -512,10 +513,10 @@ function WorkerActions({
       return (
         <YStack gap="$3">
           <Text variant="body" muted>
-            Set up your worker profile to apply to jobs.
+            {t("jobDetail.setupWorker")}
           </Text>
           <Button onPress={onSetupProfile} fullWidth>
-            Set up worker profile
+            {t("jobDetail.setupWorkerAction")}
           </Button>
         </YStack>
       );
@@ -523,7 +524,7 @@ function WorkerActions({
     if (myApplication) {
       return (
         <Text variant="body" muted>
-          You've already applied to this job.
+          {t("jobDetail.alreadyApplied")}
         </Text>
       );
     }
@@ -534,7 +535,7 @@ function WorkerActions({
     if (myApplication?.status === "offered") {
       return (
         <YStack gap="$3">
-          <Text variant="h4">You've been offered this job!</Text>
+          <Text variant="h4">{t("jobDetail.offerReceived")}</Text>
           {respondError ? (
             <Text variant="small" color="$danger">
               {respondError}
@@ -543,12 +544,12 @@ function WorkerActions({
           <XStack gap="$2">
             <YStack flex={1}>
               <Button variant="outline" onPress={() => onRespond(false)} loading={isResponding} fullWidth>
-                Decline
+                {t("jobDetail.decline")}
               </Button>
             </YStack>
             <YStack flex={1}>
               <Button onPress={() => onRespond(true)} loading={isResponding} fullWidth>
-                Accept
+                {t("jobDetail.accept")}
               </Button>
             </YStack>
           </XStack>
@@ -557,7 +558,7 @@ function WorkerActions({
     }
     return (
       <Text variant="body" muted>
-        This job is currently being offered to another candidate.
+        {t("jobDetail.offeredElsewhere")}
       </Text>
     );
   }
@@ -565,7 +566,7 @@ function WorkerActions({
   if (jobStatus === "assigned" && isAssignedWorker) {
     return (
       <Text variant="body" muted>
-        You're assigned to this job.
+        {t("jobDetail.assignedToYou")}
       </Text>
     );
   }
@@ -574,7 +575,7 @@ function WorkerActions({
     if (showRatingForm) return <RatingForm jobId={jobId} onDone={() => undefined} />;
     return (
       <Button variant="outline" onPress={onStartRating} fullWidth>
-        Rate the client
+        {t("jobDetail.rateClient")}
       </Button>
     );
   }

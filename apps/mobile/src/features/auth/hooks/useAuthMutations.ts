@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { disconnectSocket } from "@/lib/socket";
+import { setAppLocale } from "@/lib/i18n";
 import { authApi } from "../api/auth.api";
 import { useAuthStore } from "../store/authStore";
 import type { AuthUser, Locale, NotificationPreferences } from "../types/auth.types";
@@ -24,6 +25,7 @@ export function useVerifyEmail() {
     onSuccess: async (data) => {
       await setTokens(data.accessToken, data.refreshToken);
       setUser(data.user);
+      await setAppLocale(data.user.locale);
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     },
   });
@@ -39,6 +41,7 @@ export function useLogin() {
     onSuccess: async (data) => {
       await setTokens(data.accessToken, data.refreshToken);
       setUser(data.user);
+      await setAppLocale(data.user.locale);
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
     },
   });
@@ -126,6 +129,20 @@ export function useUpdateNotificationPreferences() {
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+    },
+  });
+}
+
+export function useUpdateLocale() {
+  const setUser = useAuthStore((state) => state.setUser);
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (locale: Locale) => authApi.updateLocale(locale),
+    onSuccess: async (user) => {
+      setUser(user);
+      queryClient.setQueryData(["auth", "me"], user);
+      await setAppLocale(user.locale);
     },
   });
 }

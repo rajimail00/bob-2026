@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { XStack } from "tamagui";
+import { useTranslation } from "react-i18next";
 import { Text } from "./Text";
 
 interface NumberStepperProps {
@@ -11,6 +12,7 @@ interface NumberStepperProps {
 
 /** The "− N +" stepper used for counts like people-needed — avoids a free-text number field. */
 export function NumberStepper({ value, onChange, min = 1, max = 99 }: NumberStepperProps) {
+  const { t } = useTranslation();
   const canDecrease = value > min;
   const canIncrease = value < max;
 
@@ -33,8 +35,8 @@ export function NumberStepper({ value, onChange, min = 1, max = 99 }: NumberStep
         justifyContent="center"
         onPress={() => canDecrease && onChange(value - 1)}
         opacity={canDecrease ? 1 : 0.35}
-        accessibilityRole="button"
-        accessibilityLabel="Decrease"
+        role="button"
+        aria-label={t("accessibility.decrease")}
       >
         <Ionicons name="remove" size={20} color="#4F8266" />
       </XStack>
@@ -49,8 +51,8 @@ export function NumberStepper({ value, onChange, min = 1, max = 99 }: NumberStep
         justifyContent="center"
         onPress={() => canIncrease && onChange(value + 1)}
         opacity={canIncrease ? 1 : 0.35}
-        accessibilityRole="button"
-        accessibilityLabel="Increase"
+        role="button"
+        aria-label={t("accessibility.increase")}
       >
         <Ionicons name="add" size={20} color="#4F8266" />
       </XStack>

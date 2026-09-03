@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Image } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Text } from "@/components/ui/Text";
@@ -23,6 +24,7 @@ function isOversized(fileSize: number | undefined): boolean {
 
 /** Photo/video capture + Cloudinary upload for the post-a-job wizard's media step. */
 export function MediaPicker({ media, onChange }: MediaPickerProps) {
+  const { t } = useTranslation();
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +38,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        setError("Photo library access is off — enable it in settings to add photos or videos.");
+        setError(t("mediaPicker.libraryPermission"));
         return;
       }
 
@@ -51,7 +53,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
 
       const oversized = result.assets.some((a) => isOversized(a.fileSize));
       if (oversized) {
-        setError("One of those files is over 10MB — please choose a shorter video or a smaller photo.");
+        setError(t("mediaPicker.filesTooLarge"));
         return;
       }
 
@@ -65,7 +67,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
       }
       onChange([...media, ...uploaded]);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Couldn't add that file. Please try again."));
+      setError(getApiErrorMessage(err, t("mediaPicker.error")));
     } finally {
       setIsUploading(false);
     }
@@ -82,7 +84,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        setError("Camera access is off — enable it in settings to add photos or videos.");
+        setError(t("mediaPicker.cameraPermission"));
         return;
       }
 
@@ -95,7 +97,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
 
       const asset = result.assets[0];
       if (isOversized(asset.fileSize)) {
-        setError("That file is over 10MB — please choose a shorter video or a smaller photo.");
+        setError(t("mediaPicker.fileTooLarge"));
         return;
       }
 
@@ -103,7 +105,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
       const uploaded = await uploadMedia(asset.uri, kind);
       onChange([...media, uploaded]);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Couldn't add that file. Please try again."));
+      setError(getApiErrorMessage(err, t("mediaPicker.error")));
     } finally {
       setIsUploading(false);
     }
@@ -147,7 +149,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
               justifyContent="center"
               onPress={() => removeAt(index)}
               accessibilityRole="button"
-              accessibilityLabel="Remove"
+              accessibilityLabel={t("mediaPicker.remove")}
             >
               <Ionicons name="close-circle" size={22} color="#C1554B" />
             </XStack>
@@ -173,22 +175,21 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
         <YStack gap="$2">
           {canAddPhoto ? (
             <XStack gap="$2">
-              <PickerButton icon="images-outline" label={`Photo from gallery (${photoCount}/${MAX_PHOTOS})`} onPress={() => pickFromLibrary("photo")} />
-              <PickerButton icon="camera-outline" label="Use camera" onPress={() => captureWithCamera("photo")} compact />
+              <PickerButton icon="images-outline" label={t("mediaPicker.photoGallery", { count: photoCount, max: MAX_PHOTOS })} onPress={() => pickFromLibrary("photo")} />
+              <PickerButton icon="camera-outline" label={t("mediaPicker.camera")} onPress={() => captureWithCamera("photo")} compact />
             </XStack>
           ) : null}
           {canAddVideo ? (
             <XStack gap="$2">
-              <PickerButton icon="film-outline" label={`Video from gallery (${videoCount}/${MAX_VIDEOS})`} onPress={() => pickFromLibrary("video")} />
-              <PickerButton icon="videocam-outline" label="Use camera" onPress={() => captureWithCamera("video")} compact />
+              <PickerButton icon="film-outline" label={t("mediaPicker.videoGallery", { count: videoCount, max: MAX_VIDEOS })} onPress={() => pickFromLibrary("video")} />
+              <PickerButton icon="videocam-outline" label={t("mediaPicker.camera")} onPress={() => captureWithCamera("video")} compact />
             </XStack>
           ) : null}
         </YStack>
       ) : null}
 
       <Text variant="caption" muted>
-        Up to {MAX_PHOTOS} photos and {MAX_VIDEOS} videos, 10MB each. Gallery is recommended — the
-        camera can restart the app on some devices.
+        {t("mediaPicker.limits", { photos: MAX_PHOTOS, videos: MAX_VIDEOS })}
       </Text>
 
       {error ? (

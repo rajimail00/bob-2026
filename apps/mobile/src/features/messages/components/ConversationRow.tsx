@@ -1,4 +1,5 @@
 import { XStack, YStack } from "tamagui";
+import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/Avatar";
 import { Text } from "@/components/ui/Text";
 import type { Conversation } from "../types/message.types";
@@ -9,6 +10,7 @@ interface ConversationRowProps {
 }
 
 export function ConversationRow({ conversation, onPress }: ConversationRowProps) {
+  const { t } = useTranslation();
   const { worker } = conversation;
   const name = `${worker.firstName} ${worker.lastName}`.trim();
   const hasUnread = conversation.unreadCount > 0;
@@ -22,8 +24,8 @@ export function ConversationRow({ conversation, onPress }: ConversationRowProps)
       borderRadius="$md"
       backgroundColor={hasUnread ? "$primary" : "$backgroundStrong"}
       onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Open conversation with ${name}`}
+      role="button"
+      aria-label={t("accessibility.openConversation", { name })}
     >
       <Avatar uri={worker.photoUrl} name={name} size={44} />
       <YStack flex={1} gap="$0.5">

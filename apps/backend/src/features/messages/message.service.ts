@@ -8,12 +8,12 @@ import type { CreateMessageInput } from "./message.validation.js";
 
 async function assertParticipant(jobId: string, workerId: string, userId: string) {
   const job = await jobRepository.findRawById(jobId);
-  if (!job) throw AppError.notFound("This job no longer exists.");
+  if (!job) throw AppError.notFound("This job no longer exists.", "JOB_NOT_FOUND");
 
   const isClient = job.clientId.toString() === userId;
   const isWorker = workerId === userId;
   if (!isClient && !isWorker) {
-    throw AppError.forbidden("You're not part of this conversation.");
+    throw AppError.forbidden("You're not part of this conversation.", "MESSAGE_FORBIDDEN");
   }
   return job;
 }

@@ -19,7 +19,7 @@ export function requireAuth(
   const header = req.headers.authorization;
 
   if (!header?.startsWith("Bearer ")) {
-    next(AppError.unauthorized());
+    next(AppError.unauthorized(undefined, "AUTH_REQUIRED"));
     return;
   }
 
@@ -30,7 +30,7 @@ export function requireAuth(
   try {
     payload = verifyAccessToken(token);
   } catch {
-    next(AppError.unauthorized("Session expired. Please log in again."));
+    next(AppError.unauthorized("Session expired. Please log in again.", "SESSION_EXPIRED"));
     return;
   }
 
@@ -42,7 +42,8 @@ export function requireAuth(
       if (!accountExists) {
         next(
           AppError.unauthorized(
-            "This account is no longer active. Please log in again."
+            "This account is no longer active. Please log in again.",
+            "SESSION_EXPIRED"
           )
         );
         return;
@@ -60,7 +61,7 @@ export function requireAuth(
 
 export function requireRole(...roles: UserRole[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
-    if (!req.auth) throw AppError.unauthorized();
+    if (!req.auth) throw AppError.unauthorized(undefined, "AUTH_REQUIRED");
     if (!roles.includes(req.auth.role)) throw AppError.forbidden();
     next();
   };

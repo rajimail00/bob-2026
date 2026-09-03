@@ -54,3 +54,8 @@ export const notificationPreferencesSchema = z
   .strict()
   .refine((input) => Object.keys(input).length > 0, "Provide at least one notification preference.");
 export type NotificationPreferencesInput = z.infer<typeof notificationPreferencesSchema>;
+
+export const localePreferenceSchema = z
+  .object({ locale: z.enum(SUPPORTED_LOCALES) })
+  .strict();
+export type LocalePreferenceInput = z.infer<typeof localePreferenceSchema>;

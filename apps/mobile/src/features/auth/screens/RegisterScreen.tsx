@@ -11,22 +11,12 @@ import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { getApiErrorMessage } from "@/lib/apiClient";
-import { setAppLocale, type SupportedLocale } from "@/lib/i18n";
+import { LANGUAGE_OPTIONS, setAppLocale, type SupportedLocale } from "@/lib/i18n";
 import type { AuthStackParamList } from "@/navigation/types";
 import { useRegister } from "../hooks/useAuthMutations";
 import { registerSchema, type RegisterFormValues } from "../validation/auth.schema";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
-
-const LANGUAGES: Array<{
-  code: SupportedLocale;
-  label: string;
-  flag: string;
-}> = [
-  { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "de", label: "German", flag: "🇩🇪" },
-  { code: "es", label: "Spanish", flag: "🇪🇸" },
-];
 
 export function RegisterScreen({ navigation }: Props) {
   const { t, i18n } = useTranslation();
@@ -36,7 +26,7 @@ export function RegisterScreen({ navigation }: Props) {
   const [selectedLanguage, setSelectedLanguage] =
     useState<SupportedLocale | null>(null);
 
-  const selectedLanguageDetails = LANGUAGES.find(
+  const selectedLanguageDetails = LANGUAGE_OPTIONS.find(
     (language) => language.code === selectedLanguage
   );
 
@@ -77,10 +67,10 @@ export function RegisterScreen({ navigation }: Props) {
               backgroundColor="$backgroundStrong"
               onPress={() => setIsLanguageOpen((current) => !current)}
               accessibilityRole="button"
-              accessibilityLabel="Select language"
+              accessibilityLabel={t("language.select")}
             >
               <Text variant="body" muted={!selectedLanguageDetails}>
-                {selectedLanguageDetails?.label ?? "Select Language"}
+                {selectedLanguageDetails?.label ?? t("language.select")}
               </Text>
 
               <Ionicons
@@ -98,7 +88,7 @@ export function RegisterScreen({ navigation }: Props) {
                 backgroundColor="$backgroundStrong"
                 overflow="hidden"
               >
-                {LANGUAGES.map((language) => (
+                {LANGUAGE_OPTIONS.map((language) => (
                   <XStack
                     key={language.code}
                     height={48}
@@ -113,7 +103,7 @@ export function RegisterScreen({ navigation }: Props) {
                       setIsLanguageOpen(false);
                     }}
                     accessibilityRole="button"
-                    accessibilityLabel={`Select ${language.label}`}
+                    accessibilityLabel={t("language.selectOption", { language: language.label })}
                   >
                     <Text fontSize={24}>{language.flag}</Text>
                     <Text variant="body">{language.label}</Text>

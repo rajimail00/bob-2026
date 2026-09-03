@@ -13,7 +13,7 @@ export function notFoundHandler(req: Request, res: Response) {
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError) {
     res.status(err.status).json({
-      error: { code: err.code, message: err.message, details: err.details },
+      error: { code: err.code, errorId: err.errorId, message: err.message, details: err.details },
     });
     return;
   }

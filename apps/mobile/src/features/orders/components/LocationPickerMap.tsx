@@ -1,5 +1,6 @@
 import * as Location from "expo-location";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import MapView, { Marker, type MapPressEvent, type Region } from "react-native-maps";
 import { YStack } from "tamagui";
 import { Text } from "@/components/ui/Text";
@@ -15,17 +16,18 @@ interface LocationPickerMapProps {
   onLocationChange: (next: { coords: Coords; address: string }) => void;
 }
 
-function formatAddress(result: Location.LocationGeocodedAddress): string {
+function formatAddress(result: Location.LocationGeocodedAddress, selectedLabel: string): string {
   const parts = [
     [result.street, result.streetNumber].filter(Boolean).join(" "),
     result.city,
     result.postalCode,
   ].filter(Boolean);
-  return parts.join(", ") || "Selected location";
+  return parts.join(", ") || selectedLabel;
 }
 
 /** Tap anywhere on the map to drop the pin there — address is filled in automatically via reverse geocoding. */
 export function LocationPickerMap({ coords, address, onLocationChange }: LocationPickerMapProps) {
+  const { t } = useTranslation();
   const [isResolving, setIsResolving] = useState(false);
 
   const region: Region = {
@@ -41,7 +43,7 @@ export function LocationPickerMap({ coords, address, onLocationChange }: Locatio
     try {
       const [result] = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
       if (result) {
-        onLocationChange({ coords: { lat, lng }, address: formatAddress(result) });
+        onLocationChange({ coords: { lat, lng }, address: formatAddress(result, t("locationPicker.selected")) });
       }
     } catch {
       // Keep the pin placement even if reverse geocoding fails — address stays as-is/editable.
@@ -70,7 +72,7 @@ export function LocationPickerMap({ coords, address, onLocationChange }: Locatio
         </MapView>
       </YStack>
       <Text variant="caption" muted>
-        {isResolving ? "Finding address…" : address || "Tap the map or drag the pin to set your address"}
+        {isResolving ? t("locationPicker.finding") : address || t("locationPicker.instruction")}
       </Text>
     </YStack>
   );

@@ -10,6 +10,7 @@ import { accountDeletionRepository } from "./accountDeletion.repository.js";
 import type {
   CreateProfileInput,
   LoginInput,
+  LocalePreferenceInput,
   NotificationPreferencesInput,
   RegisterInput,
   VerifyEmailInput,
@@ -37,7 +38,7 @@ export const authService = {
   async register(input: RegisterInput) {
     const existing = await authRepository.findByEmail(input.email);
     if (existing) {
-      throw AppError.conflict("An account with this email already exists.");
+      throw AppError.conflict("An account with this email already exists.", "EMAIL_EXISTS");
     }
 
     const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
@@ -66,11 +67,11 @@ export const authService = {
       throw AppError.badRequest("No verification code was requested for this account.");
     }
     if (user.emailVerificationExpiresAt.getTime() < Date.now()) {
-      throw AppError.badRequest("This code has expired. Request a new one.");
+      throw AppError.badRequest("This code has expired. Request a new one.", undefined, "VERIFICATION_EXPIRED");
     }
 
     const isMatch = await bcrypt.compare(input.code, user.emailVerificationCodeHash);
-    if (!isMatch) throw AppError.badRequest("Incorrect code. Please try again.");
+    if (!isMatch) throw AppError.badRequest("Incorrect code. Please try again.", undefined, "VERIFICATION_INVALID");
 
     user.isEmailVerified = true;
     user.emailVerificationCodeHash = undefined;
@@ -95,19 +96,19 @@ export const authService = {
 
   async login(input: LoginInput) {
     const user = await authRepository.findByEmail(input.email, true);
-    if (!user) throw AppError.unauthorized("Incorrect email or password.");
+    if (!user) throw AppError.unauthorized("Incorrect email or password.", "INVALID_CREDENTIALS");
 
     const isMatch = await bcrypt.compare(input.password, user.passwordHash);
-    if (!isMatch) throw AppError.unauthorized("Incorrect email or password.");
+    if (!isMatch) throw AppError.unauthorized("Incorrect email or password.", "INVALID_CREDENTIALS");
 
     if (user.status === "banned") {
       throw AppError.forbidden("This account has been suspended. Contact support for help.");
     }
     if (user.status === "deleted") {
-      throw AppError.unauthorized("This account no longer exists.");
+      throw AppError.unauthorized("This account no longer exists.", "INVALID_CREDENTIALS");
     }
     if (!user.isEmailVerified) {
-      throw AppError.forbidden("Please verify your email before logging in.");
+      throw AppError.forbidden("Please verify your email before logging in.", "EMAIL_NOT_VERIFIED");
     }
 
     const tokens = issueTokenPair(user);
@@ -119,16 +120,16 @@ export const authService = {
     try {
       payload = verifyRefreshToken(refreshToken);
     } catch {
-      throw AppError.unauthorized("Session expired. Please log in again.");
+      throw AppError.unauthorized("Session expired. Please log in again.", "SESSION_EXPIRED");
     }
 
     const user = await authRepository.findById(payload.sub);
 
     if (!user || user.status !== "active") {
-      throw AppError.unauthorized("Session expired. Please log in again.");
+      throw AppError.unauthorized("Session expired. Please log in again.", "SESSION_EXPIRED");
     }
     if ((user.refreshTokenVersion ?? 0) !== payload.tokenVersion) {
-      throw AppError.unauthorized("Session expired. Please log in again.");
+      throw AppError.unauthorized("Session expired. Please log in again.", "SESSION_EXPIRED");
     }
 
     return issueTokenPair(user);
@@ -149,7 +150,7 @@ export const authService = {
     }
 
     if (user.status !== "active") {
-      throw AppError.forbidden("Only an active account can be deleted.");
+      throw AppError.forbidden("Only an active account can be deleted.", "ACCOUNT_DELETE_FORBIDDEN");
     }
 
   // Collect every currently referenced file owned by this account.
@@ -278,6 +279,15 @@ export const authService = {
       ...normalizeNotificationPreferences(user.notificationPrefs),
       ...input,
     };
+    await authRepository.save(user);
+    return toPublicUser(user);
+  },
+
+  async updateLocale(userId: string, input: LocalePreferenceInput) {
+    const user = await authRepository.findById(userId);
+    if (!user) throw AppError.notFound("Account not found.");
+
+    user.locale = input.locale;
     await authRepository.save(user);
     return toPublicUser(user);
   },

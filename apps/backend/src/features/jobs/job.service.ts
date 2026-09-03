@@ -61,7 +61,7 @@ async function transitionJobStatus(
 
   if (!updatedJob) {
     const existingJob = await jobRepository.findRawById(jobId, options.session);
-    if (!existingJob) throw AppError.notFound("This job no longer exists.");
+    if (!existingJob) throw AppError.notFound("This job no longer exists.", "JOB_NOT_FOUND");
     throw AppError.conflict("The job status changed while this request was being processed.");
   }
 
@@ -85,7 +85,7 @@ export const jobService = {
 
   async getById(id: string) {
     const job = await jobRepository.findById(id);
-    if (!job) throw AppError.notFound("This job no longer exists.");
+    if (!job) throw AppError.notFound("This job no longer exists.", "JOB_NOT_FOUND");
     return job;
   },
 
@@ -154,12 +154,12 @@ export const jobService = {
 
   async update(jobId: string, requesterId: string, input: UpdateJobInput) {
     const existingJob = await jobRepository.findRawById(jobId);
-    if (!existingJob) throw AppError.notFound("This job no longer exists.");
+    if (!existingJob) throw AppError.notFound("This job no longer exists.", "JOB_NOT_FOUND");
     if (existingJob.clientId.toString() !== requesterId) {
       throw AppError.forbidden("Only the job owner can edit this job.");
     }
     if (existingJob.status !== "draft" && existingJob.status !== "active") {
-      throw AppError.conflict("This job can no longer be edited.");
+      throw AppError.conflict("This job can no longer be edited.", "JOB_EDIT_LOCKED");
     }
 
     const expectedStatus = existingJob.status;
@@ -170,12 +170,12 @@ export const jobService = {
         // Re-read inside the transaction so retries can detect a repeated/no-op save and so a
         // lifecycle change that won the race is never overwritten by stale form data.
         const currentJob = await jobRepository.findRawById(jobId, session);
-        if (!currentJob) throw AppError.notFound("This job no longer exists.");
+        if (!currentJob) throw AppError.notFound("This job no longer exists.", "JOB_NOT_FOUND");
         if (currentJob.clientId.toString() !== requesterId) {
           throw AppError.forbidden("Only the job owner can edit this job.");
         }
         if (currentJob.status !== expectedStatus) {
-          throw AppError.conflict("This job can no longer be edited.");
+          throw AppError.conflict("This job can no longer be edited.", "JOB_EDIT_LOCKED");
         }
         if (!hasMeaningfulChanges(currentJob, updates)) {
           return { job: null, deliveries: [] as NotificationDelivery[] };
@@ -189,7 +189,7 @@ export const jobService = {
           session
         );
         if (!job) {
-          throw AppError.conflict("This job can no longer be edited.");
+          throw AppError.conflict("This job can no longer be edited.", "JOB_EDIT_LOCKED");
         }
 
         const deliveries: NotificationDelivery[] = [];
@@ -227,7 +227,7 @@ export const jobService = {
 
     if (!result.job) {
       const unchangedJob = await jobRepository.findById(jobId);
-      if (!unchangedJob) throw AppError.notFound("This job no longer exists.");
+      if (!unchangedJob) throw AppError.notFound("This job no longer exists.", "JOB_NOT_FOUND");
       return unchangedJob;
     }
 
@@ -520,12 +520,12 @@ function assertRepostAllowed(
   job: JobDocument | null,
   requesterId: string
 ): asserts job is JobDocument {
-  if (!job) throw AppError.notFound("This job no longer exists.");
+  if (!job) throw AppError.notFound("This job no longer exists.", "JOB_NOT_FOUND");
   if (job.clientId.toString() !== requesterId) {
     throw AppError.forbidden("Only the job owner can repost this job.");
   }
   if (!REPOSTABLE_STATUSES.includes(job.status as JobStatus)) {
-    throw AppError.conflict("This job cannot be reposted.");
+    throw AppError.conflict("This job cannot be reposted.", "JOB_REPOST_LOCKED");
   }
 }
 

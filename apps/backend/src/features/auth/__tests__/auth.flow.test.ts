@@ -145,6 +145,63 @@ describe("auth flow", () => {
     expect(login.body.user.notificationPrefs.newMessage).toBe(false);
     expect(login.body.user.notificationPrefs.cancellations).toBe(false);
   });
+
+  it("persists an authenticated locale preference across me and login", async () => {
+    const email = "locale-preference@example.com";
+    const code = await registerAndGetCode(email);
+    const verified = await request(app)
+      .post("/api/v1/auth/verify-email")
+      .send({ email, code });
+    const accessToken = verified.body.accessToken as string;
+
+    const unauthenticated = await request(app)
+      .patch("/api/v1/auth/locale")
+      .send({ locale: "fr" });
+    expect(unauthenticated.status).toBe(401);
+    expect(unauthenticated.body.error.errorId).toBe("AUTH_REQUIRED");
+
+    const invalid = await request(app)
+      .patch("/api/v1/auth/locale")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ locale: "it" });
+    expect(invalid.status).toBe(400);
+
+    const updated = await request(app)
+      .patch("/api/v1/auth/locale")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({ locale: "fr" });
+    expect(updated.status).toBe(200);
+    expect(updated.body.user.locale).toBe("fr");
+
+    const me = await request(app)
+      .get("/api/v1/auth/me")
+      .set("Authorization", `Bearer ${accessToken}`);
+    expect(me.status).toBe(200);
+    expect(me.body.user.locale).toBe("fr");
+
+    const login = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email, password: "correct-horse-1" });
+    expect(login.status).toBe(200);
+    expect(login.body.user.locale).toBe("fr");
+  });
+
+  it("returns stable error identifiers without removing legacy fields", async () => {
+    const email = "stable-error@example.com";
+    await registerAndGetCode(email);
+
+    const duplicate = await request(app)
+      .post("/api/v1/auth/register")
+      .send({ email, password: "another-pass-1" });
+
+    expect(duplicate.status).toBe(409);
+    expect(duplicate.body.error).toMatchObject({
+      code: "CONFLICT",
+      errorId: "EMAIL_EXISTS",
+      message: "An account with this email already exists.",
+    });
+  });
+
   it("anonymizes an account and releases its original email", async () => {
     const email = "delete-account@example.com";
     const password = "correct-horse-1";

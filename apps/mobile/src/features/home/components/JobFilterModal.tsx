@@ -29,8 +29,14 @@ interface JobFilterModalProps {
 }
 
 export function JobFilterModal({ visible, onClose, categories, filters, onChange, onClear }: JobFilterModalProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
+  const formatBudget = (value: number) =>
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: "EUR",
+      maximumFractionDigits: 0,
+    }).format(value);
 
   const toggleCategory = (categoryId: string) => {
     const isSelected = filters.categoryIds.includes(categoryId);
@@ -47,15 +53,21 @@ export function JobFilterModal({ visible, onClose, categories, filters, onChange
       <YStack flex={1} justifyContent="flex-end" backgroundColor="rgba(0,0,0,0.35)">
         <YStack backgroundColor="$background" borderTopLeftRadius="$lg" borderTopRightRadius="$lg" maxHeight="85%">
           <XStack justifyContent="space-between" alignItems="center" padding="$4" paddingBottom="$2">
-            <Text variant="h3">Filters</Text>
-            <Text variant="body" color="$primary" onPress={onClose}>
-              Done
+            <Text variant="h3">{t("filters.title")}</Text>
+            <Text
+              variant="body"
+              color="$primary"
+              onPress={onClose}
+              role="button"
+              aria-label={t("filters.done")}
+            >
+              {t("filters.done")}
             </Text>
           </XStack>
 
           <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 20 }}>
             <YStack gap="$3">
-              <Text variant="label">Category (select any number)</Text>
+              <Text variant="label">{t("filters.category")}</Text>
               <XStack flexWrap="wrap" gap="$2">
                 {categories.map((category) => (
                   <CategoryTile
@@ -71,14 +83,14 @@ export function JobFilterModal({ visible, onClose, categories, filters, onChange
 
             <YStack gap="$3" marginTop="$5">
               <XStack justifyContent="space-between">
-                <Text variant="label">Budget</Text>
+                <Text variant="label">{t("filters.budget")}</Text>
                 <Text variant="caption">
-                  €{filters.minBudget} – €{filters.maxBudget}
+                  {formatBudget(filters.minBudget)} – {formatBudget(filters.maxBudget)}
                 </Text>
               </XStack>
               <YStack gap="$1">
                 <Text variant="caption" muted>
-                  Min
+                  {t("filters.min")}
                 </Text>
                 <Slider
                   minimumValue={0}
@@ -93,7 +105,7 @@ export function JobFilterModal({ visible, onClose, categories, filters, onChange
               </YStack>
               <YStack gap="$1">
                 <Text variant="caption" muted>
-                  Max
+                  {t("filters.max")}
                 </Text>
                 <Slider
                   minimumValue={0}
@@ -109,7 +121,7 @@ export function JobFilterModal({ visible, onClose, categories, filters, onChange
             </YStack>
 
             <YStack gap="$2" marginTop="$5">
-              <Text variant="label">People needed</Text>
+              <Text variant="label">{t("filters.peopleNeeded")}</Text>
               <NumberStepper
                 value={filters.peopleNeeded ?? 1}
                 onChange={(v) => onChange({ ...filters, peopleNeeded: v })}
@@ -119,7 +131,7 @@ export function JobFilterModal({ visible, onClose, categories, filters, onChange
             </YStack>
 
             <Button variant="destructive" onPress={onClear} marginTop="$5">
-              Clear filters
+              {t("filters.clear")}
             </Button>
           </ScrollView>
         </YStack>

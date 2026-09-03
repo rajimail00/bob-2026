@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-//import { Linking } from "react-native";
 import { XStack, YStack } from "tamagui";
+import { useTranslation } from "react-i18next";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -9,14 +9,6 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { Text } from "@/components/ui/Text";
 import type { Application } from "../types/application.types";
 
-
-const STATUS_LABEL: Record<Application["status"], string> = {
-  pending: "",
-  offered: "Awaiting response",
-  accepted: "Accepted",
-  declined: "Declined",
-  rejected: "Not selected",
-};
 
 const STATUS_TONE: Record<Application["status"], "brand" | "neutral" | "danger"> = {
   pending: "neutral",
@@ -35,6 +27,7 @@ interface ApplicantCardProps {
 }
 
 export function ApplicantCard({ application, onOffer, onMessage, isOffering, disabled }: ApplicantCardProps) {
+  const { t } = useTranslation();
   const worker = application.workerId;
   const name = `${worker.firstName ?? ""} ${worker.lastName ?? ""}`.trim();
   const voicePlayer = useAudioPlayer(application.voiceNoteUrl ?? null);
@@ -59,7 +52,7 @@ export function ApplicantCard({ application, onOffer, onMessage, isOffering, dis
     <Card gap="$3" alignItems="center">
       {application.status !== "pending" ? (
         <XStack alignSelf="flex-end">
-          <StatusPill label={STATUS_LABEL[application.status]} tone={STATUS_TONE[application.status]} />
+          <StatusPill label={application.status === "offered" ? t("applicant.awaiting") : t(`applications.status.${application.status}`)} tone={STATUS_TONE[application.status]} />
         </XStack>
       ) : null}
 
@@ -70,7 +63,7 @@ export function ApplicantCard({ application, onOffer, onMessage, isOffering, dis
         <XStack alignItems="center" gap="$1">
           <Ionicons name="ribbon-outline" size={14} color="#9AA793" />
           <Text variant="caption">
-            {(worker.rating?.average ?? 0).toFixed(1)}/5 · {worker.rating?.count ?? 0} reviews
+            {t("applicant.rating", { average: (worker.rating?.average ?? 0).toFixed(1), count: worker.rating?.count ?? 0 })}
           </Text>
         </XStack>
       </YStack>
@@ -80,22 +73,19 @@ export function ApplicantCard({ application, onOffer, onMessage, isOffering, dis
       </Text>
 
       <XStack gap="$2" flexWrap="wrap" justifyContent="center">
-        {/* {application.voiceNoteUrl ? (
-          <ActionPill icon="volume-high-outline" label="Listen" onPress={() => Linking.openURL(application.voiceNoteUrl as string)} />
-        ) : null} */}
         {application.voiceNoteUrl ? (
           <ActionPill
             icon={voiceStatus.playing ? "pause-outline" : "volume-high-outline"}
-            label={voiceStatus.playing ? "Playing" : "Listen"}
+            label={voiceStatus.playing ? t("applicant.playing") : t("applicant.listen")}
             onPress={toggleVoiceNote}
           />
         ) : null}
-        <ActionPill icon="chatbubble-ellipses-outline" label="Reply" onPress={onMessage} />
+        <ActionPill icon="chatbubble-ellipses-outline" label={t("applicant.reply")} onPress={onMessage} />
       </XStack>
 
       {application.status === "pending" ? (
         <Button onPress={onOffer} loading={isOffering} disabled={disabled} fullWidth>
-          Offer this job
+          {t("applicant.offer")}
         </Button>
       ) : null}
     </Card>
@@ -113,8 +103,8 @@ function ActionPill({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyp
       paddingHorizontal="$3"
       height={36}
       onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
+      role="button"
+      aria-label={label}
     >
       <Ionicons name={icon} size={14} color="#4F8266" />
       <Text variant="small" color="$primary">

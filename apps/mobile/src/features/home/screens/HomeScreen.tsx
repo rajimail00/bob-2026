@@ -80,7 +80,7 @@ export function HomeScreen({ navigation }: Props) {
               returnKeyType="search"
               rightElement={
                 search.length > 0 ? (
-                  <XStack onPress={() => setSearch("")} padding="$2" accessibilityRole="button" accessibilityLabel="Clear search">
+                  <XStack onPress={() => setSearch("")} padding="$2" accessibilityRole="button" accessibilityLabel={t("filters.clearSearch")}>
                     <Ionicons name="close-circle" size={18} color="#9AA793" />
                   </XStack>
                 ) : undefined
@@ -102,7 +102,7 @@ export function HomeScreen({ navigation }: Props) {
             justifyContent="center"
             onPress={() => setIsFilterOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel="Filters"
+            accessibilityLabel={t("filters.open")}
           >
             <Ionicons name="options-outline" size={20} color={activeFilterCount > 0 ? "white" : "#4F8266"} />
           </XStack>

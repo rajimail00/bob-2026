@@ -79,7 +79,8 @@
       "declined": "Rechazada",
       "rejected": "No seleccionado"
     },
-    "rating": "{{average}} de 5 · {{count}} reseñas",
+    "rating_one": "{{average}} de 5 · {{count}} reseña",
+    "rating_other": "{{average}} de 5 · {{count}} reseñas",
     "noMessage": "Sin mensaje de solicitud",
     "openProfile": "Abrir el perfil de {{name}}",
     "messageApplicant": "Enviar un mensaje a {{name}}",
@@ -202,5 +203,39 @@
     "orders": "Encargos",
     "post": "Publicar",
     "profile": "Perfil"
+  },
+  "language": { "select": "Seleccionar idioma", "selectOption": "Seleccionar {{language}}", "updateError": "No se pudo guardar tu idioma preferido." },
+  "postJob": {
+    "helpHeading": "¿Con qué necesitas ayuda?", "describeHeading": "Describe el trabajo", "mediaOptional": "Fotos y vídeos (opcional)", "titleLabel": "Título", "descriptionLabel": "Descripción", "whenWhereHeading": "¿Cuándo y dónde?", "dateLabel": "Fecha", "today": "Hoy", "tomorrow": "Mañana", "pickDate": "Elegir fecha", "timeLabel": "Elegir hora", "addressLabel": "Dirección",
+    "locationRequired": "Necesitamos tu ubicación para publicar un trabajo. Activa el acceso y vuelve a intentarlo.", "locationOff": "El acceso a la ubicación está desactivado. Actívalo en los ajustes para elegir la dirección en el mapa.", "locationLoading": "Obteniendo tu ubicación…", "locationRetry": "Ya lo he activado — reintentar", "peopleNeeded": "Personas necesarias", "budgetLabel": "Presupuesto (€)", "optionsHeading": "Opciones", "recurrenceHeading": "¿Con qué frecuencia?",
+    "recurrence": { "none": "Sin repetición", "daily": "Diariamente", "weekly": "Semanalmente", "monthly": "Mensualmente" },
+    "paymentHeading": "Método de pago", "payment": { "cash": "Efectivo", "paypal": "PayPal", "both": "Efectivo o PayPal" }, "emergency": "Es una emergencia", "reviewHeading": "Revisar", "paymentReview": "Pago: {{method}}", "peopleCount_one": "{{count}} persona", "peopleCount_other": "{{count}} personas", "publish": "Publicar", "successTitle": "¡Tu trabajo está publicado!", "postAnother": "Publicar otro trabajo",
+    "validation": { "category": "Elige una categoría", "title": "Añade un título breve", "description": "Añade algunos detalles más", "address": "La dirección es obligatoria", "date": "Elige una fecha y hora válidas", "people": "Elige entre 1 y 15 personas", "budget": "Introduce un presupuesto" }
+  },
+  "datePicker": { "previousMonth": "Mes anterior", "nextMonth": "Mes siguiente", "cancel": "Cancelar", "confirm": "Aceptar", "hour": "Hora {{value}}", "minute": "Minuto {{value}}" },
+  "mediaPicker": {
+    "libraryPermission": "El acceso a la galería está desactivado. Actívalo en los ajustes.", "cameraPermission": "El acceso a la cámara está desactivado. Actívalo en los ajustes.", "filesTooLarge": "Uno de los archivos supera los 10 MB. Elige un vídeo más corto o una foto más pequeña.", "fileTooLarge": "El archivo supera los 10 MB. Elige un vídeo más corto o una foto más pequeña.", "error": "No se pudo añadir el archivo. Inténtalo de nuevo.", "remove": "Eliminar archivo", "photoGallery": "Foto de la galería ({{count}}/{{max}})", "videoGallery": "Vídeo de la galería ({{count}}/{{max}})", "camera": "Usar cámara", "limits": "Hasta {{photos}} fotos y {{videos}} vídeos de 10 MB cada uno. Se recomienda la galería."
+  },
+  "locationPicker": { "selected": "Ubicación seleccionada", "finding": "Buscando dirección…", "instruction": "Toca el mapa o arrastra el marcador para establecer la dirección" },
+  "filters": { "title": "Filtros", "done": "Listo", "category": "Categoría (selecciona las que quieras)", "budget": "Presupuesto", "min": "Mín.", "max": "Máx.", "peopleNeeded": "Personas necesarias", "clear": "Borrar filtros", "clearSearch": "Borrar búsqueda", "open": "Abrir filtros", "closePreview": "Cerrar vista previa del trabajo" },
+  "jobDetail": {
+    "peopleCount_one": "{{count}} persona", "peopleCount_other": "{{count}} personas", "posted": "Publicado el {{date}}", "messages": "Mensajes", "reportProblem": "Informar de un problema", "deleteTitle": "¿Eliminar este trabajo?", "deleteBody": "«{{title}}» se eliminará y no podrá recuperarse.", "delete": "Eliminar", "deleteLabel": "Eliminar trabajo", "complete": "Desliza para marcar como completado", "rateWorker": "Valorar al trabajador", "rateClient": "Valorar al cliente", "setupWorker": "Configura tu perfil de trabajador para solicitar trabajos.", "setupWorkerAction": "Configurar perfil de trabajador", "alreadyApplied": "Ya has solicitado este trabajo.", "offerReceived": "¡Has recibido una oferta para este trabajo!", "decline": "Rechazar", "accept": "Aceptar", "offeredElsewhere": "Este trabajo se está ofreciendo a otra persona.", "assignedToYou": "Tienes asignado este trabajo."
+  },
+  "countdown": { "underway": "El trabajo está en curso", "startsIn": "El trabajo comienza en" },
+  "problem": { "title": "¿Qué problema hay con este trabajo?", "workerUnavailable": "El trabajador no puede asistir", "cancel": "Necesito cancelar", "addressNotFound": "Dirección no encontrada", "support": "Contactar con soporte", "dismiss": "Ahora no" },
+  "applicationForm": {
+    "placeholder": "Explica por qué eres la persona adecuada…", "apply": "Solicitar", "microphoneOff": "El acceso al micrófono está desactivado. Actívalo en los ajustes.", "uploadError": "No se pudo subir la nota de voz. Reinténtalo o elimínala.", "startError": "No se pudo iniciar la grabación.", "saveError": "No se pudo guardar la grabación.", "stopError": "No se pudo detener la grabación.", "playError": "No se pudo reproducir la nota de voz.", "submitError": "No se pudo enviar la solicitud.", "recording": "Grabando…", "uploadFailed": "Error al subir", "ready": "Nota de voz preparada", "addVoice": "Añadir nota de voz", "retryUpload": "Reintentar subida", "deleteVoice": "Eliminar nota de voz", "pauseVoice": "Pausar nota de voz", "playVoice": "Reproducir nota de voz", "stopRecording": "Detener grabación", "startRecording": "Iniciar grabación"
+  },
+  "applicant": { "awaiting": "Esperando respuesta", "rating_one": "{{average}}/5 · {{count}} reseña", "rating_other": "{{average}}/5 · {{count}} reseñas", "listen": "Escuchar", "playing": "Reproduciendo", "reply": "Responder", "offer": "Ofrecer este trabajo" },
+  "workerProfile": { "title": "Perfil de trabajador", "chooseCategories": "Elige hasta {{count}} categorías", "availability": "Disponibilidad", "standard": "Estándar", "allDay": "24 horas" },
+  "profile": {
+    "photoPermission": "El acceso a la galería está desactivado.", "photoUploadError": "No se pudo subir la foto.", "photoDisplayError": "No se pudo mostrar la foto seleccionada.", "missingName": "Faltan tu nombre y apellidos registrados.", "saveError": "No se pudo guardar el perfil.", "deactivateTitle": "Desactivar cuenta", "deactivateBody": "Esto eliminará tu cuenta permanentemente. Esta acción no se puede deshacer.", "deleteErrorTitle": "No se puede eliminar la cuenta", "deleteError": "No se pudo eliminar tu cuenta. Inténtalo de nuevo.", "backToSettings": "Volver a los ajustes", "saveProfile": "Guardar perfil", "changePhoto": "Cambiar foto de perfil", "phoneCountry": "Seleccionar código de país", "phonePlaceholder": "Añadir número de teléfono", "phoneLabel": "Número de teléfono", "useCountry": "Usar {{country}} {{dialCode}}", "registeredFirstName": "Nombre registrado", "registeredLastName": "Apellidos registrados", "registeredEmail": "Correo electrónico registrado", "edit": "Editar perfil", "rating": "Valoración", "reviewCount_one": "{{count}} reseña", "reviewCount_other": "{{count}} reseñas", "subscription": "Suscripción", "invite": "Invitar amigos", "feedback": "Comentarios", "help": "Ayuda"
+  },
+  "subscriptionTiers": { "free": "Gratis", "pro": "Pro", "unlimited": "Ilimitado" },
+  "reviews": { "title": "Valora tu experiencia", "placeholder": "Describe tu experiencia (opcional)", "submit": "Enviar valoración", "error": "No se pudo enviar tu valoración.", "starLabel_one": "{{count}} estrella", "starLabel_other": "{{count}} estrellas" },
+  "accessibility": { "showPassword": "Mostrar contraseña", "hidePassword": "Ocultar contraseña", "decrease": "Disminuir", "increase": "Aumentar", "openConversation": "Abrir conversación con {{name}}", "profileSettings": "Abrir ajustes del perfil" },
+  "countries": { "DE": "Alemania", "US": "Estados Unidos", "GB": "Reino Unido", "FR": "Francia", "ES": "España", "IN": "India", "IT": "Italia", "NL": "Países Bajos", "AT": "Austria", "CH": "Suiza" },
+  "apiErrors": {
+    "AUTH_REQUIRED": "Inicia sesión para continuar.", "SESSION_EXPIRED": "Tu sesión ha caducado. Inicia sesión de nuevo.", "EMAIL_EXISTS": "Ya existe una cuenta con este correo electrónico.", "INVALID_CREDENTIALS": "El correo electrónico o la contraseña son incorrectos.", "EMAIL_NOT_VERIFIED": "Verifica tu correo antes de iniciar sesión.", "VERIFICATION_INVALID": "El código es incorrecto. Inténtalo de nuevo.", "VERIFICATION_EXPIRED": "El código ha caducado. Solicita uno nuevo.", "JOB_NOT_FOUND": "Este trabajo ya no existe.", "JOB_NOT_ACTIVE": "Este trabajo ya no acepta solicitudes.", "JOB_EDIT_LOCKED": "Este trabajo ya no se puede editar.", "JOB_REPOST_LOCKED": "Este trabajo no se puede volver a publicar.", "APPLICATION_DUPLICATE": "Ya has solicitado este trabajo.", "APPLICATION_FORBIDDEN": "Configura tu perfil de trabajador antes de solicitarlo.", "MESSAGE_FORBIDDEN": "No formas parte de esta conversación.", "REVIEW_DUPLICATE": "Ya has valorado este trabajo.", "MEDIA_TOO_LARGE": "El archivo seleccionado es demasiado grande.", "MEDIA_UNSUPPORTED": "Este tipo de archivo no es compatible.", "ACCOUNT_DELETE_FORBIDDEN": "Solo se puede eliminar una cuenta activa."
   }
 }

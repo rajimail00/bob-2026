@@ -1,6 +1,7 @@
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 import type { AuthUser } from "@/features/auth/types/auth.types";
+import { resolveDeviceLocale, setAppLocale } from "@/lib/i18n";
 
 const ACCESS_TOKEN_KEY = "bob.accessToken";
 const REFRESH_TOKEN_KEY = "bob.refreshToken";
@@ -43,5 +44,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   signOut: async () => {
     await Promise.all([SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY), SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY)]);
     set({ accessToken: null, refreshToken: null, user: null });
+    await setAppLocale(resolveDeviceLocale());
   },
 }));

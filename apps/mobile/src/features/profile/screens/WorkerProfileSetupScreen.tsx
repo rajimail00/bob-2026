@@ -58,7 +58,7 @@ export function WorkerProfileSetupScreen({ navigation }: { navigation: { goBack:
   return (
     <Screen scroll>
       <YStack gap="$5" paddingTop="$4">
-        <Text variant="h3">Choose up to {MAX_CATEGORIES} categories</Text>
+        <Text variant="h3">{t("workerProfile.chooseCategories", { count: MAX_CATEGORIES })}</Text>
 
         <XStack flexWrap="wrap" gap="$2">
           {categoriesQuery.data.map((category) => (
@@ -73,11 +73,11 @@ export function WorkerProfileSetupScreen({ navigation }: { navigation: { goBack:
         </XStack>
 
         <YStack gap="$2">
-          <Text variant="label">Availability</Text>
+          <Text variant="label">{t("workerProfile.availability")}</Text>
           <PillTabs
             options={[
-              { value: "standard", label: "Standard" },
-              { value: "24h", label: "24h" },
+              { value: "standard", label: t("workerProfile.standard") },
+              { value: "24h", label: t("workerProfile.allDay") },
             ]}
             value={serviceHours}
             onChange={setServiceHours}

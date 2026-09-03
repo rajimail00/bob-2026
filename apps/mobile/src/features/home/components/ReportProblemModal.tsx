@@ -1,4 +1,5 @@
 import { Modal } from "react-native";
+import { useTranslation } from "react-i18next";
 import { YStack } from "tamagui";
 import { Text } from "@/components/ui/Text";
 
@@ -15,20 +16,28 @@ interface ReportProblemModalProps {
 /** Centered "what's wrong?" prompt — the entry point into cancelling, flagging a bad address,
  * or reaching support, all as one lightweight problem report. */
 export function ReportProblemModal({ visible, onClose, onSelectReason, isOwner }: ReportProblemModalProps) {
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <YStack flex={1} alignItems="center" justifyContent="center" backgroundColor="rgba(0,0,0,0.35)" padding="$5">
         <YStack backgroundColor="$background" borderRadius="$lg" padding="$5" gap="$3" width="100%" maxWidth={340}>
           <Text variant="h4" textAlign="center">
-            What's wrong with this job?
+            {t("problem.title")}
           </Text>
 
-          <ReasonOption label={isOwner ? "The worker can't make it" : "I need to cancel"} onPress={() => onSelectReason("cancel")} />
-          <ReasonOption label="Address not found" onPress={() => onSelectReason("address_not_found")} />
-          <ReasonOption label="Contact support" onPress={() => onSelectReason("other")} />
+          <ReasonOption label={isOwner ? t("problem.workerUnavailable") : t("problem.cancel")} onPress={() => onSelectReason("cancel")} />
+          <ReasonOption label={t("problem.addressNotFound")} onPress={() => onSelectReason("address_not_found")} />
+          <ReasonOption label={t("problem.support")} onPress={() => onSelectReason("other")} />
 
-          <Text variant="body" color="$colorMuted" textAlign="center" onPress={onClose}>
-            Never mind
+          <Text
+            variant="body"
+            color="$colorMuted"
+            textAlign="center"
+            onPress={onClose}
+            role="button"
+            aria-label={t("problem.dismiss")}
+          >
+            {t("problem.dismiss")}
           </Text>
         </YStack>
       </YStack>
@@ -45,8 +54,8 @@ function ReasonOption({ label, onPress }: { label: string; onPress: () => void }
       paddingVertical="$3"
       alignItems="center"
       onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
+      role="button"
+      aria-label={label}
     >
       <Text variant="body" color="$primary" fontWeight="600">
         {label}
