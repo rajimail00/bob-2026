@@ -5,6 +5,8 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  View,
+  type KeyboardEvent,
 } from "react-native";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,6 +29,8 @@ interface Props {
   navigation: { setOptions(options: { title: string }): void };
 }
 
+const ANDROID_KEYBOARD_CLEARANCE = 24;
+
 export function ChatScreen({ route, navigation }: Props) {
   const { t, i18n } = useTranslation();
   const { jobId, workerId } = route.params;
@@ -37,6 +41,8 @@ export function ChatScreen({ route, navigation }: Props) {
   const { data, isLoading, isError, refetch, sendMessage, isSending } = useJobMessages(jobId, workerId);
   const [text, setText] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [androidKeyboardInset, setAndroidKeyboardInset] = useState(0);
+  const chatRootRef = useRef<View>(null);
   const messageListRef = useRef<FlatList<Message>>(null);
   const keyboardScrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -48,25 +54,46 @@ export function ChatScreen({ route, navigation }: Props) {
 
   const newestMessageId = data?.[data.length - 1]?._id;
 
+  const updateAndroidKeyboardInset = useCallback((keyboardTop: number) => {
+    if (Platform.OS !== "android") return;
+
+    chatRootRef.current?.measureInWindow((_x, rootTop, _width, rootHeight) => {
+      const rootBottom = rootTop + rootHeight;
+      const overlap = Math.max(0, Math.ceil(rootBottom - keyboardTop));
+      setAndroidKeyboardInset(overlap > 0 ? overlap + ANDROID_KEYBOARD_CLEARANCE : 0);
+    });
+  }, []);
+
   useEffect(() => {
     if (newestMessageId) scrollToNewest(true);
   }, [newestMessageId, scrollToNewest]);
 
   useEffect(() => {
     const eventName = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const subscription = Keyboard.addListener(eventName, () => {
+    const onKeyboardShow = (event: KeyboardEvent) => {
+      updateAndroidKeyboardInset(event.endCoordinates.screenY);
       if (keyboardScrollTimeout.current) clearTimeout(keyboardScrollTimeout.current);
       keyboardScrollTimeout.current = setTimeout(
-        () => scrollToNewest(true),
-        Platform.OS === "ios" ? 100 : 50
+        () => {
+          updateAndroidKeyboardInset(event.endCoordinates.screenY);
+          scrollToNewest(true);
+        },
+        Platform.OS === "ios" ? 100 : Math.max(100, event.duration || 250)
       );
-    });
+    };
+
+    const showSubscription = Keyboard.addListener(eventName, onKeyboardShow);
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setAndroidKeyboardInset(0)
+    );
 
     return () => {
-      subscription.remove();
+      showSubscription.remove();
+      hideSubscription.remove();
       if (keyboardScrollTimeout.current) clearTimeout(keyboardScrollTimeout.current);
     };
-  }, [scrollToNewest]);
+  }, [scrollToNewest, updateAndroidKeyboardInset]);
 
   const applicant = applicantsQuery.data?.find((item) => item.workerId._id === workerId);
   const participant = isOwner ? applicant?.workerId : jobQuery.data?.clientId;
@@ -113,12 +140,24 @@ export function ChatScreen({ route, navigation }: Props) {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={0}
+      <View
+        ref={chatRootRef}
+        onLayout={() => {
+          const keyboardMetrics = Keyboard.metrics();
+          if (keyboardMetrics) updateAndroidKeyboardInset(keyboardMetrics.screenY);
+        }}
+        style={{
+          flex: 1,
+          paddingBottom: Platform.OS === "android" ? androidKeyboardInset : 0,
+        }}
       >
-        <YStack flex={1} backgroundColor="$background" gap="$4">
+        {/* The native-stack header is outside this view, so adding its height here would double-count it. */}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          keyboardVerticalOffset={0}
+        >
+          <YStack flex={1} backgroundColor="$background" gap="$4">
           <YStack paddingHorizontal="$4" paddingTop="$3" gap="$3">
             <XStack alignItems="center" gap="$3">
               <Avatar uri={participant?.photoUrl} name={participantName} size={44} />
@@ -197,8 +236,9 @@ export function ChatScreen({ route, navigation }: Props) {
               </Button>
             </XStack>
           </YStack>
-        </YStack>
-      </KeyboardAvoidingView>
+          </YStack>
+        </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
