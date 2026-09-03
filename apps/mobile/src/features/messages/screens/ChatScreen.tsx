@@ -1,13 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { FlatList } from "react-native";
-import { useLayoutEffect, useState } from "react";
+import {
+  FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { XStack, YStack } from "tamagui";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import { ErrorState } from "@/components/ui/states/ErrorState";
 import { LoadingState } from "@/components/ui/states/LoadingState";
@@ -32,6 +37,36 @@ export function ChatScreen({ route, navigation }: Props) {
   const { data, isLoading, isError, refetch, sendMessage, isSending } = useJobMessages(jobId, workerId);
   const [text, setText] = useState("");
   const [sendError, setSendError] = useState<string | null>(null);
+  const messageListRef = useRef<FlatList<Message>>(null);
+  const keyboardScrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scrollToNewest = useCallback((animated: boolean) => {
+    requestAnimationFrame(() => {
+      messageListRef.current?.scrollToEnd({ animated });
+    });
+  }, []);
+
+  const newestMessageId = data?.[data.length - 1]?._id;
+
+  useEffect(() => {
+    if (newestMessageId) scrollToNewest(true);
+  }, [newestMessageId, scrollToNewest]);
+
+  useEffect(() => {
+    const eventName = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const subscription = Keyboard.addListener(eventName, () => {
+      if (keyboardScrollTimeout.current) clearTimeout(keyboardScrollTimeout.current);
+      keyboardScrollTimeout.current = setTimeout(
+        () => scrollToNewest(true),
+        Platform.OS === "ios" ? 100 : 50
+      );
+    });
+
+    return () => {
+      subscription.remove();
+      if (keyboardScrollTimeout.current) clearTimeout(keyboardScrollTimeout.current);
+    };
+  }, [scrollToNewest]);
 
   const applicant = applicantsQuery.data?.find((item) => item.workerId._id === workerId);
   const participant = isOwner ? applicant?.workerId : jobQuery.data?.clientId;
@@ -77,73 +112,94 @@ export function ChatScreen({ route, navigation }: Props) {
   const formattedBudget = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR" }).format(job.budget);
 
   return (
-    <Screen padded={false}>
-      <YStack paddingHorizontal="$4" paddingTop="$3" gap="$3">
-        <XStack alignItems="center" gap="$3">
-          <Avatar uri={participant?.photoUrl} name={participantName} size={44} />
-          <YStack flex={1}>
-            <Text variant="h4">{participantName}</Text>
-            <Text variant="caption">{t("chat.conversation")}</Text>
-          </YStack>
-        </XStack>
-
-        <Card gap="$2" padding="$3">
-          <Text variant="label">{t("chat.jobContext")}</Text>
-          <Text variant="body" fontWeight="600" numberOfLines={1}>
-            {job.title}
-          </Text>
-          <XStack alignItems="center" gap="$3" flexWrap="wrap">
-            <XStack alignItems="center" gap="$1">
-              <Ionicons name="calendar-outline" size={14} color="#4F8266" />
-              <Text variant="caption">{formattedDate}</Text>
+    <SafeAreaView style={{ flex: 1 }} edges={["bottom"]}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+        <YStack flex={1} backgroundColor="$background" gap="$4">
+          <YStack paddingHorizontal="$4" paddingTop="$3" gap="$3">
+            <XStack alignItems="center" gap="$3">
+              <Avatar uri={participant?.photoUrl} name={participantName} size={44} />
+              <YStack flex={1}>
+                <Text variant="h4">{participantName}</Text>
+                <Text variant="caption">{t("chat.conversation")}</Text>
+              </YStack>
             </XStack>
-            <XStack alignItems="center" gap="$1">
-              <Ionicons name="pricetag-outline" size={14} color="#4F8266" />
-              <Text variant="caption">{formattedBudget}</Text>
+
+            <Card gap="$2" padding="$3">
+              <Text variant="label">{t("chat.jobContext")}</Text>
+              <Text variant="body" fontWeight="600" numberOfLines={1}>
+                {job.title}
+              </Text>
+              <XStack alignItems="center" gap="$3" flexWrap="wrap">
+                <XStack alignItems="center" gap="$1">
+                  <Ionicons name="calendar-outline" size={14} color="#4F8266" />
+                  <Text variant="caption">{formattedDate}</Text>
+                </XStack>
+                <XStack alignItems="center" gap="$1">
+                  <Ionicons name="pricetag-outline" size={14} color="#4F8266" />
+                  <Text variant="caption">{formattedBudget}</Text>
+                </XStack>
+              </XStack>
+            </Card>
+          </YStack>
+
+          <FlatList
+            ref={messageListRef}
+            style={{ flex: 1 }}
+            data={data ?? []}
+            keyExtractor={(message) => message._id}
+            contentContainerStyle={{ padding: 16, gap: 8, flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+            onLayout={() => scrollToNewest(false)}
+            onContentSizeChange={() => scrollToNewest(false)}
+            renderItem={({ item }) => (
+              <MessageBubble message={item} isMine={getSenderId(item) === user?.id} locale={locale} />
+            )}
+            ListEmptyComponent={
+              <YStack flex={1} alignItems="center" justifyContent="center" padding="$6" gap="$2">
+                <Ionicons name="chatbubble-ellipses-outline" size={28} color="#4F8266" />
+                <Text variant="body" muted textAlign="center">
+                  {t("chat.empty")}
+                </Text>
+              </YStack>
+            }
+          />
+
+          <YStack
+            flexShrink={0}
+            borderTopWidth={1}
+            borderColor="$borderColor"
+            backgroundColor="$backgroundStrong"
+            paddingBottom="$2"
+          >
+            {sendError ? (
+              <Text variant="small" color="$danger" paddingHorizontal="$3" paddingTop="$2">
+                {sendError}
+              </Text>
+            ) : null}
+            <XStack padding="$3" gap="$2" alignItems="center">
+              <YStack flex={1}>
+                <Input
+                  placeholder={t("chat.placeholder")}
+                  value={text}
+                  onChangeText={setText}
+                  onFocus={() => scrollToNewest(true)}
+                  returnKeyType="send"
+                  onSubmitEditing={onSend}
+                />
+              </YStack>
+              <Button onPress={onSend} loading={isSending} disabled={text.trim().length === 0} size="sm">
+                {t("chat.send")}
+              </Button>
             </XStack>
-          </XStack>
-        </Card>
-      </YStack>
-
-      <FlatList
-        data={data ?? []}
-        keyExtractor={(message) => message._id}
-        contentContainerStyle={{ padding: 16, gap: 8, flexGrow: 1 }}
-        renderItem={({ item }) => (
-          <MessageBubble message={item} isMine={getSenderId(item) === user?.id} locale={locale} />
-        )}
-        ListEmptyComponent={
-          <YStack flex={1} alignItems="center" justifyContent="center" padding="$6" gap="$2">
-            <Ionicons name="chatbubble-ellipses-outline" size={28} color="#4F8266" />
-            <Text variant="body" muted textAlign="center">
-              {t("chat.empty")}
-            </Text>
           </YStack>
-        }
-      />
-
-      <YStack borderTopWidth={1} borderColor="$borderColor" backgroundColor="$backgroundStrong" paddingBottom="$2">
-        {sendError ? (
-          <Text variant="small" color="$danger" paddingHorizontal="$3" paddingTop="$2">
-            {sendError}
-          </Text>
-        ) : null}
-        <XStack padding="$3" gap="$2" alignItems="center">
-          <YStack flex={1}>
-            <Input
-              placeholder={t("chat.placeholder")}
-              value={text}
-              onChangeText={setText}
-              returnKeyType="send"
-              onSubmitEditing={onSend}
-            />
-          </YStack>
-          <Button onPress={onSend} loading={isSending} disabled={text.trim().length === 0} size="sm">
-            {t("chat.send")}
-          </Button>
-        </XStack>
-      </YStack>
-    </Screen>
+        </YStack>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 

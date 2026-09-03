@@ -1,10 +1,11 @@
-import { ActivityIndicator, Alert, Image, Pressable } from "react-native";
+import { ActivityIndicator, Alert, Image, Pressable, type TextInput as RNTextInput } from "react-native";
 import { useTranslation } from "react-i18next";
 import { Input as TamaguiInput, Switch, XStack, YStack } from "tamagui";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Screen } from "@/components/ui/Screen";
+import { useKeyboardScroll } from "@/components/ui/KeyboardScrollContext";
 import { Text } from "@/components/ui/Text";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import {
@@ -16,7 +17,7 @@ import {
 import type { EditableNotificationPreference } from "@/features/auth/types/auth.types";
 import { setAppLocale, type SupportedLocale } from "@/lib/i18n";
 import { getApiErrorMessage } from "@/lib/apiClient";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { uploadMedia } from "@/features/media/api/media.api";
@@ -88,6 +89,9 @@ function ProfilePillInput({
   accessibilityLabel,
   onChangeText,
 }: ProfilePillInputProps) {
+  const inputRef = useRef<RNTextInput>(null);
+  const scrollFocusedInput = useKeyboardScroll();
+
   return (
     <XStack
       height={44}
@@ -105,6 +109,7 @@ function ProfilePillInput({
         </Text>
       ) : null}
       <TamaguiInput
+        ref={inputRef}
         flex={1}
         height={42}
         borderWidth={0}
@@ -114,6 +119,7 @@ function ProfilePillInput({
         fontSize={13}
         keyboardType={keyboardType}
         onChangeText={onChangeText}
+        onFocus={() => scrollFocusedInput(inputRef.current)}
         paddingHorizontal="$3"
         placeholder={placeholder}
         placeholderTextColor="#6B7280"
@@ -142,6 +148,9 @@ function PhoneNumberInput({
   onCountryChange,
   onChangeText,
 }: PhoneNumberInputProps) {
+  const inputRef = useRef<RNTextInput>(null);
+  const scrollFocusedInput = useKeyboardScroll();
+
   return (
     <YStack gap="$2">
       <XStack
@@ -171,6 +180,7 @@ function PhoneNumberInput({
         <YStack width={1} height={24} backgroundColor="#CBD2C4" />
 
         <TamaguiInput
+          ref={inputRef}
           flex={1}
           height={42}
           borderWidth={0}
@@ -180,6 +190,7 @@ function PhoneNumberInput({
           fontSize={13}
           keyboardType="phone-pad"
           onChangeText={onChangeText}
+          onFocus={() => scrollFocusedInput(inputRef.current)}
           paddingHorizontal="$3"
           placeholder="Add phone number"
           placeholderTextColor="#6B7280"

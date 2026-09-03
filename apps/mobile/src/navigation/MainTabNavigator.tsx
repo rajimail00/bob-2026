@@ -26,6 +26,7 @@ export function MainTabNavigator() {
     <Tab.Navigator
       screenOptions={({ route }: { route: RouteProp<MainTabParamList, keyof MainTabParamList> }) => ({
         headerShown: false,
+        tabBarHideOnKeyboard: true,
         tabBarActiveTintColor: theme.primary?.val,
         tabBarInactiveTintColor: theme.colorMuted?.val,
         tabBarIcon: ({ color, size }: { color: string; size: number }) => (

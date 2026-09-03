@@ -34,8 +34,8 @@ const notificationDataSchema = new Schema(
   },
   { _id: false }
 );
-
 const notificationSchema = new Schema(
+
   {
     recipientId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     type: { type: String, enum: NOTIFICATION_TYPES, required: true },

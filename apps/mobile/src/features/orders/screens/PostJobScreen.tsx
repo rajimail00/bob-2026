@@ -2,7 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -91,6 +100,9 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const requestLocation = currentLocation.requestLocation;
   const initializedEditJobId = useRef<string | null>(null);
   const submitInFlight = useRef(false);
+  const formScrollRef = useRef<ScrollView>(null);
+  const formFieldOffsets = useRef({ title: 0, description: 0, budget: 0 });
+  const focusScrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [step, setStep] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -129,6 +141,26 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
   const values = watch();
   const selectedCategory = categoriesQuery.data?.find((category) => category._id === values.categoryId);
+
+  const scrollFormFieldIntoView = (field: "title" | "description" | "budget") => {
+    if (focusScrollTimeout.current) clearTimeout(focusScrollTimeout.current);
+    focusScrollTimeout.current = setTimeout(
+      () => {
+        formScrollRef.current?.scrollTo({
+          y: Math.max(0, formFieldOffsets.current[field] - 16),
+          animated: true,
+        });
+      },
+      Platform.OS === "ios" ? 250 : 180
+    );
+  };
+
+  useEffect(
+    () => () => {
+      if (focusScrollTimeout.current) clearTimeout(focusScrollTimeout.current);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!isExistingJobMode || !jobId || !jobQuery.data || initializedEditJobId.current === jobId) {
@@ -291,12 +323,25 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
-      <YStack flex={1} backgroundColor="$background">
-        <YStack paddingHorizontal="$4" paddingTop="$4">
-          <StepDots total={STEP_COUNT} current={step} />
-        </YStack>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <YStack flex={1} backgroundColor="$background">
+          <YStack paddingHorizontal="$4" paddingTop="$4">
+            <StepDots total={STEP_COUNT} current={step} />
+          </YStack>
 
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            ref={formScrollRef}
+            style={{ flex: 1 }}
+            contentContainerStyle={{
+              padding: 16,
+              paddingBottom: step === 1 || step === 2 ? 180 : 32,
+            }}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
           <YStack gap="$5">
             {step === 0 ? (
               <YStack gap="$4">
@@ -333,35 +378,49 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                   <Text variant="label">Photos &amp; videos (optional)</Text>
                   <MediaPicker media={media} onChange={setMedia} />
                 </YStack>
-                <Controller
-                  control={control}
-                  name="title"
-                  render={({ field }) => (
-                    <Input
-                      label="Title"
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      onBlur={field.onBlur}
-                      error={errors.title?.message}
-                    />
-                  )}
-                />
-                <Controller
-                  control={control}
-                  name="description"
-                  render={({ field }) => (
-                    <Input
-                      label="Description"
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      onBlur={field.onBlur}
-                      multiline
-                      numberOfLines={4}
-                      style={{ height: 110, textAlignVertical: "top" }}
-                      error={errors.description?.message}
-                    />
-                  )}
-                />
+                <View
+                  onLayout={(event) => {
+                    formFieldOffsets.current.title = event.nativeEvent.layout.y;
+                  }}
+                >
+                  <Controller
+                    control={control}
+                    name="title"
+                    render={({ field }) => (
+                      <Input
+                        label="Title"
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onFocus={() => scrollFormFieldIntoView("title")}
+                        onBlur={field.onBlur}
+                        error={errors.title?.message}
+                      />
+                    )}
+                  />
+                </View>
+                <View
+                  onLayout={(event) => {
+                    formFieldOffsets.current.description = event.nativeEvent.layout.y;
+                  }}
+                >
+                  <Controller
+                    control={control}
+                    name="description"
+                    render={({ field }) => (
+                      <Input
+                        label="Description"
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onFocus={() => scrollFormFieldIntoView("description")}
+                        onBlur={field.onBlur}
+                        multiline
+                        numberOfLines={4}
+                        style={{ height: 110, textAlignVertical: "top" }}
+                        error={errors.description?.message}
+                      />
+                    )}
+                  />
+                </View>
               </YStack>
             ) : null}
 
@@ -486,19 +545,26 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                   />
                 </YStack>
 
-                <Controller
-                  control={control}
-                  name="budget"
-                  render={({ field }) => (
-                    <Input
-                      label="Budget (€)"
-                      keyboardType="number-pad"
-                      value={field.value ? String(field.value) : ""}
-                      onChangeText={(v) => field.onChange(Number(v.replace(/[^0-9]/g, "")) || 0)}
-                      error={errors.budget?.message}
-                    />
-                  )}
-                />
+                <View
+                  onLayout={(event) => {
+                    formFieldOffsets.current.budget = event.nativeEvent.layout.y;
+                  }}
+                >
+                  <Controller
+                    control={control}
+                    name="budget"
+                    render={({ field }) => (
+                      <Input
+                        label="Budget (€)"
+                        keyboardType="number-pad"
+                        value={field.value ? String(field.value) : ""}
+                        onChangeText={(v) => field.onChange(Number(v.replace(/[^0-9]/g, "")) || 0)}
+                        onFocus={() => scrollFormFieldIntoView("budget")}
+                        error={errors.budget?.message}
+                      />
+                    )}
+                  />
+                </View>
               </YStack>
             ) : null}
 
@@ -626,10 +692,10 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                 </Card>
               </YStack>
             ) : null}
-          </YStack>
-        </ScrollView>
+            </YStack>
+          </ScrollView>
 
-        <YStack padding="$4" gap="$3" borderTopWidth={1} borderColor="$borderColor" backgroundColor="$background">
+          <YStack padding="$4" gap="$3" borderTopWidth={1} borderColor="$borderColor" backgroundColor="$background">
           {submitError ? (
             <YStack gap="$2">
               <Text variant="small" color="$danger">
@@ -677,8 +743,9 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
               </Button>
             )}
           </XStack>
+          </YStack>
         </YStack>
-      </YStack>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
