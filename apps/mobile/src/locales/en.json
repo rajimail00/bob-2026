@@ -274,7 +274,17 @@
   "locationPicker": {
     "selected": "Selected location",
     "finding": "Finding address…",
-    "instruction": "Tap the map or drag the pin to set your address"
+    "instruction": "Tap the map or drag the pin to set your address",
+    "searchPlaceholder": "Enter street, house number, city or postal code",
+    "searchLabel": "Address search",
+    "search": "Search",
+    "clear": "Clear address search",
+    "emptySearch": "Enter an address to search.",
+    "notFound": "We couldn't find that address. Check it or adjust the marker manually.",
+    "searchFailed": "Unable to search for that address. Please try again.",
+    "serviceUnavailable": "Address search is unavailable. Check your connection and try again.",
+    "reverseFailed": "The pin moved, but the address couldn't be updated. Adjust it manually or try again.",
+    "permissionDenied": "Location access is required to search for an address on this device."
   },
   "filters": {
     "title": "Filters",

@@ -101,7 +101,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const initializedEditJobId = useRef<string | null>(null);
   const submitInFlight = useRef(false);
   const formScrollRef = useRef<ScrollView>(null);
-  const formFieldOffsets = useRef({ title: 0, description: 0, budget: 0 });
+  const formFieldOffsets = useRef({ title: 0, description: 0, address: 0, budget: 0 });
   const focusScrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [step, setStep] = useState(0);
@@ -142,7 +142,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const values = watch();
   const selectedCategory = categoriesQuery.data?.find((category) => category._id === values.categoryId);
 
-  const scrollFormFieldIntoView = (field: "title" | "description" | "budget") => {
+  const scrollFormFieldIntoView = (field: "title" | "description" | "address" | "budget") => {
     if (focusScrollTimeout.current) clearTimeout(focusScrollTimeout.current);
     focusScrollTimeout.current = setTimeout(
       () => {
@@ -495,43 +495,50 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                   />
                 </YStack>
 
-                <YStack gap="$2">
-                  <Text variant="label">{t("postJob.addressLabel")}</Text>
-                  {location.status === "granted" ? (
-                    <Controller
-                      control={control}
-                      name="address"
-                      render={({ field }) => (
-                        <LocationPickerMap
-                          coords={location.status === "granted" ? location.coords : { lat: 0, lng: 0 }}
-                          address={field.value}
-                          onLocationChange={({ coords, address }) => {
-                            setLocation({ status: "granted", coords });
-                            field.onChange(address);
-                          }}
-                        />
-                      )}
-                    />
-                  ) : (
-                    <YStack gap="$2">
+                <View
+                  onLayout={(event) => {
+                    formFieldOffsets.current.address = event.nativeEvent.layout.y;
+                  }}
+                >
+                  <YStack gap="$2">
+                    <Text variant="label">{t("postJob.addressLabel")}</Text>
+                    {location.status === "granted" ? (
+                      <Controller
+                        control={control}
+                        name="address"
+                        render={({ field }) => (
+                          <LocationPickerMap
+                            coords={location.status === "granted" ? location.coords : { lat: 0, lng: 0 }}
+                            address={field.value}
+                            onSearchFocus={() => scrollFormFieldIntoView("address")}
+                            onLocationChange={({ coords, address }) => {
+                              setLocation({ status: "granted", coords });
+                              field.onChange(address);
+                            }}
+                          />
+                        )}
+                      />
+                    ) : (
+                      <YStack gap="$2">
+                        <Text variant="small" color="$danger">
+                          {location.status === "denied"
+                            ? t("postJob.locationOff")
+                            : t("postJob.locationLoading")}
+                        </Text>
+                        {location.status === "denied" ? (
+                          <Button variant="outline" onPress={() => void requestLocation()}>
+                            {t("postJob.locationRetry")}
+                          </Button>
+                        ) : null}
+                      </YStack>
+                    )}
+                    {errors.address ? (
                       <Text variant="small" color="$danger">
-                        {location.status === "denied"
-                          ? t("postJob.locationOff")
-                          : t("postJob.locationLoading")}
+                        {t(errors.address.message ?? "")}
                       </Text>
-                      {location.status === "denied" ? (
-                        <Button variant="outline" onPress={() => void requestLocation()}>
-                          {t("postJob.locationRetry")}
-                        </Button>
-                      ) : null}
-                    </YStack>
-                  )}
-                  {errors.address ? (
-                    <Text variant="small" color="$danger">
-                      {t(errors.address.message ?? "")}
-                    </Text>
-                  ) : null}
-                </YStack>
+                    ) : null}
+                  </YStack>
+                </View>
 
                 <YStack gap="$2">
                   <Text variant="label">{t("postJob.peopleNeeded")}</Text>

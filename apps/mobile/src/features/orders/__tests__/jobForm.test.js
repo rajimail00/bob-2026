@@ -101,6 +101,16 @@ test("repost mode copies safe values but never reuses the historical date", () =
   expect(state.values.date.getTime()).toBeGreaterThan(now.getTime());
 });
 
+test("edit and repost modes both retain the saved address and coordinates", () => {
+  const editState = getEditJobFormState(job);
+  const repostState = getRepostJobFormState(job, new Date("2031-04-01T10:00:00.000Z"));
+
+  expect(editState.values.address).toBe(job.address);
+  expect(repostState.values.address).toBe(job.address);
+  expect(editState.location).toEqual({ lng: 13.405, lat: 52.52 });
+  expect(repostState.location).toEqual({ lng: 13.405, lat: 52.52 });
+});
+
 test("repost submission requires a selected new date and blocks while pending", () => {
   expect(canSubmitRepost(false, false)).toBe(false);
   expect(canSubmitRepost(true, true)).toBe(false);
