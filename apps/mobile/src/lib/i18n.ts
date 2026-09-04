@@ -1,3 +1,9 @@
+import "@formatjs/intl-pluralrules/polyfill-force";
+import "@formatjs/intl-pluralrules/locale-data/en";
+import "@formatjs/intl-pluralrules/locale-data/de";
+import "@formatjs/intl-pluralrules/locale-data/es";
+import "@formatjs/intl-pluralrules/locale-data/fr";
+
 import * as Localization from "expo-localization";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
@@ -14,11 +20,11 @@ export const LANGUAGE_OPTIONS: ReadonlyArray<{
   label: string;
   flag: string;
 }> = [
-  { code: "en", label: "English", flag: "\u{1F1FA}\u{1F1F8}" },
-  { code: "de", label: "Deutsch", flag: "\u{1F1E9}\u{1F1EA}" },
-  { code: "es", label: "Español", flag: "\u{1F1EA}\u{1F1F8}" },
-  { code: "fr", label: "Français", flag: "\u{1F1EB}\u{1F1F7}" },
-];
+    { code: "en", label: "English", flag: "\u{1F1FA}\u{1F1F8}" },
+    { code: "de", label: "Deutsch", flag: "\u{1F1E9}\u{1F1EA}" },
+    { code: "es", label: "Español", flag: "\u{1F1EA}\u{1F1F8}" },
+    { code: "fr", label: "Français", flag: "\u{1F1EB}\u{1F1F7}" },
+  ];
 
 const resources = { en: { translation: en }, de: { translation: de }, es: { translation: es }, fr: { translation: fr } };
 
