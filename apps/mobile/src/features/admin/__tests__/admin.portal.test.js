@@ -31,6 +31,28 @@ test("the admin navigator exposes the five required mobile tabs", () => {
   }
 });
 
+test("category management supports persistent image upload with an icon fallback", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../screens/AdminCategoriesScreen.tsx"), "utf8");
+  const picker = fs.readFileSync(path.join(__dirname, "../components/CategoryImagePicker.tsx"), "utf8");
+  const categoryType = fs.readFileSync(path.join(__dirname, "../types/admin.types.ts"), "utf8");
+
+  expect(screen).toContain("<CategoryImagePicker");
+  expect(screen).toContain("item.imageUrl");
+  expect(screen).toContain('width="47.5%"');
+  expect(picker).toContain('uploadMedia(asset.uri, "photo")');
+  expect(picker).toContain("requestMediaLibraryPermissionsAsync");
+  expect(categoryType).toContain("imageUrl?: string | null");
+});
+
+test("manage users supports individual long-press selection and selected-only bulk actions", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../screens/AdminUsersScreen.tsx"), "utf8");
+  expect(source).toContain("onLongPress={() => toggleSelection(item)}");
+  expect(source).toContain("selectedIds.has(item._id)");
+  expect(source).toContain("const userIds = Array.from(selectedIds)");
+  expect(source).toContain('bulkStatus("active")');
+  expect(source).toContain('bulkStatus("banned")');
+});
+
 test("admin translations have identical key sets in every supported locale", () => {
   const locales = ["en", "de", "es", "fr"].map((locale) => JSON.parse(fs.readFileSync(path.join(__dirname, `../../../locales/${locale}.json`), "utf8")).admin);
   const flatten = (object, prefix = "") => Object.entries(object).flatMap(([key, value]) => value && typeof value === "object" ? flatten(value, `${prefix}${key}.`) : `${prefix}${key}`).sort();

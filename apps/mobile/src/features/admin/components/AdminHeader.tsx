@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Pressable } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Circle, XStack, YStack } from "tamagui";
 import { Avatar } from "@/components/ui/Avatar";
 import { Text } from "@/components/ui/Text";
@@ -12,6 +14,7 @@ import { useTranslation } from "react-i18next";
 
 export function AdminHeader({ title, showBack = false }: { title: string; showBack?: boolean }) {
   const navigation = useNavigation<NativeStackNavigationProp<AdminStackParamList>>();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
   const notifications = useAdminNotifications();
@@ -19,7 +22,17 @@ export function AdminHeader({ title, showBack = false }: { title: string; showBa
   const name = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Admin";
 
   return (
-    <XStack backgroundColor="$primary" paddingHorizontal="$4" paddingVertical="$3" minHeight={76} alignItems="center" gap="$3">
+    <XStack
+      backgroundColor="$primary"
+      marginTop={-insets.top}
+      paddingTop={insets.top + 12}
+      paddingBottom="$3"
+      paddingHorizontal="$4"
+      minHeight={76 + insets.top}
+      alignItems="center"
+      gap="$3"
+    >
+      <StatusBar style="light" backgroundColor="#4F8266" />
       {showBack ? (
         <Pressable onPress={() => navigation.goBack()} role="button" aria-label={t("admin.accessibility.back")} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
           <Ionicons name="arrow-back" size={25} color="white" />

@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "react-native";
 import { YStack } from "tamagui";
 import { Text } from "@/components/ui/Text";
 import { getCategoryIcon } from "../constants/categoryIcons";
@@ -30,7 +31,11 @@ export function CategoryTile({ category, label, isSelected, onPress }: CategoryT
       accessibilityState={{ selected: isSelected }}
       pressStyle={{ opacity: 0.85 }}
     >
-      <Ionicons name={getCategoryIcon(category.slug)} size={22} color={isSelected ? "white" : "#4F8266"} />
+      {category.imageUrl ? (
+        <Image source={{ uri: category.imageUrl }} style={{ width: 38, height: 38, borderRadius: 19 }} />
+      ) : (
+        <Ionicons name={getCategoryIcon(category.slug)} size={22} color={isSelected ? "white" : "#4F8266"} />
+      )}
       <Text variant="small" fontWeight="600" color={isSelected ? "$primaryText" : "$color"} textAlign="center">
         {label}
       </Text>

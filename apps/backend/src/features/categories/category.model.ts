@@ -10,6 +10,7 @@ const categorySchema = new Schema(
     slug: { type: String, required: true, unique: true },
     name: { type: localizedTextSchema, required: true },
     icon: { type: String, required: true },
+    imageUrl: { type: String, trim: true },
     order: { type: Number, default: 0 },
   },
   { timestamps: true }

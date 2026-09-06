@@ -6,7 +6,7 @@ import {
   ScrollView,
   type TextInput,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 import { YStack } from "tamagui";
 import { KeyboardScrollContext } from "./KeyboardScrollContext";
 
@@ -15,10 +15,19 @@ interface ScreenProps {
   scroll?: boolean;
   padded?: boolean;
   background?: "default" | "brand";
+  safeAreaEdges?: Edge[];
+  scrollBottomPadding?: number;
 }
 
 /** Base screen shell: safe area + optional scroll + keyboard avoidance. Every screen composes this instead of raw SafeAreaView. */
-export function Screen({ children, scroll = false, padded = true, background = "default" }: ScreenProps) {
+export function Screen({
+  children,
+  scroll = false,
+  padded = true,
+  background = "default",
+  safeAreaEdges,
+  scrollBottomPadding = 96,
+}: ScreenProps) {
   const bg = background === "brand" ? "$primary" : "$background";
   const scrollRef = useRef<ScrollView>(null);
   const focusScrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -55,7 +64,7 @@ export function Screen({ children, scroll = false, padded = true, background = "
   );
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} edges={safeAreaEdges}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -67,7 +76,7 @@ export function Screen({ children, scroll = false, padded = true, background = "
               style={{ flex: 1 }}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
-              contentContainerStyle={{ flexGrow: 1, paddingBottom: 96 }}
+              contentContainerStyle={{ flexGrow: 1, paddingBottom: scrollBottomPadding }}
             >
               {content}
             </ScrollView>

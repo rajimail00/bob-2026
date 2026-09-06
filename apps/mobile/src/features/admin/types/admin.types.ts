@@ -27,7 +27,7 @@ export interface AdminUser extends AuthUser {
 }
 export interface UserStats { jobsPosted: number; jobsAssigned: number; jobsCompleted: number; applications: number; reviews: number; tickets: number; audits: AuditEntry[] }
 
-export interface Category { _id: string; slug: string; name: LocalizedText; icon: string; order: number; createdAt: string; updatedAt: string }
+export interface Category { _id: string; slug: string; name: LocalizedText; icon: string; imageUrl?: string | null; order: number; createdAt: string; updatedAt: string }
 export interface PersonRef { _id: string; firstName?: string; lastName?: string; email: string; photoUrl?: string }
 export interface AdminJob {
   _id: string; title: string; description: string; media: { url: string; type: "photo" | "video" }[];

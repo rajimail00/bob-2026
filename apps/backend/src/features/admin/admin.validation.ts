@@ -82,7 +82,7 @@ export const bulkTicketSchema = z
   .refine((value) => value.status || value.priority || value.assignedAdminId !== undefined, "Provide a ticket update");
 
 const localizedText = z.object({ en: z.string().trim().min(1), de: z.string().trim().min(1), es: z.string().trim().min(1), fr: z.string().trim().min(1) }).strict();
-export const categoryCreateSchema = z.object({ slug: z.string().trim().regex(/^[a-z0-9-]+$/).max(80), name: localizedText, icon: z.string().trim().min(1).max(80), order: z.number().int().min(0).default(0) }).strict();
+export const categoryCreateSchema = z.object({ slug: z.string().trim().regex(/^[a-z0-9-]+$/).max(80), name: localizedText, icon: z.string().trim().min(1).max(80), imageUrl: z.string().url().max(2048).nullable().optional(), order: z.number().int().min(0).default(0) }).strict();
 export const categoryUpdateSchema = categoryCreateSchema.partial().refine((value) => Object.keys(value).length > 0, "Provide a category update");
 export const reorderSchema = z.object({ items: z.array(z.object({ id: objectId, order: z.number().int().min(0) }).strict()).min(1).max(200) }).strict();
 

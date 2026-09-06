@@ -91,10 +91,16 @@ describe("mobile admin portal API", () => {
   });
 
   it("creates multilingual categories and prevents deletion while in use", async () => {
-    const input = { slug: "garden", icon: "leaf", order: 4, name: { en: "Garden", de: "Garten", es: "Jardín", fr: "Jardin" } };
+    const input = { slug: "garden", icon: "leaf", imageUrl: "https://res.cloudinary.com/example/image/upload/garden.jpg", order: 4, name: { en: "Garden", de: "Garten", es: "Jardín", fr: "Jardin" } };
     const created = await request(app).post("/api/v1/admin/categories").set("Authorization", `Bearer ${adminToken}`).send(input);
     expect(created.status).toBe(201);
+    expect(created.body.category.imageUrl).toBe(input.imageUrl);
     const categoryId = created.body.category._id;
+    const updatedImageUrl = "https://res.cloudinary.com/example/image/upload/garden-new.jpg";
+    const updated = await request(app).patch(`/api/v1/admin/categories/${categoryId}`).set("Authorization", `Bearer ${adminToken}`).send({ imageUrl: updatedImageUrl });
+    expect(updated.status).toBe(200);
+    expect(updated.body.category.imageUrl).toBe(updatedImageUrl);
+    expect((await request(app).patch(`/api/v1/admin/categories/${categoryId}`).set("Authorization", `Bearer ${adminToken}`).send({ imageUrl: "not-a-url" })).status).toBe(400);
     await JobModel.create({ clientId, categoryId, title: "Garden job", description: "Category is now referenced", location: { type: "Point", coordinates: [13.4, 52.5] }, address: "Berlin", date: new Date(Date.now() + 86_400_000), budget: 20, status: "active" });
     expect((await request(app).delete(`/api/v1/admin/categories/${categoryId}`).set("Authorization", `Bearer ${adminToken}`)).status).toBe(409);
   });

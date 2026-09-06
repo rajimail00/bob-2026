@@ -33,7 +33,7 @@ export function AdminDashboardScreen() {
   };
 
   return (
-    <Screen scroll padded={false}>
+    <Screen scroll padded={false} safeAreaEdges={["top", "left", "right"]} scrollBottomPadding={16}>
       <AdminHeader title={t("admin.navigation.dashboard")} />
       <YStack padding="$4" gap="$4">
         <XStack gap="$2">{periods.map((value) => <Button key={value} size="sm" flex={1} variant={period === value ? "primary" : "outline"} onPress={() => setPeriod(value)}>{t(`admin.period.${value}`)}</Button>)}</XStack>

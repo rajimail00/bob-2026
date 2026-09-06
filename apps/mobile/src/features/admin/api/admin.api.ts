@@ -24,8 +24,8 @@ export const adminApi = {
   async bulkUpdateTickets(ticketIds: string[], input: { status?: TicketStatus; priority?: TicketPriority }) { return (await apiClient.post("/admin/tickets/bulk-update", { ticketIds, ...input })).data; },
 
   async categories() { return (await apiClient.get<{ categories: Category[] }>("/admin/categories")).data.categories; },
-  async createCategory(input: { slug: string; name: LocalizedText; icon: string; order: number }) { return (await apiClient.post<{ category: Category }>("/admin/categories", input)).data.category; },
-  async updateCategory(id: string, input: Partial<{ slug: string; name: LocalizedText; icon: string; order: number }>) { return (await apiClient.patch<{ category: Category }>(`/admin/categories/${id}`, input)).data.category; },
+  async createCategory(input: { slug: string; name: LocalizedText; icon: string; imageUrl?: string | null; order: number }) { return (await apiClient.post<{ category: Category }>("/admin/categories", input)).data.category; },
+  async updateCategory(id: string, input: Partial<{ slug: string; name: LocalizedText; icon: string; imageUrl: string | null; order: number }>) { return (await apiClient.patch<{ category: Category }>(`/admin/categories/${id}`, input)).data.category; },
   async deleteCategory(id: string) { await apiClient.delete(`/admin/categories/${id}`); },
   async reorderCategories(items: { id: string; order: number }[]) { return (await apiClient.patch<{ categories: Category[] }>("/admin/categories/reorder", { items })).data.categories; },
 

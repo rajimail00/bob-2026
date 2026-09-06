@@ -10,6 +10,7 @@ export interface Category {
   slug: string;
   name: LocalizedText;
   icon: string;
+  imageUrl?: string | null;
   order: number;
 }
 
