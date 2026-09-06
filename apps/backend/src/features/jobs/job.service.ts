@@ -311,7 +311,7 @@ export const jobService = {
     return result.job;
   },
 
-  async cancel(jobId: string, requesterId: string) {
+  async cancel(jobId: string, requesterId: string, options: { asAdmin?: boolean } = {}) {
     const existingJob = await jobRepository.findRawById(jobId);
     if (!existingJob) throw AppError.notFound("This job no longer exists.");
 
@@ -321,7 +321,10 @@ export const jobService = {
     const isAssignedWorker = expectedStatus === "assigned" && assignedWorkerId === requesterId;
     const isRecordedWorker = assignedWorkerId === requesterId;
 
-    if (expectedStatus === "assigned") {
+    if (options.asAdmin) {
+      // Authorization was performed by the protected admin route. Lifecycle rules below
+      // are still enforced by transitionJobStatus.
+    } else if (expectedStatus === "assigned") {
       if (!isClient && !isAssignedWorker) {
         throw AppError.forbidden("This assigned job doesn't belong to you.");
       }
@@ -356,7 +359,11 @@ export const jobService = {
         }
 
         const recipientIds = new Set<string>();
-        if (isClient) {
+        if (options.asAdmin) {
+          recipientIds.add(existingJob.clientId.toString());
+          if (assignedWorkerId) recipientIds.add(assignedWorkerId);
+          for (const application of affectedApplications) recipientIds.add(application.workerId.toString());
+        } else if (isClient) {
           if (expectedStatus === "assigned" && assignedWorkerId) {
             recipientIds.add(assignedWorkerId);
           } else {

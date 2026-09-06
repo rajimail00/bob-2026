@@ -4,6 +4,7 @@ import { jobRepository } from "../jobs/job.repository.js";
 import { jobService } from "../jobs/job.service.js";
 import { problemRepository } from "./problem.repository.js";
 import type { ReportProblemInput } from "./problem.validation.js";
+import { notifyActiveAdmins } from "../admin/adminNotification.service.js";
 
 export const problemService = {
   async report(jobId: string, reporterId: string, input: ReportProblemInput) {
@@ -20,6 +21,9 @@ export const problemService = {
       reason: input.reason,
       note: input.note,
     });
+
+    await notifyActiveAdmins("new_support_ticket", "support_ticket", report.id);
+    await notifyActiveAdmins("reported_job", "job", jobId);
 
     if (input.reason === "cancel") {
       await jobService.cancel(jobId, reporterId);

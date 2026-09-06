@@ -326,6 +326,7 @@
     "startsIn": "Job starts in"
   },
   "problem": {
+    "reasons": { "cancel": "Cancellation request", "address_not_found": "Address not found", "no_show": "Worker did not arrive", "other": "Other support request" },
     "title": "What's wrong with this job?",
     "workerUnavailable": "The worker can't make it",
     "cancel": "I need to cancel",
@@ -417,6 +418,33 @@
     "profileSettings": "Open profile settings"
   },
   "countries": { "DE": "Germany", "US": "United States", "GB": "United Kingdom", "FR": "France", "ES": "Spain", "IN": "India", "IT": "Italy", "NL": "Netherlands", "AT": "Austria", "CH": "Switzerland" },
+  "admin": {
+    "navigation": { "dashboard": "Dashboard", "users": "Manage users", "jobs": "Job management", "tickets": "Support tickets", "settings": "Settings" },
+    "common": { "search": "Search…", "searchLabel": "Search", "loadError": "Couldn't load admin data", "actionError": "Action failed", "noData": "No data available", "actions": "Open actions", "previous": "Previous", "next": "Next", "page": "Page {{page}} of {{total}}" },
+    "sort": { "newest": "Newest", "oldest": "Oldest", "name_asc": "Name A–Z", "name_desc": "Name Z–A", "recent_activity": "Recent activity", "scheduled_asc": "Schedule earliest", "scheduled_desc": "Schedule latest", "priority": "Priority", "updated": "Recently updated" },
+    "filters": { "emergencyOnly": "Emergency only", "createdDay": "Created today", "createdWeek": "Created this week", "createdMonth": "Created this month", "scheduledFuture": "Scheduled ahead", "scheduledPast": "Scheduled in past" },
+    "actions": { "assignToMe": "Assign to me" },
+    "bulk": { "selectPage": "Select page", "clear": "Clear selection", "confirmTitle": "Apply bulk action?", "confirmBody": "This will update {{count}} selected records." },
+    "period": { "day": "Day", "week": "Week", "month": "Month", "year": "Year" },
+    "metrics": { "allUsers": "All Users", "activeUsers": "Daily Active Users", "averageTime": "Average Time", "jobPosts": "Daily Job Posts", "activeJobs": "Active Jobs", "supportTickets": "Support Tickets", "minutes": "min" },
+    "dashboard": { "activity": "App activity", "heatMap": "Heat Map", "geo": "Geo", "engagement": "Engagement", "time": "Time", "utcNote": "Activity periods and comparisons use UTC." },
+    "roles": { "admin": "Admin", "worker": "Worker", "client": "Client" },
+    "accountStatus": { "active": "Active", "banned": "Banned", "deleted": "Deleted" },
+    "moderation": { "pending": "Pending", "approved": "Approved", "rejected": "Rejected", "suspended": "Suspended" },
+    "ticketStatus": { "open": "Open", "in_progress": "In progress", "resolved": "Resolved", "closed": "Closed" },
+    "priority": { "low": "Low", "normal": "Normal", "high": "High", "urgent": "Urgent" },
+    "users": { "searchLabel": "Search users by name or email", "empty": "No users found", "viewUser": "View {{name}}", "details": "User details", "active": "Activate", "banned": "Ban", "activeTitle": "Activate user?", "bannedTitle": "Ban user?", "confirmStatus": "Change the account status for {{name}}?", "registered": "Registered", "locale": "Language", "subscription": "Subscription", "rating": "Rating", "categories": "Worker categories", "serviceHours": "Service hours", "activity": "Account activity", "changeRole": "Change role", "audit": "Audit trail" },
+    "userStats": { "jobsPosted": "Jobs posted", "jobsAssigned": "Jobs assigned", "jobsCompleted": "Jobs completed", "applications": "Applications", "reviews": "Reviews", "tickets": "Support tickets" },
+    "jobs": { "searchLabel": "Search jobs", "empty": "No jobs found", "viewJob": "View {{title}}", "created": "Created", "details": "Job details", "approve": "Approve", "reject": "Reject", "suspend": "Suspend", "restore": "Restore", "moderate": "Moderation actions", "cancelTitle": "Cancel this job?", "cancelJob": "Cancel job", "owner": "Client", "worker": "Assigned worker", "category": "Category", "address": "Address", "schedule": "Scheduled", "budget": "Budget", "people": "People needed", "related": "Related activity", "applications": "Applications", "messages": "Message count", "reports": "Reports", "history": "Status history" },
+    "tickets": { "searchLabel": "Search support tickets", "unresolved": "{{count}} unresolved", "empty": "No support tickets found", "unknownUser": "Unknown user", "viewTicket": "View support ticket", "noDescription": "No description", "details": "Ticket details", "changeStatus": "Change status", "changePriority": "Change priority", "reporter": "Reporter", "relatedJob": "Related job", "assignee": "Assigned admin", "unassigned": "Unassigned", "created": "Created", "conversation": "Conversation", "reply": "Reply", "sendReply": "Send reply", "internalNotes": "Internal admin notes", "note": "Private note", "addNote": "Add note" },
+    "settings": { "title": "Settings", "categories": "Categories", "faqs": "FAQs", "configuration": "Admin Configuration" },
+    "categories": { "add": "Add job category", "edit": "Edit category", "slug": "Unique slug", "icon": "Icon name", "name": "{{language}} name", "searchLabel": "Search categories", "existing": "Existing categories", "moveUp": "Move category up", "moveDown": "Move category down", "delete": "Delete", "deleteTitle": "Delete category?" },
+    "faqs": { "add": "Add FAQ", "edit": "Edit FAQ", "section": "Section", "question": "{{language}} question", "answer": "{{language}} answer", "published": "Published", "unpublished": "Unpublished", "existing": "Existing FAQs", "delete": "Delete", "deleteTitle": "Delete FAQ?" },
+    "config": { "safeSettings": "Safe application settings", "noSecrets": "Secrets and environment values are never exposed here.", "supportEmail": "Support email", "maintenanceMessage": "Maintenance message" },
+    "notifications": { "title": "Admin notifications", "markAll": "Mark all as read", "empty": "No admin notifications", "new_support_ticket": "New support ticket", "urgent_ticket": "Urgent support ticket", "reported_job": "A job was reported", "pending_job_moderation": "Job awaiting moderation", "unusual_action": "Unusual account or job activity" },
+    "account": { "title": "Administrator account" },
+    "accessibility": { "back": "Go back", "notifications": "Admin notifications, {{count}} unread", "account": "Open administrator account", "clearSearch": "Clear search" }
+  },
   "apiErrors": {
     "AUTH_REQUIRED": "Please log in to continue.",
     "SESSION_EXPIRED": "Your session expired. Please log in again.",

@@ -3,7 +3,11 @@ import Constants from "expo-constants";
 import i18n from "@/lib/i18n";
 import { useAuthStore } from "@/features/auth/store/authStore";
 
-const apiUrl = (Constants.expoConfig?.extra?.apiUrl as string | undefined) ?? "http://localhost:4000/api/v1";
+// EXPO_PUBLIC_API_URL lets Expo Go target a local/staging backend without editing
+// committed app configuration. The configured hosted API remains the default.
+const apiUrl = process.env.EXPO_PUBLIC_API_URL
+  ?? (Constants.expoConfig?.extra?.apiUrl as string | undefined)
+  ?? "http://localhost:4000/api/v1";
 
 export const apiClient = axios.create({ baseURL: apiUrl, timeout: 15000 });
 

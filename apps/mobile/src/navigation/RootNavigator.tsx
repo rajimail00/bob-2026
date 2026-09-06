@@ -7,6 +7,7 @@ import { LoadingState } from "@/components/ui/states/LoadingState";
 import { Screen } from "@/components/ui/Screen";
 import { AuthNavigator } from "./AuthNavigator";
 import { MainTabNavigator } from "./MainTabNavigator";
+import { AdminNavigator } from "./AdminNavigator";
 import type { RootStackParamList } from "./types";
 import { useNotificationEvents } from "@/features/notifications/hooks/useNotificationEvents";
 
@@ -20,6 +21,10 @@ function AuthenticatedApp() {
 function AuthenticatedProfileSetup() {
   useNotificationEvents();
   return <CreateProfileScreen />;
+}
+
+function AuthenticatedAdmin() {
+  return <AdminNavigator />;
 }
 
 /**
@@ -48,6 +53,8 @@ export function RootNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!hasSession ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
+        ) : user?.role === "admin" ? (
+          <Stack.Screen name="Admin" component={AuthenticatedAdmin} />
         ) : !hasCompletedProfile ? (
           <Stack.Screen name="CreateProfile" component={AuthenticatedProfileSetup} />
         ) : (

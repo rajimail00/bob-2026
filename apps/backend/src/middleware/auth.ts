@@ -2,6 +2,7 @@ import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../lib/errors.js";
 import { verifyAccessToken } from "../lib/jwt.js";
 import { UserModel, type UserRole } from "../features/auth/auth.model.js";
+import { recordUserActivity } from "../features/admin/activity.service.js";
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
@@ -34,12 +35,14 @@ export function requireAuth(
     return;
   }
 
-  void UserModel.exists({
+  void UserModel.findOne({
     _id: payload.sub,
     status: "active",
   })
-    .then((accountExists) => {
-      if (!accountExists) {
+    .select("role")
+    .lean()
+    .then((account) => {
+      if (!account) {
         next(
           AppError.unauthorized(
             "This account is no longer active. Please log in again.",
@@ -51,10 +54,14 @@ export function requireAuth(
 
       req.auth = {
         userId: payload.sub,
-        role: payload.role,
+        // Authorization uses the current database role. A demoted administrator
+        // therefore loses access immediately, even if an older JWT says "admin".
+        role: account.role,
       };
 
-      next();
+      // Activity is best-effort. Waiting for this bounded aggregate write avoids
+      // leaving database work running after a request/test has completed.
+      void recordUserActivity(payload.sub).then(() => next()).catch(() => next());
     })
     .catch(next);
 }

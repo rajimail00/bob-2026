@@ -106,5 +106,8 @@ const userSchema = new Schema(
   { timestamps: true }
 );
 
+userSchema.index({ status: 1, role: 1, createdAt: -1 });
+userSchema.index({ firstName: 1, lastName: 1 });
+
 export type UserDocument = HydratedDocument<InferSchemaType<typeof userSchema>>;
 export const UserModel = model("User", userSchema);

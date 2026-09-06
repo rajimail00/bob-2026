@@ -304,6 +304,7 @@ export function toPublicUser(user: UserDocument) {
     id: user.id,
     email: user.email,
     role: user.role,
+    status: user.status,
     locale: user.locale,
     firstName: user.firstName,
     lastName: user.lastName,

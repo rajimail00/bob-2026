@@ -39,10 +39,31 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
+export type AdminTabParamList = {
+  AdminDashboard: undefined;
+  AdminUsers: undefined;
+  AdminJobs: undefined;
+  AdminTickets: undefined;
+  AdminSettings: undefined;
+};
+
+export type AdminStackParamList = {
+  AdminTabs: NavigatorScreenParams<AdminTabParamList>;
+  AdminUserDetail: { userId: string };
+  AdminJobDetail: { jobId: string };
+  AdminTicketDetail: { ticketId: string };
+  AdminCategories: undefined;
+  AdminFaqs: undefined;
+  AdminConfiguration: undefined;
+  AdminNotifications: undefined;
+  AdminAccount: undefined;
+};
+
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   CreateProfile: undefined;
   Main: NavigatorScreenParams<MainTabParamList>;
+  Admin: NavigatorScreenParams<AdminStackParamList>;
 };
 
 declare global {

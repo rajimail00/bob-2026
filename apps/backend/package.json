@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "test": "vitest run",
-    "seed:categories": "tsx src/scripts/seedCategories.ts"
+    "seed:categories": "tsx src/scripts/seedCategories.ts",
+    "seed:admin": "tsx src/scripts/seedAdmin.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

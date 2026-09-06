@@ -15,6 +15,7 @@ export const jobRepository = {
   async list(query: ListJobsQuery) {
     const filter: Record<string, unknown> = {
       status: "active",
+      moderationStatus: { $nin: ["pending", "rejected", "suspended"] },
       // Evaluate this for every request so a job disappears even before the scheduler catches up.
       date: { $gt: new Date() },
     };
@@ -101,6 +102,13 @@ export const jobRepository = {
       { _id: id, status: currentStatus },
       {
         $set: set,
+        $push: {
+          statusHistory: {
+            from: currentStatus,
+            to: nextStatus,
+            createdAt: new Date(),
+          },
+        },
         ...(updates.clearAssignedWorkerId ? { $unset: { assignedWorkerId: 1 } } : {}),
         $inc: { applicationRevision: 1 },
       },

@@ -24,6 +24,29 @@ export const ALLOWED_TRANSITIONS = {
 
 export const RECURRENCE_OPTIONS = ["none", "daily", "weekly", "monthly"] as const;
 export const PAYMENT_PREFERENCES = ["cash", "paypal", "both"] as const;
+export const JOB_MODERATION_STATUSES = ["pending", "approved", "rejected", "suspended"] as const;
+export type JobModerationStatus = (typeof JOB_MODERATION_STATUSES)[number];
+
+const lifecycleHistorySchema = new Schema(
+  {
+    from: { type: String, enum: JOB_STATUSES, required: true },
+    to: { type: String, enum: JOB_STATUSES, required: true },
+    actorId: { type: Schema.Types.ObjectId, ref: "User" },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const moderationHistorySchema = new Schema(
+  {
+    from: { type: String, enum: JOB_MODERATION_STATUSES, required: true },
+    to: { type: String, enum: JOB_MODERATION_STATUSES, required: true },
+    adminId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    reason: { type: String, trim: true, maxlength: 1000 },
+    createdAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
 
 const mediaSchema = new Schema(
   { url: { type: String, required: true }, type: { type: String, enum: ["photo", "video"], required: true } },
@@ -52,6 +75,15 @@ const jobSchema = new Schema(
     paymentPreference: { type: String, enum: PAYMENT_PREFERENCES, default: "cash" },
 
     status: { type: String, enum: JOB_STATUSES, default: "draft", index: true },
+    // Moderation is deliberately separate from the operational lifecycle.
+    moderationStatus: {
+      type: String,
+      enum: JOB_MODERATION_STATUSES,
+      default: "approved",
+      index: true,
+    },
+    statusHistory: { type: [lifecycleHistorySchema], default: [] },
+    moderationHistory: { type: [moderationHistorySchema], default: [] },
     assignedWorkerId: { type: Schema.Types.ObjectId, ref: "User" },
     repostedFromJobId: { type: Schema.Types.ObjectId, ref: "Job", index: true },
     // Both application creation and lifecycle transitions write this field, forcing MongoDB
@@ -62,6 +94,7 @@ const jobSchema = new Schema(
 );
 
 jobSchema.index({ location: "2dsphere" });
+jobSchema.index({ moderationStatus: 1, status: 1, createdAt: -1 });
 
 export type JobDocument = HydratedDocument<InferSchemaType<typeof jobSchema>>;
 export const JobModel = model("Job", jobSchema);
