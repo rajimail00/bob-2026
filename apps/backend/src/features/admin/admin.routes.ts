@@ -9,6 +9,7 @@ adminRouter.use(requireAuth, requireRole("admin"));
 adminRouter.get("/dashboard", asyncHandler(c.dashboard));
 adminRouter.get("/users", asyncHandler(c.users));
 adminRouter.post("/users/bulk-status", asyncHandler(c.bulkUserStatus));
+adminRouter.get("/users/:id/jobs", asyncHandler(c.userJobs));
 adminRouter.get("/users/:id", asyncHandler(c.user));
 adminRouter.patch("/users/:id/status", asyncHandler(c.userStatus));
 adminRouter.patch("/users/:id/role", asyncHandler(c.userRole));

@@ -13,7 +13,7 @@ import { AdminConfigModel } from "./adminConfig.model.js";
 import { AdminNotificationModel } from "./adminNotification.model.js";
 import { notifyActiveAdmins } from "./adminNotification.service.js";
 import { adminRepository } from "./admin.repository.js";
-import type { AdminDashboardQuery, AdminJobsQuery, AdminUsersQuery, TicketsQuery } from "./admin.validation.js";
+import type { AdminDashboardQuery, AdminJobsQuery, AdminUserJobsQuery, AdminUsersQuery, TicketsQuery } from "./admin.validation.js";
 
 type Period = AdminDashboardQuery["period"];
 type TicketPatch = { status?: "open" | "in_progress" | "resolved" | "closed"; priority?: "low" | "normal" | "high" | "urgent"; assignedAdminId?: string | null; resolutionNote?: string };
@@ -114,6 +114,20 @@ export const adminService = {
     const user = await adminRepository.findUser(id);
     if (!user) throw AppError.notFound("User not found.");
     return { user, stats: await adminRepository.getUserStats(id) };
+  },
+  async getUserJobs(id: string, query: AdminUserJobsQuery) {
+    const user = await adminRepository.findUser(id);
+    if (!user || user.role === "admin" || user.status === "deleted") {
+      throw AppError.notFound("User not found.");
+    }
+    const result = await adminRepository.listUserJobs(id, query);
+    return {
+      ...result,
+      items: result.items.map((job) => ({
+        ...job,
+        moderationStatus: job.moderationStatus ?? "approved",
+      })),
+    };
   },
   async updateUserStatus(adminId: string, id: string, status: "active" | "banned") {
     if (adminId === id) throw AppError.conflict("You cannot change your own account status.");

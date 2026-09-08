@@ -11,7 +11,7 @@ import { AdminAuditModel } from "./adminAudit.model.js";
 import { FaqModel } from "./faq.model.js";
 import { AdminConfigModel } from "./adminConfig.model.js";
 import { AdminNotificationModel } from "./adminNotification.model.js";
-import type { AdminJobsQuery, AdminUsersQuery, TicketsQuery } from "./admin.validation.js";
+import type { AdminJobsQuery, AdminUserJobsQuery, AdminUsersQuery, TicketsQuery } from "./admin.validation.js";
 
 const SAFE_USER_FIELDS = "email role locale firstName lastName photoUrl phone bio rating workerProfile subscriptionTier status isEmailVerified createdAt updatedAt";
 
@@ -180,6 +180,44 @@ export const adminRepository = {
       AdminAuditModel.find({ targetType: "user", targetId: id }).sort({ createdAt: -1 }).limit(20).lean(),
     ]);
     return { jobsPosted, jobsAssigned, jobsCompleted, applications, reviews, tickets, audits };
+  },
+
+  async listUserJobs(id: string, query: AdminUserJobsQuery) {
+    const relation = query.kind === "offered" ? { clientId: id } : { assignedWorkerId: id };
+    const filter: Record<string, unknown> = { ...relation };
+    if (query.status) filter.status = query.status;
+    if (query.search) {
+      const term = escaped(query.search);
+      filter.$or = [
+        { title: { $regex: term, $options: "i" } },
+        { description: { $regex: term, $options: "i" } },
+        { address: { $regex: term, $options: "i" } },
+      ];
+    }
+    const sort: Record<string, SortOrder> = query.sort === "oldest" ? { createdAt: 1 }
+      : query.sort === "scheduled_asc" ? { date: 1 as const }
+      : query.sort === "scheduled_desc" ? { date: -1 as const }
+      : { createdAt: -1 as const };
+    const skip = (query.page - 1) * query.pageSize;
+    const related = { $or: [{ clientId: id }, { assignedWorkerId: id }] };
+    const [items, total, offered, taken, active, completed] = await Promise.all([
+      JobModel.find(filter).sort(sort).skip(skip).limit(query.pageSize)
+        .populate("clientId", "firstName lastName email photoUrl")
+        .populate("assignedWorkerId", "firstName lastName email photoUrl")
+        .populate("categoryId").lean(),
+      JobModel.countDocuments(filter),
+      JobModel.countDocuments({ clientId: id }),
+      JobModel.countDocuments({ assignedWorkerId: id }),
+      JobModel.countDocuments({ ...related, status: { $in: ["active", "offer_pending", "assigned"] } }),
+      JobModel.countDocuments({ ...related, status: "completed" }),
+    ]);
+    return {
+      items,
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+      summary: { offered, taken, active, completed },
+    };
   },
 
   async getJobRelated(id: string) {

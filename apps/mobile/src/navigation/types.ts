@@ -50,6 +50,7 @@ export type AdminTabParamList = {
 export type AdminStackParamList = {
   AdminTabs: NavigatorScreenParams<AdminTabParamList>;
   AdminUserDetail: { userId: string };
+  AdminUserJobs: { userId: string };
   AdminJobDetail: { jobId: string };
   AdminTicketDetail: { ticketId: string };
   AdminCategories: undefined;

@@ -23,6 +23,16 @@ export const adminUsersQuerySchema = z
     sort: z.enum(["name_asc", "name_desc", "newest", "oldest", "recent_activity"]).default("newest"),
   })
   .strict();
+export const adminUserJobsQuerySchema = z
+  .object({
+    page,
+    pageSize,
+    search,
+    kind: z.enum(["offered", "taken"]).default("offered"),
+    status: z.enum(JOB_STATUSES).optional(),
+    sort: z.enum(["newest", "oldest", "scheduled_asc", "scheduled_desc"]).default("newest"),
+  })
+  .strict();
 export const userStatusSchema = z.object({ status: z.enum(["active", "banned"]) }).strict();
 export const userRoleSchema = z.object({ role: z.enum(USER_ROLES) }).strict();
 export const bulkUserStatusSchema = z
@@ -94,5 +104,6 @@ export const notificationsQuerySchema = z.object({ page, pageSize }).strict();
 
 export type AdminDashboardQuery = z.infer<typeof adminDashboardQuerySchema>;
 export type AdminUsersQuery = z.infer<typeof adminUsersQuerySchema>;
+export type AdminUserJobsQuery = z.infer<typeof adminUserJobsQuerySchema>;
 export type AdminJobsQuery = z.infer<typeof adminJobsQuerySchema>;
 export type TicketsQuery = z.infer<typeof ticketsQuerySchema>;

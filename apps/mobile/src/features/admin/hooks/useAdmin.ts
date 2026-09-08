@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../api/admin.api";
-import type { AdminPeriod, JobQuery, ModerationStatus, TicketPriority, TicketQuery, TicketStatus, UserQuery } from "../types/admin.types";
+import type { AdminPeriod, AdminUserJobsQuery, JobQuery, ModerationStatus, TicketPriority, TicketQuery, TicketStatus, UserQuery } from "../types/admin.types";
 import { Alert } from "react-native";
 import i18n from "@/lib/i18n";
 import { getApiErrorMessage } from "@/lib/apiClient";
@@ -10,6 +10,7 @@ export const adminKeys = {
   dashboard: (period: AdminPeriod) => ["admin", "dashboard", period] as const,
   users: (query: UserQuery) => ["admin", "users", query] as const,
   user: (id: string) => ["admin", "user", id] as const,
+  userJobs: (id: string, query: AdminUserJobsQuery) => ["admin", "user", id, "jobs", query] as const,
   jobs: (query: JobQuery) => ["admin", "jobs", query] as const,
   job: (id: string) => ["admin", "job", id] as const,
   tickets: (query: TicketQuery) => ["admin", "tickets", query] as const,
@@ -23,6 +24,7 @@ export const adminKeys = {
 export const useAdminDashboard = (period: AdminPeriod) => useQuery({ queryKey: adminKeys.dashboard(period), queryFn: () => adminApi.dashboard(period) });
 export const useAdminUsers = (query: UserQuery) => useQuery({ queryKey: adminKeys.users(query), queryFn: () => adminApi.users(query) });
 export const useAdminUser = (id: string) => useQuery({ queryKey: adminKeys.user(id), queryFn: () => adminApi.user(id) });
+export const useAdminUserJobs = (id: string, query: AdminUserJobsQuery) => useQuery({ queryKey: adminKeys.userJobs(id, query), queryFn: () => adminApi.userJobs(id, query) });
 export const useAdminJobs = (query: JobQuery) => useQuery({ queryKey: adminKeys.jobs(query), queryFn: () => adminApi.jobs(query) });
 export const useAdminJob = (id: string) => useQuery({ queryKey: adminKeys.job(id), queryFn: () => adminApi.job(id) });
 export const useAdminTickets = (query: TicketQuery) => useQuery({ queryKey: adminKeys.tickets(query), queryFn: () => adminApi.tickets(query) });

@@ -63,6 +63,24 @@ test("manage users excludes administrators and deleted accounts", () => {
   expect(source).toContain('user.role !== "admin" && user.status !== "deleted"');
 });
 
+test("user details opens separate offered and taken job history without a role action", async () => {
+  const detail = fs.readFileSync(path.join(__dirname, "../screens/AdminUserDetailScreen.tsx"), "utf8");
+  const jobs = fs.readFileSync(path.join(__dirname, "../screens/AdminUserJobsScreen.tsx"), "utf8");
+  const navigator = fs.readFileSync(path.join(__dirname, "../../../navigation/AdminNavigator.tsx"), "utf8");
+  expect(detail).toContain('navigation.navigate("AdminUserJobs"');
+  expect(detail).not.toContain("useSetAdminUserRole");
+  expect(detail).not.toContain("changeRole");
+  expect(jobs).toContain('useState<AdminUserJobKind>("offered")');
+  expect(jobs).toContain('setKind("taken")');
+  expect(jobs).toContain('navigation.navigate("AdminJobDetail"');
+  expect(navigator).toContain('name="AdminUserJobs"');
+
+  apiClient.get.mockReset();
+  apiClient.get.mockResolvedValue({ data: { items: [], total: 0, page: 1, pageSize: 20, summary: { offered: 0, taken: 0, active: 0, completed: 0 } } });
+  await adminApi.userJobs("user-1", { kind: "taken", page: 1, pageSize: 20 });
+  expect(apiClient.get).toHaveBeenCalledWith("/admin/users/user-1/jobs", { params: { kind: "taken", page: 1, pageSize: 20 } });
+});
+
 test("manage users keeps large selections by batching bulk API requests", async () => {
   apiClient.post.mockReset();
   apiClient.post.mockResolvedValue({ data: { users: [] } });

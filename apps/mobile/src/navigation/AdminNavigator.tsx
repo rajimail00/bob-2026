@@ -12,6 +12,7 @@ import { AdminJobsScreen } from "@/features/admin/screens/AdminJobsScreen";
 import { AdminTicketsScreen } from "@/features/admin/screens/AdminTicketsScreen";
 import { AdminSettingsScreen } from "@/features/admin/screens/AdminSettingsScreen";
 import { AdminUserDetailScreen } from "@/features/admin/screens/AdminUserDetailScreen";
+import { AdminUserJobsScreen } from "@/features/admin/screens/AdminUserJobsScreen";
 import { AdminJobDetailScreen } from "@/features/admin/screens/AdminJobDetailScreen";
 import { AdminTicketDetailScreen } from "@/features/admin/screens/AdminTicketDetailScreen";
 import { AdminCategoriesScreen } from "@/features/admin/screens/AdminCategoriesScreen";
@@ -84,5 +85,5 @@ function AdminTabs() {
 }
 
 export function AdminNavigator() {
-  return <Stack.Navigator screenOptions={{ headerShown: false }}><Stack.Screen name="AdminTabs" component={AdminTabs} /><Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} /><Stack.Screen name="AdminJobDetail" component={AdminJobDetailScreen} /><Stack.Screen name="AdminTicketDetail" component={AdminTicketDetailScreen} /><Stack.Screen name="AdminCategories" component={AdminCategoriesScreen} /><Stack.Screen name="AdminFaqs" component={AdminFaqsScreen} /><Stack.Screen name="AdminConfiguration" component={AdminConfigurationScreen} /><Stack.Screen name="AdminNotifications" component={AdminNotificationsScreen} /><Stack.Screen name="AdminAccount" component={AdminAccountScreen} /></Stack.Navigator>;
+  return <Stack.Navigator screenOptions={{ headerShown: false }}><Stack.Screen name="AdminTabs" component={AdminTabs} /><Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} /><Stack.Screen name="AdminUserJobs" component={AdminUserJobsScreen} /><Stack.Screen name="AdminJobDetail" component={AdminJobDetailScreen} /><Stack.Screen name="AdminTicketDetail" component={AdminTicketDetailScreen} /><Stack.Screen name="AdminCategories" component={AdminCategoriesScreen} /><Stack.Screen name="AdminFaqs" component={AdminFaqsScreen} /><Stack.Screen name="AdminConfiguration" component={AdminConfigurationScreen} /><Stack.Screen name="AdminNotifications" component={AdminNotificationsScreen} /><Stack.Screen name="AdminAccount" component={AdminAccountScreen} /></Stack.Navigator>;
 }

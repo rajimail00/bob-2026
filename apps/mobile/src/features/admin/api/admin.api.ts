@@ -1,5 +1,5 @@
 import { apiClient } from "@/lib/apiClient";
-import type { AdminApplication, AdminJob, AdminNotification, AdminPeriod, AdminUser, AuditEntry, Category, DashboardData, Faq, JobQuery, LocalizedText, ModerationStatus, Page, Ticket, TicketPriority, TicketQuery, TicketStatus, UserQuery, UserStats } from "../types/admin.types";
+import type { AdminApplication, AdminJob, AdminNotification, AdminPeriod, AdminUser, AdminUserJobsPage, AdminUserJobsQuery, AuditEntry, Category, DashboardData, Faq, JobQuery, LocalizedText, ModerationStatus, Page, Ticket, TicketPriority, TicketQuery, TicketStatus, UserQuery, UserStats } from "../types/admin.types";
 import type { UserRole } from "@/features/auth/types/auth.types";
 
 const BULK_USER_BATCH_SIZE = 100;
@@ -8,6 +8,7 @@ export const adminApi = {
   async dashboard(period: AdminPeriod) { return (await apiClient.get<DashboardData>("/admin/dashboard", { params: { period } })).data; },
   async users(query: UserQuery) { return (await apiClient.get<Page<AdminUser>>("/admin/users", { params: query })).data; },
   async user(id: string) { return (await apiClient.get<{ user: AdminUser; stats: UserStats }>(`/admin/users/${id}`)).data; },
+  async userJobs(id: string, query: AdminUserJobsQuery) { return (await apiClient.get<AdminUserJobsPage>(`/admin/users/${id}/jobs`, { params: query })).data; },
   async setUserStatus(id: string, status: "active" | "banned") { return (await apiClient.patch<{ user: AdminUser }>(`/admin/users/${id}/status`, { status })).data.user; },
   async setUserRole(id: string, role: UserRole) { return (await apiClient.patch<{ user: AdminUser }>(`/admin/users/${id}/role`, { role })).data.user; },
   async bulkUserStatus(userIds: string[], status: "active" | "banned") {

@@ -84,6 +84,28 @@ describe("mobile admin portal API", () => {
     expect((await request(app).get("/api/v1/admin/users?status=deleted").set("Authorization", `Bearer ${adminToken}`)).status).toBe(400);
   });
 
+  it("returns separate offered and taken job history for a user", async () => {
+    const owner = await makeUser("job-owner@example.com", "client");
+    const category = await CategoryModel.create({ slug: "user-history", icon: "briefcase", order: 0, name: { en: "History", de: "Verlauf", es: "Historial", fr: "Historique" } });
+    const offered = await JobModel.create({ clientId, categoryId: category.id, title: "Offered by user", description: "A job offered by the selected user", location: { type: "Point", coordinates: [13.4, 52.5] }, address: "Berlin", date: new Date(Date.now() + 86_400_000), budget: 80, status: "active" });
+    const taken = await JobModel.create({ clientId: owner.user.id, assignedWorkerId: clientId, categoryId: category.id, title: "Taken by user", description: "A job taken by the selected user", location: { type: "Point", coordinates: [11.5, 48.1] }, address: "Munich", date: new Date(Date.now() + 172_800_000), budget: 120, status: "assigned" });
+
+    const offeredResponse = await request(app)
+      .get(`/api/v1/admin/users/${clientId}/jobs?kind=offered`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(offeredResponse.status).toBe(200);
+    expect(offeredResponse.body.items.map((job: { _id: string }) => job._id)).toEqual([offered.id]);
+    expect(offeredResponse.body.summary).toEqual({ offered: 1, taken: 1, active: 2, completed: 0 });
+
+    const takenResponse = await request(app)
+      .get(`/api/v1/admin/users/${clientId}/jobs?kind=taken&status=assigned`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(takenResponse.status).toBe(200);
+    expect(takenResponse.body.total).toBe(1);
+    expect(takenResponse.body.items[0]._id).toBe(taken.id);
+    expect((await request(app).get(`/api/v1/admin/users/${adminId}/jobs`).set("Authorization", `Bearer ${adminToken}`)).status).toBe(404);
+  });
+
   it("keeps operational status separate from moderation", async () => {
     const category = await CategoryModel.create({ slug: "moving", icon: "car", order: 0, name: { en: "Moving", de: "Umzug", es: "Mudanza", fr: "Déménagement" } });
     const job = await JobModel.create({ clientId, categoryId: category.id, title: "Moderate me", description: "Moderation must not replace lifecycle", location: { type: "Point", coordinates: [13.4, 52.5] }, address: "Berlin", date: new Date(Date.now() + 86_400_000), budget: 50, status: "active" });

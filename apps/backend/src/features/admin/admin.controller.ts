@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { AppError } from "../../lib/errors.js";
 import { adminService } from "./admin.service.js";
 import {
-  adminDashboardQuerySchema, adminIdParamsSchema, adminJobsQuerySchema, adminUsersQuerySchema,
+  adminDashboardQuerySchema, adminIdParamsSchema, adminJobsQuerySchema, adminUserJobsQuerySchema, adminUsersQuerySchema,
   bulkModerationSchema, bulkTicketSchema, bulkUserStatusSchema, categoryCreateSchema,
   categoryUpdateSchema, configSchema, faqCreateSchema, faqListQuerySchema, faqUpdateSchema,
   moderationSchema, notificationsQuerySchema, reorderSchema, ticketNoteSchema, ticketReplySchema,
@@ -18,6 +18,7 @@ export const adminController = {
   async dashboard(req: Request, res: Response) { res.json(await adminService.dashboard(adminDashboardQuerySchema.parse(req.query).period)); },
   async users(req: Request, res: Response) { res.json(await adminService.listUsers(adminUsersQuerySchema.parse(req.query))); },
   async user(req: Request, res: Response) { res.json(await adminService.getUser(adminIdParamsSchema.parse(req.params).id)); },
+  async userJobs(req: Request, res: Response) { res.json(await adminService.getUserJobs(adminIdParamsSchema.parse(req.params).id, adminUserJobsQuerySchema.parse(req.query))); },
   async userStatus(req: Request, res: Response) { const id = adminIdParamsSchema.parse(req.params).id; const { status } = userStatusSchema.parse(req.body); res.json({ user: await adminService.updateUserStatus(auth(req).userId, id, status) }); },
   async userRole(req: Request, res: Response) { const id = adminIdParamsSchema.parse(req.params).id; const { role } = userRoleSchema.parse(req.body); res.json({ user: await adminService.updateUserRole(auth(req).userId, id, role) }); },
   async bulkUserStatus(req: Request, res: Response) { const input = bulkUserStatusSchema.parse(req.body); res.json({ users: await adminService.bulkUserStatus(auth(req).userId, input.userIds, input.status) }); },
