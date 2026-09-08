@@ -18,9 +18,8 @@ export const adminUsersQuerySchema = z
     page,
     pageSize,
     search,
-    role: z.enum(USER_ROLES).optional(),
     type: z.enum(["admin", "worker", "client"]).optional(),
-    status: z.enum(["active", "banned", "deleted"]).optional(),
+    status: z.enum(["active", "banned"]).optional(),
     sort: z.enum(["name_asc", "name_desc", "newest", "oldest", "recent_activity"]).default("newest"),
   })
   .strict();

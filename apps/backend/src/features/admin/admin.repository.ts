@@ -21,10 +21,10 @@ function escaped(value: string) {
 
 export const adminRepository = {
   async listUsers(query: AdminUsersQuery) {
-    const filter: Record<string, unknown> = {};
+    const filter: Record<string, unknown> = { status: { $ne: "deleted" } };
     if (query.status) filter.status = query.status;
-    if (query.role) filter.role = query.role;
     if (query.type === "admin") filter.role = "admin";
+    else filter.role = { $ne: "admin" };
     if (query.type === "worker") filter.$and = [{ $or: [{ role: "worker" }, { workerProfile: { $exists: true } }] }];
     if (query.type === "client") filter.$and = [{ role: "client" }, { workerProfile: { $exists: false } }];
     if (query.search) {

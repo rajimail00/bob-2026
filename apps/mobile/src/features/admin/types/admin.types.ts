@@ -1,4 +1,4 @@
-import type { AuthUser, UserRole } from "@/features/auth/types/auth.types";
+import type { AuthUser } from "@/features/auth/types/auth.types";
 import type { JobStatus } from "@/features/home/types/job.types";
 
 export type AdminPeriod = "day" | "week" | "month" | "year";
@@ -53,6 +53,6 @@ export interface Faq { _id: string; question: LocalizedText; answer: LocalizedTe
 export interface AdminNotification { _id: string; type: "new_support_ticket" | "urgent_ticket" | "reported_job" | "pending_job_moderation" | "unusual_action"; targetType: string; targetId: string; readAt?: string; createdAt: string }
 export interface Page<T> { items: T[]; total: number; page: number; pageSize: number; unreadCount?: number; unresolvedCount?: number }
 
-export interface UserQuery { page?: number; pageSize?: number; search?: string; role?: UserRole; type?: "admin" | "worker" | "client"; status?: AccountStatus; sort?: "name_asc" | "name_desc" | "newest" | "oldest" | "recent_activity" }
+export interface UserQuery { page?: number; pageSize?: number; search?: string; type?: "admin" | "worker" | "client"; status?: Exclude<AccountStatus, "deleted">; sort?: "name_asc" | "name_desc" | "newest" | "oldest" | "recent_activity" }
 export interface JobQuery { page?: number; pageSize?: number; search?: string; status?: JobStatus; moderationStatus?: ModerationStatus; categoryId?: string; emergency?: boolean; createdFrom?: string; createdTo?: string; scheduledFrom?: string; scheduledTo?: string; sort?: "newest" | "oldest" | "scheduled_asc" | "scheduled_desc" }
 export interface TicketQuery { page?: number; pageSize?: number; search?: string; status?: TicketStatus; priority?: TicketPriority; reason?: Ticket["reason"]; assignedAdminId?: string; sort?: "newest" | "oldest" | "priority" | "updated" }

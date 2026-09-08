@@ -46,11 +46,32 @@ test("category management supports persistent image upload with an icon fallback
 
 test("manage users supports individual long-press selection and selected-only bulk actions", () => {
   const source = fs.readFileSync(path.join(__dirname, "../screens/AdminUsersScreen.tsx"), "utf8");
-  expect(source).toContain("onLongPress={() => toggleSelection(item)}");
+  expect(source).toContain("onLongPress={() => {");
+  expect(source).toContain("toggleSelection(item)");
   expect(source).toContain("selectedIds.has(item._id)");
   expect(source).toContain("const userIds = Array.from(selectedIds)");
   expect(source).toContain('bulkStatus("active")');
   expect(source).toContain('bulkStatus("banned")');
+  expect(source).not.toContain('t("admin.bulk.selectPage")');
+  expect(source).not.toContain('t("admin.bulk.selectUsers")');
+});
+
+test("manage users excludes administrators and deleted accounts", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../screens/AdminUsersScreen.tsx"), "utf8");
+  expect(source).toContain('const types = ["worker", "client"] as const');
+  expect(source).toContain('const statuses: Exclude<AccountStatus, "deleted">[] = ["active", "banned"]');
+  expect(source).toContain('user.role !== "admin" && user.status !== "deleted"');
+});
+
+test("manage users keeps large selections by batching bulk API requests", async () => {
+  apiClient.post.mockReset();
+  apiClient.post.mockResolvedValue({ data: { users: [] } });
+  const userIds = Array.from({ length: 205 }, (_, index) => `user-${index}`);
+
+  await adminApi.bulkUserStatus(userIds, "banned");
+
+  expect(apiClient.post).toHaveBeenCalledTimes(3);
+  expect(apiClient.post.mock.calls.map(([, body]) => body.userIds.length)).toEqual([100, 100, 5]);
 });
 
 test("admin translations have identical key sets in every supported locale", () => {

@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 import { Alert, BackHandler, FlatList, Pressable, RefreshControl } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -23,8 +23,9 @@ import { AdminSearchBar } from "../components/AdminSearchBar";
 import { useAdminUsers, useBulkAdminUserStatus, useSetAdminUserStatus } from "../hooks/useAdmin";
 import type { AccountStatus, AdminUser, UserQuery } from "../types/admin.types";
 
-const statuses: AccountStatus[] = ["active", "banned", "deleted"];
-const types = ["admin", "worker", "client"] as const;
+const statuses: Exclude<AccountStatus, "deleted">[] = ["active", "banned"];
+const types = ["worker", "client"] as const;
+type ManageableAccountStatus = (typeof statuses)[number];
 const sorts: NonNullable<UserQuery["sort"]>[] = ["newest", "oldest", "name_asc", "name_desc", "recent_activity"];
 
 export function AdminUsersScreen() {
@@ -32,13 +33,14 @@ export function AdminUsersScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AdminStackParamList>>();
   const currentUserId = useAuthStore((state) => state.user?.id);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<AccountStatus>();
+  const [status, setStatus] = useState<ManageableAccountStatus>();
   const [type, setType] = useState<typeof types[number]>();
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<NonNullable<UserQuery["sort"]>>("newest");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const longPressHandled = useRef(false);
   const query = useAdminUsers({ page, pageSize: 20, search: useDeferredValue(search) || undefined, status, type, sort });
   const statusMutation = useSetAdminUserStatus();
   const bulkMutation = useBulkAdminUserStatus();
@@ -50,7 +52,7 @@ export function AdminUsersScreen() {
 
   useEffect(() => {
     exitSelectionMode();
-  }, [exitSelectionMode, page, search, sort, status, type]);
+  }, [exitSelectionMode, search, sort, status, type]);
 
   useEffect(() => {
     if (!selectionMode) return;
@@ -72,9 +74,9 @@ export function AdminUsersScreen() {
     ...(status ? [{ key: "status", label: t(`admin.accountStatus.${status}`), onRemove: () => { setStatus(undefined); setPage(1); } }] : []),
     ...(sort !== "newest" ? [{ key: "sort", label: t(`admin.sort.${sort}`), onRemove: () => { setSort("newest"); setPage(1); } }] : []),
   ];
-  const selectableUsers = (query.data?.items ?? []).filter((user) => user._id !== currentUserId && user.status !== "deleted");
-  const allSelectableUsersSelected = selectableUsers.length > 0 && selectableUsers.every((user) => selectedIds.has(user._id));
-
+  const visibleUsers = (query.data?.items ?? []).filter(
+    (user) => user.role !== "admin" && user.status !== "deleted"
+  );
   const toggleSelection = (user: AdminUser) => {
     if (user._id === currentUserId || user.status === "deleted") return;
     setSelectionMode(true);
@@ -130,32 +132,15 @@ export function AdminUsersScreen() {
       <AdminActiveFilters filters={activeFilters} />
       <AdminFilterSheet visible={filtersOpen} onClose={() => setFiltersOpen(false)} onClear={clearFilters} hasActiveFilters={activeFilters.length > 0}>
         <AdminFilterSection title={t("admin.filterGroups.userType")}>
-          <AdminFilters values={types} selected={type} labels={{ admin: t("admin.roles.admin"), worker: t("admin.roles.worker"), client: t("admin.roles.client") }} onSelect={(value) => { setType(value); setPage(1); }} />
+          <AdminFilters values={types} selected={type} labels={{ worker: t("admin.roles.worker"), client: t("admin.roles.client") }} onSelect={(value) => { setType(value); setPage(1); }} />
         </AdminFilterSection>
         <AdminFilterSection title={t("admin.filterGroups.accountStatus")}>
-          <AdminFilters values={statuses} selected={status} labels={{ active: t("admin.accountStatus.active"), banned: t("admin.accountStatus.banned"), deleted: t("admin.accountStatus.deleted") }} onSelect={(value) => { setStatus(value); setPage(1); }} />
+          <AdminFilters values={statuses} selected={status} labels={{ active: t("admin.accountStatus.active"), banned: t("admin.accountStatus.banned") }} onSelect={(value) => { setStatus(value); setPage(1); }} />
         </AdminFilterSection>
         <AdminFilterSection title={t("admin.filterGroups.sortBy")}>
           <AdminFilters values={sorts} selected={sort} labels={Object.fromEntries(sorts.map((value) => [value, t(`admin.sort.${value}`)])) as Record<NonNullable<UserQuery["sort"]>, string>} onSelect={(value) => { setSort(value ?? "newest"); setPage(1); }} />
         </AdminFilterSection>
       </AdminFilterSheet>
-
-      {query.data ? (
-        <XStack paddingHorizontal="$4" paddingBottom="$2" alignItems="center" justifyContent="space-between">
-          <Text variant="caption">
-            {selectionMode
-              ? t("admin.bulk.selectedCount", { count: selectedIds.size })
-              : t("admin.users.resultCount", { count: query.data.total })}
-          </Text>
-          {selectionMode ? (
-            <Button size="sm" variant="ghost" onPress={() => setSelectedIds(allSelectableUsersSelected ? new Set() : new Set(selectableUsers.map((user) => user._id)))}>
-              {allSelectableUsersSelected ? t("admin.bulk.clear") : t("admin.bulk.selectPage")}
-            </Button>
-          ) : (
-            <Button size="sm" variant="ghost" onPress={() => setSelectionMode(true)}>{t("admin.bulk.selectUsers")}</Button>
-          )}
-        </XStack>
-      ) : null}
 
       {query.isLoading ? (
         <LoadingState />
@@ -163,7 +148,7 @@ export function AdminUsersScreen() {
         <ErrorState title={t("admin.common.loadError")} retryLabel={t("common.retry")} onRetry={() => query.refetch()} />
       ) : (
         <FlatList
-          data={query.data?.items ?? []}
+          data={visibleUsers}
           keyExtractor={(item) => item._id}
           contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: selectionMode ? 116 : 24 }}
           refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
@@ -175,8 +160,19 @@ export function AdminUsersScreen() {
             const selectable = item._id !== currentUserId && item.status !== "deleted";
             return (
               <Pressable
-                onPress={() => selectionMode ? toggleSelection(item) : navigation.navigate("AdminUserDetail", { userId: item._id })}
-                onLongPress={() => toggleSelection(item)}
+                onPressIn={() => { longPressHandled.current = false; }}
+                onPress={() => {
+                  if (longPressHandled.current) {
+                    longPressHandled.current = false;
+                    return;
+                  }
+                  if (selectionMode) toggleSelection(item);
+                  else navigation.navigate("AdminUserDetail", { userId: item._id });
+                }}
+                onLongPress={() => {
+                  longPressHandled.current = true;
+                  toggleSelection(item);
+                }}
                 delayLongPress={350}
                 role="button"
                 aria-label={selectionMode ? t("admin.bulk.toggleUser", { name }) : t("admin.users.viewUser", { name })}

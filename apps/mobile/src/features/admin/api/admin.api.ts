@@ -2,13 +2,23 @@ import { apiClient } from "@/lib/apiClient";
 import type { AdminApplication, AdminJob, AdminNotification, AdminPeriod, AdminUser, AuditEntry, Category, DashboardData, Faq, JobQuery, LocalizedText, ModerationStatus, Page, Ticket, TicketPriority, TicketQuery, TicketStatus, UserQuery, UserStats } from "../types/admin.types";
 import type { UserRole } from "@/features/auth/types/auth.types";
 
+const BULK_USER_BATCH_SIZE = 100;
+
 export const adminApi = {
   async dashboard(period: AdminPeriod) { return (await apiClient.get<DashboardData>("/admin/dashboard", { params: { period } })).data; },
   async users(query: UserQuery) { return (await apiClient.get<Page<AdminUser>>("/admin/users", { params: query })).data; },
   async user(id: string) { return (await apiClient.get<{ user: AdminUser; stats: UserStats }>(`/admin/users/${id}`)).data; },
   async setUserStatus(id: string, status: "active" | "banned") { return (await apiClient.patch<{ user: AdminUser }>(`/admin/users/${id}/status`, { status })).data.user; },
   async setUserRole(id: string, role: UserRole) { return (await apiClient.patch<{ user: AdminUser }>(`/admin/users/${id}/role`, { role })).data.user; },
-  async bulkUserStatus(userIds: string[], status: "active" | "banned") { return (await apiClient.post<{ users: AdminUser[] }>("/admin/users/bulk-status", { userIds, status })).data.users; },
+  async bulkUserStatus(userIds: string[], status: "active" | "banned") {
+    const users: AdminUser[] = [];
+    for (let index = 0; index < userIds.length; index += BULK_USER_BATCH_SIZE) {
+      const batch = userIds.slice(index, index + BULK_USER_BATCH_SIZE);
+      const response = await apiClient.post<{ users: AdminUser[] }>("/admin/users/bulk-status", { userIds: batch, status });
+      users.push(...response.data.users);
+    }
+    return users;
+  },
 
   async jobs(query: JobQuery) { return (await apiClient.get<Page<AdminJob>>("/admin/jobs", { params: query })).data; },
   async job(id: string) { return (await apiClient.get<{ job: AdminJob; related: { applications: AdminApplication[]; messageCount: number; tickets: Pick<Ticket, "_id" | "reason" | "status" | "priority" | "createdAt">[]; audits: AuditEntry[] } }>(`/admin/jobs/${id}`)).data; },

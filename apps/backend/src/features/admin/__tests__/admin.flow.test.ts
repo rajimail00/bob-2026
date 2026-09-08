@@ -65,6 +65,25 @@ describe("mobile admin portal API", () => {
     expect((await request(app).patch(`/api/v1/admin/users/${adminId}/status`).set("Authorization", `Bearer ${adminToken}`).send({ status: "banned" })).status).toBe(409);
   });
 
+  it("lists only manageable non-deleted clients and workers", async () => {
+    await makeUser("worker@example.com", "worker");
+    const banned = await makeUser("banned@example.com", "client");
+    await UserModel.findByIdAndUpdate(banned.user.id, { status: "banned" });
+    const deleted = await makeUser("deleted@example.com", "worker");
+    await UserModel.findByIdAndUpdate(deleted.user.id, { status: "deleted", deletedAt: new Date() });
+    await makeUser("second-admin@example.com", "admin");
+
+    const response = await request(app)
+      .get("/api/v1/admin/users?page=1&pageSize=2")
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.total).toBe(3);
+    expect(response.body.items).toHaveLength(2);
+    expect(response.body.items.every((user: { role: string; status: string }) => user.role !== "admin" && user.status !== "deleted")).toBe(true);
+    expect((await request(app).get("/api/v1/admin/users?status=deleted").set("Authorization", `Bearer ${adminToken}`)).status).toBe(400);
+  });
+
   it("keeps operational status separate from moderation", async () => {
     const category = await CategoryModel.create({ slug: "moving", icon: "car", order: 0, name: { en: "Moving", de: "Umzug", es: "Mudanza", fr: "Déménagement" } });
     const job = await JobModel.create({ clientId, categoryId: category.id, title: "Moderate me", description: "Moderation must not replace lifecycle", location: { type: "Point", coordinates: [13.4, 52.5] }, address: "Berlin", date: new Date(Date.now() + 86_400_000), budget: 50, status: "active" });
