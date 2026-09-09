@@ -1,8 +1,10 @@
 import { apiClient } from "@/lib/apiClient";
 import type { AdminApplication, AdminJob, AdminNotification, AdminPeriod, AdminUser, AdminUserJobsPage, AdminUserJobsQuery, AuditEntry, Category, DashboardData, Faq, JobQuery, LocalizedText, ModerationStatus, Page, Ticket, TicketPriority, TicketQuery, TicketStatus, UserQuery, UserStats } from "../types/admin.types";
 import type { UserRole } from "@/features/auth/types/auth.types";
+import type { Advertisement, AdvertisementInput, AdvertisementQuery, CreateAdvertisementInput } from "@/features/advertisements/types/advertisement.types";
 
 const BULK_USER_BATCH_SIZE = 100;
+const BULK_TICKET_BATCH_SIZE = 100;
 
 export const adminApi = {
   async dashboard(period: AdminPeriod) { return (await apiClient.get<DashboardData>("/admin/dashboard", { params: { period } })).data; },
@@ -32,7 +34,15 @@ export const adminApi = {
   async updateTicket(id: string, input: { status?: TicketStatus; priority?: TicketPriority; assignedAdminId?: string | null; resolutionNote?: string }) { return (await apiClient.patch(`/admin/tickets/${id}`, input)).data; },
   async replyTicket(id: string, message: string) { return (await apiClient.post(`/admin/tickets/${id}/replies`, { message })).data; },
   async noteTicket(id: string, note: string) { return (await apiClient.post(`/admin/tickets/${id}/notes`, { note })).data; },
-  async bulkUpdateTickets(ticketIds: string[], input: { status?: TicketStatus; priority?: TicketPriority }) { return (await apiClient.post("/admin/tickets/bulk-update", { ticketIds, ...input })).data; },
+  async bulkUpdateTickets(ticketIds: string[], input: { status?: TicketStatus; priority?: TicketPriority }) {
+    const tickets: Ticket[] = [];
+    for (let index = 0; index < ticketIds.length; index += BULK_TICKET_BATCH_SIZE) {
+      const batch = ticketIds.slice(index, index + BULK_TICKET_BATCH_SIZE);
+      const response = await apiClient.post<{ tickets: Ticket[] }>("/admin/tickets/bulk-update", { ticketIds: batch, ...input });
+      tickets.push(...response.data.tickets);
+    }
+    return tickets;
+  },
 
   async categories() { return (await apiClient.get<{ categories: Category[] }>("/admin/categories")).data.categories; },
   async createCategory(input: { slug: string; name: LocalizedText; icon: string; imageUrl?: string | null; order: number }) { return (await apiClient.post<{ category: Category }>("/admin/categories", input)).data.category; },
@@ -50,4 +60,13 @@ export const adminApi = {
   async notifications(page = 1) { return (await apiClient.get<Page<AdminNotification>>("/admin/notifications", { params: { page, pageSize: 30 } })).data; },
   async readNotification(id: string) { return (await apiClient.patch<{ notification: AdminNotification }>(`/admin/notifications/${id}/read`)).data.notification; },
   async readAllNotifications() { return (await apiClient.patch<{ updatedCount: number }>("/admin/notifications/read-all")).data; },
+
+  async advertisements(query: AdvertisementQuery) { return (await apiClient.get<Page<Advertisement>>("/admin/advertisements", { params: query })).data; },
+  async advertisement(id: string) { return (await apiClient.get<{ advertisement: Advertisement }>(`/admin/advertisements/${id}`)).data.advertisement; },
+  async createAdvertisement(input: CreateAdvertisementInput) { return (await apiClient.post<{ advertisement: Advertisement }>("/admin/advertisements", input)).data.advertisement; },
+  async updateAdvertisement(id: string, input: Partial<AdvertisementInput>) { return (await apiClient.patch<{ advertisement: Advertisement }>(`/admin/advertisements/${id}`, input)).data.advertisement; },
+  async deleteAdvertisement(id: string) { await apiClient.delete(`/admin/advertisements/${id}`); },
+  async publishAdvertisement(id: string) { return (await apiClient.post<{ advertisement: Advertisement }>(`/admin/advertisements/${id}/publish`)).data.advertisement; },
+  async pauseAdvertisement(id: string) { return (await apiClient.post<{ advertisement: Advertisement }>(`/admin/advertisements/${id}/pause`)).data.advertisement; },
+  async archiveAdvertisement(id: string) { return (await apiClient.post<{ advertisement: Advertisement }>(`/admin/advertisements/${id}/archive`)).data.advertisement; },
 };

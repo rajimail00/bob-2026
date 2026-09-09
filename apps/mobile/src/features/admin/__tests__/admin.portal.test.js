@@ -54,6 +54,44 @@ test("manage users supports individual long-press selection and selected-only bu
   expect(source).toContain('bulkStatus("banned")');
   expect(source).not.toContain('t("admin.bulk.selectPage")');
   expect(source).not.toContain('t("admin.bulk.selectUsers")');
+  expect(source).toContain("activeFilterCount={activeFilters.length}");
+  expect(source).not.toContain("<AdminActiveFilters");
+});
+
+test("advertisement management is reachable from Settings with create and edit routes", () => {
+  const settings = fs.readFileSync(path.join(__dirname, "../screens/AdminSettingsScreen.tsx"), "utf8");
+  const navigator = fs.readFileSync(path.join(__dirname, "../../../navigation/AdminNavigator.tsx"), "utf8");
+  expect(settings).toContain('route: "AdminAdvertisements"');
+  expect(settings).toContain('icon: "megaphone-outline"');
+  expect(navigator).toContain('name="AdminAdvertisements"');
+  expect(navigator).toContain('name="AdminAdvertisementForm"');
+});
+
+test("advertisement admin API supports CRUD and controlled lifecycle actions", async () => {
+  apiClient.get.mockResolvedValueOnce({ data: { items: [], total: 0, page: 1, pageSize: 10 } });
+  await adminApi.advertisements({ page: 1, status: "scheduled" });
+  expect(apiClient.get).toHaveBeenCalledWith("/admin/advertisements", { params: { page: 1, status: "scheduled" } });
+
+  apiClient.post.mockResolvedValueOnce({ data: { advertisement: { _id: "ad-1" } } });
+  await adminApi.publishAdvertisement("ad-1");
+  expect(apiClient.post).toHaveBeenCalledWith("/admin/advertisements/ad-1/publish");
+
+  apiClient.delete.mockResolvedValueOnce({ data: undefined });
+  await adminApi.deleteAdvertisement("ad-1");
+  expect(apiClient.delete).toHaveBeenCalledWith("/admin/advertisements/ad-1");
+});
+
+test("advertisement screens include validation, media preview and confirmed destructive actions", () => {
+  const list = fs.readFileSync(path.join(__dirname, "../screens/AdminAdvertisementsScreen.tsx"), "utf8");
+  const form = fs.readFileSync(path.join(__dirname, "../screens/AdminAdvertisementFormScreen.tsx"), "utf8");
+  const picker = fs.readFileSync(path.join(__dirname, "../components/AdvertisementMediaPicker.tsx"), "utf8");
+  expect(list).toContain("<AdvertisementCard advertisement={preview}");
+  expect(list).toContain('confirmAction(item, "pause")');
+  expect(list).toContain('confirmAction(item, "delete")');
+  expect(form).toContain("if (endsAt <= startsAt)");
+  expect(form).toContain("startsAt.toISOString()");
+  expect(picker).toContain('mediaTypes: ["images", "videos"]');
+  expect(picker).toContain("requestMediaLibraryPermissionsAsync");
 });
 
 test("manage users excludes administrators and deleted accounts", () => {
@@ -107,6 +145,41 @@ test("manage users keeps large selections by batching bulk API requests", async 
 
   expect(apiClient.post).toHaveBeenCalledTimes(3);
   expect(apiClient.post.mock.calls.map(([, body]) => body.userIds.length)).toEqual([100, 100, 5]);
+});
+
+test("support tickets matches the long-press selection and filter-sheet pattern", async () => {
+  const source = fs.readFileSync(path.join(__dirname, "../screens/AdminTicketsScreen.tsx"), "utf8");
+  expect(source).toContain("onLongPress={() => {");
+  expect(source).toContain("toggleSelection(item)");
+  expect(source).toContain("selectedIds.has(item._id)");
+  expect(source).toContain("<AdminFilterSheet");
+  expect(source).not.toContain("<AdminActiveFilters");
+  expect(source).toContain("onOpenFilters={() => setFiltersOpen(true)}");
+  expect(source).toContain('bulkStatus("in_progress")');
+  expect(source).toContain('bulkStatus("resolved")');
+  expect(source).not.toContain('t("admin.bulk.selectPage")');
+
+  apiClient.post.mockReset();
+  apiClient.post.mockResolvedValue({ data: { tickets: [] } });
+  const ticketIds = Array.from({ length: 205 }, (_, index) => `ticket-${index}`);
+  await adminApi.bulkUpdateTickets(ticketIds, { status: "resolved" });
+  expect(apiClient.post).toHaveBeenCalledTimes(3);
+  expect(apiClient.post.mock.calls.map(([, body]) => body.ticketIds.length)).toEqual([100, 100, 5]);
+});
+
+test("job management keeps filter state in the sheet without rendering filter chips", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../screens/AdminJobsScreen.tsx"), "utf8");
+  expect(source).toContain("<AdminFilterSheet");
+  expect(source).toContain("activeFilterCount={activeFilters.length}");
+  expect(source).not.toContain("<AdminActiveFilters");
+});
+
+test("job management uses compact user-sized cards without a three-dot action", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../screens/AdminJobsScreen.tsx"), "utf8");
+  expect(source).toContain("width: 54, height: 54, borderRadius: 27");
+  expect(source).toContain('<Text variant="h4" numberOfLines={1}>{item.title}</Text>');
+  expect(source).not.toContain('name="ellipsis-vertical"');
+  expect(source).not.toContain("const action =");
 });
 
 test("admin translations have identical key sets in every supported locale", () => {

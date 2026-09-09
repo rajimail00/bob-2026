@@ -2,9 +2,11 @@ import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler.js";
 import { requireAuth, requireRole } from "../../middleware/auth.js";
 import { adminController as c } from "./admin.controller.js";
+import { adminAdvertisementRouter } from "../advertisements/advertisement.routes.js";
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireRole("admin"));
+adminRouter.use("/advertisements", adminAdvertisementRouter);
 
 adminRouter.get("/dashboard", asyncHandler(c.dashboard));
 adminRouter.get("/users", asyncHandler(c.users));

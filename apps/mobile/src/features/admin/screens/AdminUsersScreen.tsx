@@ -17,7 +17,7 @@ import { LoadingState } from "@/components/ui/states/LoadingState";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import type { AdminStackParamList } from "@/navigation/types";
 import { AdminFilters } from "../components/AdminFilters";
-import { AdminActiveFilters, AdminFilterSection, AdminFilterSheet } from "../components/AdminFilterSheet";
+import { AdminFilterSection, AdminFilterSheet } from "../components/AdminFilterSheet";
 import { AdminHeader } from "../components/AdminHeader";
 import { AdminSearchBar } from "../components/AdminSearchBar";
 import { useAdminUsers, useBulkAdminUserStatus, useSetAdminUserStatus } from "../hooks/useAdmin";
@@ -129,7 +129,6 @@ export function AdminUsersScreen() {
         onOpenFilters={() => setFiltersOpen(true)}
         activeFilterCount={activeFilters.length}
       />
-      <AdminActiveFilters filters={activeFilters} />
       <AdminFilterSheet visible={filtersOpen} onClose={() => setFiltersOpen(false)} onClear={clearFilters} hasActiveFilters={activeFilters.length > 0}>
         <AdminFilterSection title={t("admin.filterGroups.userType")}>
           <AdminFilters values={types} selected={type} labels={{ worker: t("admin.roles.worker"), client: t("admin.roles.client") }} onSelect={(value) => { setType(value); setPage(1); }} />

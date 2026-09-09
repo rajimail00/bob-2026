@@ -4,6 +4,7 @@ import type { AdminPeriod, AdminUserJobsQuery, JobQuery, ModerationStatus, Ticke
 import { Alert } from "react-native";
 import i18n from "@/lib/i18n";
 import { getApiErrorMessage } from "@/lib/apiClient";
+import type { AdvertisementInput, AdvertisementQuery, CreateAdvertisementInput } from "@/features/advertisements/types/advertisement.types";
 
 export const adminKeys = {
   all: ["admin"] as const,
@@ -19,6 +20,8 @@ export const adminKeys = {
   faqs: ["admin", "faqs"] as const,
   config: ["admin", "config"] as const,
   notifications: ["admin", "notifications"] as const,
+  advertisements: (query: AdvertisementQuery) => ["admin", "advertisements", query] as const,
+  advertisement: (id: string) => ["admin", "advertisement", id] as const,
 };
 
 export const useAdminDashboard = (period: AdminPeriod) => useQuery({ queryKey: adminKeys.dashboard(period), queryFn: () => adminApi.dashboard(period) });
@@ -33,6 +36,8 @@ export const useAdminCategories = () => useQuery({ queryKey: adminKeys.categorie
 export const useAdminFaqs = () => useQuery({ queryKey: adminKeys.faqs, queryFn: () => adminApi.faqs({ pageSize: 50 }) });
 export const useAdminConfig = () => useQuery({ queryKey: adminKeys.config, queryFn: adminApi.config });
 export const useAdminNotifications = (enabled = true) => useQuery({ queryKey: adminKeys.notifications, queryFn: () => adminApi.notifications(), refetchInterval: enabled ? 30_000 : false, enabled });
+export const useAdminAdvertisements = (query: AdvertisementQuery) => useQuery({ queryKey: adminKeys.advertisements(query), queryFn: () => adminApi.advertisements(query) });
+export const useAdminAdvertisement = (id?: string) => useQuery({ queryKey: adminKeys.advertisement(id ?? "new"), queryFn: () => adminApi.advertisement(id!), enabled: Boolean(id) });
 
 function useAdminMutation<TVariables>(mutationFn: (variables: TVariables) => Promise<unknown>, keys: readonly unknown[] = adminKeys.all) {
   const client = useQueryClient();
@@ -61,3 +66,9 @@ export const useDeleteAdminFaq = () => useAdminMutation((id: string) => adminApi
 export const useUpdateAdminConfig = () => useAdminMutation(adminApi.updateConfig, adminKeys.config);
 export const useReadAdminNotification = () => useAdminMutation((id: string) => adminApi.readNotification(id), adminKeys.notifications);
 export const useReadAllAdminNotifications = () => useAdminMutation(() => adminApi.readAllNotifications(), adminKeys.notifications);
+export const useCreateAdminAdvertisement = () => useAdminMutation((input: CreateAdvertisementInput) => adminApi.createAdvertisement(input));
+export const useUpdateAdminAdvertisement = () => useAdminMutation(({ id, input }: { id: string; input: Partial<AdvertisementInput> }) => adminApi.updateAdvertisement(id, input));
+export const useDeleteAdminAdvertisement = () => useAdminMutation((id: string) => adminApi.deleteAdvertisement(id));
+export const usePublishAdminAdvertisement = () => useAdminMutation((id: string) => adminApi.publishAdvertisement(id));
+export const usePauseAdminAdvertisement = () => useAdminMutation((id: string) => adminApi.pauseAdvertisement(id));
+export const useArchiveAdminAdvertisement = () => useAdminMutation((id: string) => adminApi.archiveAdvertisement(id));

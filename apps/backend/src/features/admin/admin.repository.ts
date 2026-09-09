@@ -1,4 +1,4 @@
-import mongoose, { type SortOrder } from "mongoose";
+import mongoose, { type ClientSession, type SortOrder } from "mongoose";
 import { UserModel } from "../auth/auth.model.js";
 import { JobModel } from "../jobs/job.model.js";
 import { ApplicationModel } from "../applications/application.model.js";
@@ -230,7 +230,8 @@ export const adminRepository = {
     return { applications, messageCount, tickets, audits };
   },
 
-  createAudit(data: { adminId: string; action: string; targetType: string; targetId: string; before?: unknown; after?: unknown }) {
+  createAudit(data: { adminId: string; action: string; targetType: string; targetId: string; before?: unknown; after?: unknown }, session?: ClientSession) {
+    if (session) return AdminAuditModel.create([data], { session }).then(([audit]) => audit!);
     return AdminAuditModel.create(data);
   },
 

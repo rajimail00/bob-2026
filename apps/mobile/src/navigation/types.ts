@@ -55,6 +55,8 @@ export type AdminStackParamList = {
   AdminTicketDetail: { ticketId: string };
   AdminCategories: undefined;
   AdminFaqs: undefined;
+  AdminAdvertisements: undefined;
+  AdminAdvertisementForm: { advertisementId?: string } | undefined;
   AdminConfiguration: undefined;
   AdminNotifications: undefined;
   AdminAccount: undefined;

@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import Slider from "@react-native-community/slider";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList } from "react-native";
+import { FlatList, type ViewToken } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Input } from "@/components/ui/Input";
 import { PillTabs } from "@/components/ui/PillTabs";
@@ -22,6 +22,9 @@ import { JobFilterModal, type JobFilters } from "../components/JobFilterModal";
 import { JobMapView } from "../components/JobMapView";
 import { isGloballyVisibleJob, useCategories, useJobs } from "../hooks/useJobs";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
+import { AdvertisementCard } from "@/features/advertisements/components/AdvertisementCard";
+import { useAdvertisements } from "@/features/advertisements/hooks/useAdvertisements";
+import { insertAdvertisements } from "@/features/advertisements/utils/insertAdvertisements";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "HomeList">;
 type ViewMode = "map" | "list";
@@ -37,6 +40,9 @@ export function HomeScreen({ navigation }: Props) {
   const [radiusKm, setRadiusKm] = useState(18);
   const [filters, setFilters] = useState<JobFilters>(DEFAULT_FILTERS);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [playingAdvertisementId, setPlayingAdvertisementId] = useState<string>();
+  const [visibleAdvertisementIds, setVisibleAdvertisementIds] = useState<Set<string>>(() => new Set());
+  const isFocused = useIsFocused();
   const { location } = useCurrentLocation();
 
   const categoriesQuery = useCategories();
@@ -50,14 +56,32 @@ export function HomeScreen({ navigation }: Props) {
     lat: location.status === "granted" ? location.coords.lat : undefined,
     radiusKm: location.status === "granted" ? radiusKm : undefined,
   });
+  const advertisementsQuery = useAdvertisements(viewMode === "list");
 
   useFocusEffect(
     useCallback(() => {
       void jobsQuery.refetch();
-    }, [jobsQuery.refetch])
+      if (viewMode === "list") void advertisementsQuery.refetch();
+    }, [advertisementsQuery.refetch, jobsQuery.refetch, viewMode])
   );
 
+  useEffect(() => {
+    if (!isFocused || viewMode !== "list") {
+      setPlayingAdvertisementId(undefined);
+      setVisibleAdvertisementIds(new Set());
+    }
+  }, [isFocused, viewMode]);
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    setVisibleAdvertisementIds(new Set(viewableItems.flatMap((token) => {
+      const item = token.item as ReturnType<typeof insertAdvertisements>[number];
+      return item.kind === "advertisement" ? [item.advertisement._id] : [];
+    })));
+  }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
+
   const jobs = (jobsQuery.data?.items ?? []).filter((job) => isGloballyVisibleJob(job));
+  const homeListItems = insertAdvertisements(jobs, advertisementsQuery.data ?? []);
   const activeFilterCount =
     filters.categoryIds.length +
     (filters.minBudget > 0 || filters.maxBudget < 1000 ? 1 : 0) +
@@ -156,20 +180,31 @@ export function HomeScreen({ navigation }: Props) {
         />
       ) : (
         <FlatList
-          data={jobs}
-          keyExtractor={(job) => job._id}
+          data={homeListItems}
+          keyExtractor={(item) => item.key}
           renderItem={({ item }) => (
             <YStack paddingHorizontal="$4" paddingBottom="$3">
-              <JobCard
-                job={item}
-                distance={getDistance(item.location.coordinates)}
-                onPress={() => navigation.navigate("JobDetail", { jobId: item._id })}
-              />
+              {item.kind === "job" ? (
+                <JobCard
+                  job={item.job}
+                  distance={getDistance(item.job.location.coordinates)}
+                  onPress={() => navigation.navigate("JobDetail", { jobId: item.job._id })}
+                />
+              ) : (
+                <AdvertisementCard
+                  advertisement={item.advertisement}
+                  screenActive={isFocused && viewMode === "list" && visibleAdvertisementIds.has(item.advertisement._id)}
+                  playbackAllowed={!playingAdvertisementId || playingAdvertisementId === item.advertisement._id}
+                  onPlaybackChange={(playing) => setPlayingAdvertisementId(playing ? item.advertisement._id : undefined)}
+                />
+              )}
             </YStack>
           )}
           contentContainerStyle={{ paddingBottom: 24 }}
-          refreshing={jobsQuery.isFetching}
-          onRefresh={() => jobsQuery.refetch()}
+          refreshing={jobsQuery.isFetching || advertisementsQuery.isFetching}
+          onRefresh={() => { void Promise.all([jobsQuery.refetch(), advertisementsQuery.refetch()]); }}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
         />
       )}
 

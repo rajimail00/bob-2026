@@ -20,6 +20,8 @@ import { AdminFaqsScreen } from "@/features/admin/screens/AdminFaqsScreen";
 import { AdminConfigurationScreen } from "@/features/admin/screens/AdminConfigurationScreen";
 import { AdminNotificationsScreen } from "@/features/admin/screens/AdminNotificationsScreen";
 import { AdminAccountScreen } from "@/features/admin/screens/AdminAccountScreen";
+import { AdminAdvertisementsScreen } from "@/features/admin/screens/AdminAdvertisementsScreen";
+import { AdminAdvertisementFormScreen } from "@/features/admin/screens/AdminAdvertisementFormScreen";
 
 const icons: Record<keyof AdminTabParamList, keyof typeof Ionicons.glyphMap> = { AdminDashboard: "grid-outline", AdminUsers: "people-outline", AdminJobs: "briefcase-outline", AdminTickets: "headset-outline", AdminSettings: "settings-outline" };
 const Tab = createBottomTabNavigator<AdminTabParamList>();
@@ -85,5 +87,5 @@ function AdminTabs() {
 }
 
 export function AdminNavigator() {
-  return <Stack.Navigator screenOptions={{ headerShown: false }}><Stack.Screen name="AdminTabs" component={AdminTabs} /><Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} /><Stack.Screen name="AdminUserJobs" component={AdminUserJobsScreen} /><Stack.Screen name="AdminJobDetail" component={AdminJobDetailScreen} /><Stack.Screen name="AdminTicketDetail" component={AdminTicketDetailScreen} /><Stack.Screen name="AdminCategories" component={AdminCategoriesScreen} /><Stack.Screen name="AdminFaqs" component={AdminFaqsScreen} /><Stack.Screen name="AdminConfiguration" component={AdminConfigurationScreen} /><Stack.Screen name="AdminNotifications" component={AdminNotificationsScreen} /><Stack.Screen name="AdminAccount" component={AdminAccountScreen} /></Stack.Navigator>;
+  return <Stack.Navigator screenOptions={{ headerShown: false }}><Stack.Screen name="AdminTabs" component={AdminTabs} /><Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} /><Stack.Screen name="AdminUserJobs" component={AdminUserJobsScreen} /><Stack.Screen name="AdminJobDetail" component={AdminJobDetailScreen} /><Stack.Screen name="AdminTicketDetail" component={AdminTicketDetailScreen} /><Stack.Screen name="AdminCategories" component={AdminCategoriesScreen} /><Stack.Screen name="AdminFaqs" component={AdminFaqsScreen} /><Stack.Screen name="AdminAdvertisements" component={AdminAdvertisementsScreen} /><Stack.Screen name="AdminAdvertisementForm" component={AdminAdvertisementFormScreen} /><Stack.Screen name="AdminConfiguration" component={AdminConfigurationScreen} /><Stack.Screen name="AdminNotifications" component={AdminNotificationsScreen} /><Stack.Screen name="AdminAccount" component={AdminAccountScreen} /></Stack.Navigator>;
 }
