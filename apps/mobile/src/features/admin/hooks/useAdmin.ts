@@ -32,7 +32,7 @@ export const useAdminTicket = (id: string) => useQuery({ queryKey: adminKeys.tic
 export const useAdminCategories = () => useQuery({ queryKey: adminKeys.categories, queryFn: adminApi.categories });
 export const useAdminFaqs = () => useQuery({ queryKey: adminKeys.faqs, queryFn: () => adminApi.faqs({ pageSize: 50 }) });
 export const useAdminConfig = () => useQuery({ queryKey: adminKeys.config, queryFn: adminApi.config });
-export const useAdminNotifications = () => useQuery({ queryKey: adminKeys.notifications, queryFn: () => adminApi.notifications(), refetchInterval: 30_000 });
+export const useAdminNotifications = (enabled = true) => useQuery({ queryKey: adminKeys.notifications, queryFn: () => adminApi.notifications(), refetchInterval: enabled ? 30_000 : false, enabled });
 
 function useAdminMutation<TVariables>(mutationFn: (variables: TVariables) => Promise<unknown>, keys: readonly unknown[] = adminKeys.all) {
   const client = useQueryClient();

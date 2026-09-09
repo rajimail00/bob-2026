@@ -66,6 +66,7 @@ test("manage users excludes administrators and deleted accounts", () => {
 test("user details opens separate offered and taken job history without a role action", async () => {
   const detail = fs.readFileSync(path.join(__dirname, "../screens/AdminUserDetailScreen.tsx"), "utf8");
   const jobs = fs.readFileSync(path.join(__dirname, "../screens/AdminUserJobsScreen.tsx"), "utf8");
+  const header = fs.readFileSync(path.join(__dirname, "../components/AdminHeader.tsx"), "utf8");
   const navigator = fs.readFileSync(path.join(__dirname, "../../../navigation/AdminNavigator.tsx"), "utf8");
   expect(detail).toContain('navigation.navigate("AdminUserJobs"');
   expect(detail).not.toContain("useSetAdminUserRole");
@@ -73,6 +74,14 @@ test("user details opens separate offered and taken job history without a role a
   expect(jobs).toContain('useState<AdminUserJobKind>("offered")');
   expect(jobs).toContain('setKind("taken")');
   expect(jobs).toContain('navigation.navigate("AdminJobDetail"');
+  expect(jobs).not.toContain('t("admin.userJobs.about")');
+  expect(jobs).not.toContain("SummaryCard");
+  expect(jobs).not.toContain("<Avatar");
+  expect(jobs).not.toContain('t("admin.users.registered")');
+  expect(jobs).toContain("summary?.offered ?? stats.jobsPosted");
+  expect(jobs.indexOf("<AdminSearchBar")).toBeLessThan(jobs.indexOf('t("admin.userJobs.offeredWithCount"'));
+  expect(header).toContain("useAdminNotifications(!showBack)");
+  expect(header).toContain("{!showBack ? (");
   expect(navigator).toContain('name="AdminUserJobs"');
 
   apiClient.get.mockReset();

@@ -17,7 +17,7 @@ export function AdminHeader({ title, showBack = false }: { title: string; showBa
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
-  const notifications = useAdminNotifications();
+  const notifications = useAdminNotifications(!showBack);
   const unread = notifications.data?.unreadCount ?? 0;
   const name = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Admin";
 
@@ -43,10 +43,12 @@ export function AdminHeader({ title, showBack = false }: { title: string; showBa
         </Circle>
       )}
       <Text variant="h3" color="white" flex={1} numberOfLines={1}>{title}</Text>
-      <Pressable onPress={() => navigation.navigate("AdminNotifications")} role="button" aria-label={t("admin.accessibility.notifications", { count: unread })} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-        <Circle size={42} backgroundColor="white"><YStack flex={1} alignItems="center" justifyContent="center"><Ionicons name="notifications-outline" size={22} color="#4F8266" /></YStack></Circle>
-        {unread > 0 ? <Circle position="absolute" right={0} top={0} size={18} backgroundColor="$danger"><Text variant="caption" color="white">{unread > 9 ? "9+" : unread}</Text></Circle> : null}
-      </Pressable>
+      {!showBack ? (
+        <Pressable onPress={() => navigation.navigate("AdminNotifications")} role="button" aria-label={t("admin.accessibility.notifications", { count: unread })} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+          <Circle size={42} backgroundColor="white"><YStack flex={1} alignItems="center" justifyContent="center"><Ionicons name="notifications-outline" size={22} color="#4F8266" /></YStack></Circle>
+          {unread > 0 ? <Circle position="absolute" right={0} top={0} size={18} backgroundColor="$danger"><Text variant="caption" color="white">{unread > 9 ? "9+" : unread}</Text></Circle> : null}
+        </Pressable>
+      ) : null}
       <Pressable onPress={() => navigation.navigate("AdminAccount")} role="button" aria-label={t("admin.accessibility.account")} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
         <Avatar uri={user?.photoUrl} name={name} size={42} />
       </Pressable>
