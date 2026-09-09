@@ -63,6 +63,14 @@ test("manage users excludes administrators and deleted accounts", () => {
   expect(source).toContain('user.role !== "admin" && user.status !== "deleted"');
 });
 
+test("user details renders localized worker category names instead of database ids", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../screens/AdminUserDetailScreen.tsx"), "utf8");
+  expect(source).toContain("useAdminCategories()");
+  expect(source).toContain("category._id === categoryId || category.slug === categoryId");
+  expect(source).toContain("category.name[currentLocale] || category.name.en");
+  expect(source).not.toContain('user.workerProfile.categories.join(", ")');
+});
+
 test("user details opens separate offered and taken job history without a role action", async () => {
   const detail = fs.readFileSync(path.join(__dirname, "../screens/AdminUserDetailScreen.tsx"), "utf8");
   const jobs = fs.readFileSync(path.join(__dirname, "../screens/AdminUserJobsScreen.tsx"), "utf8");

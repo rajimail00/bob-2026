@@ -12,11 +12,12 @@ import { ErrorState } from "@/components/ui/states/ErrorState";
 import { LoadingState } from "@/components/ui/states/LoadingState";
 import type { AdminStackParamList } from "@/navigation/types";
 import { AdminHeader } from "../components/AdminHeader";
-import { useAdminUser, useSetAdminUserStatus } from "../hooks/useAdmin";
+import { useAdminCategories, useAdminUser, useSetAdminUserStatus } from "../hooks/useAdmin";
 
 export function AdminUserDetailScreen({ route, navigation }: NativeStackScreenProps<AdminStackParamList, "AdminUserDetail">) {
   const { t, i18n } = useTranslation();
   const query = useAdminUser(route.params.userId);
+  const categoriesQuery = useAdminCategories();
   const statusMutation = useSetAdminUserStatus();
 
   if (query.isLoading) {
@@ -29,6 +30,11 @@ export function AdminUserDetailScreen({ route, navigation }: NativeStackScreenPr
   const { user, stats } = query.data;
   const name = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email;
   const type = user.workerProfile ? "worker" : "client";
+  const currentLocale = i18n.language as "en" | "de" | "es" | "fr";
+  const workerCategoryNames = user.workerProfile?.categories
+    .map((categoryId) => categoriesQuery.data?.find((category) => category._id === categoryId || category.slug === categoryId))
+    .filter((category) => category !== undefined)
+    .map((category) => category.name[currentLocale] || category.name.en) ?? [];
   const toggleStatus = () => {
     const status = user.status === "active" ? "banned" : "active";
     Alert.alert(
@@ -67,7 +73,10 @@ export function AdminUserDetailScreen({ route, navigation }: NativeStackScreenPr
           <Detail label={t("admin.users.rating")} value={`${user.rating.average.toFixed(1)} (${user.rating.count})`} />
           {user.workerProfile ? (
             <>
-              <Detail label={t("admin.users.categories")} value={user.workerProfile.categories.join(", ") || "—"} />
+              <Detail
+                label={t("admin.users.categories")}
+                value={categoriesQuery.isLoading ? t("common.loading") : workerCategoryNames.join(", ") || t("admin.common.noData")}
+              />
               <Detail label={t("admin.users.serviceHours")} value={user.workerProfile.serviceHours} />
             </>
           ) : null}
