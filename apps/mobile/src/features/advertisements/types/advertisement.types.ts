@@ -22,8 +22,6 @@ export interface Advertisement {
 }
 
 export interface AdvertisementInput {
-  title: string;
-  description?: string;
   media?: AdvertisementMedia | null;
   destinationUrl?: string | null;
   placement: AdvertisementPlacement;

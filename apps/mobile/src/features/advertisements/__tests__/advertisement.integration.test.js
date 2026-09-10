@@ -50,3 +50,10 @@ test("advertisement links are restricted to HTTPS and video playback is controll
   expect(card).toContain("instance.muted = true");
   expect(card).toContain("if (!active && playing)");
 });
+
+test("Home advertisements render media only without a title or description footer", () => {
+  const card = fs.readFileSync(path.join(__dirname, "../components/AdvertisementCard.tsx"), "utf8");
+  expect(card).not.toContain("{advertisement.title}");
+  expect(card).not.toContain("advertisement.description");
+  expect(card).toContain('t("advertisements.sponsored")');
+});

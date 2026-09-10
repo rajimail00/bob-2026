@@ -46,8 +46,6 @@ export function AdminAdvertisementFormScreen({ route, navigation }: Props) {
   const create = useCreateAdminAdvertisement();
   const update = useUpdateAdminAdvertisement();
   const [hydratedId, setHydratedId] = useState<string>();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [destinationUrl, setDestinationUrl] = useState("");
   const [media, setMedia] = useState<AdvertisementMedia>();
   const [audience, setAudience] = useState<AdvertisementAudience>("all");
@@ -62,8 +60,6 @@ export function AdminAdvertisementFormScreen({ route, navigation }: Props) {
     const advertisement = query.data;
     if (!advertisement || hydratedId === advertisement._id) return;
     setHydratedId(advertisement._id);
-    setTitle(advertisement.title);
-    setDescription(advertisement.description ?? "");
     setDestinationUrl(advertisement.destinationUrl ?? "");
     setMedia(advertisement.media);
     setAudience(advertisement.audience);
@@ -103,7 +99,6 @@ export function AdminAdvertisementFormScreen({ route, navigation }: Props) {
   };
 
   const validate = () => {
-    if (!title.trim()) return t("admin.advertisements.validation.title");
     if (destinationUrl.trim()) {
       try {
         if (new URL(destinationUrl.trim()).protocol !== "https:") return t("admin.advertisements.validation.https");
@@ -124,8 +119,6 @@ export function AdminAdvertisementFormScreen({ route, navigation }: Props) {
     setError(validationError);
     if (validationError) return;
     const input = {
-      title: title.trim(),
-      description: description.trim(),
       destinationUrl: destinationUrl.trim() || null,
       media: media ?? null,
       placement: "home_list" as const,
@@ -149,8 +142,6 @@ export function AdminAdvertisementFormScreen({ route, navigation }: Props) {
       <AdminHeader title={advertisementId ? t("admin.advertisements.edit") : t("admin.advertisements.create")} showBack />
       <YStack padding="$4" gap="$4">
         <Card elevated gap="$4">
-          <Input label={t("admin.advertisements.internalTitle")} value={title} onChangeText={setTitle} maxLength={120} />
-          <Input label={t("admin.advertisements.description")} value={description} onChangeText={setDescription} multiline maxLength={500} style={{ minHeight: 92, textAlignVertical: "top" }} />
           <AdvertisementMediaPicker media={media} onChange={setMedia} />
           <Input label={t("admin.advertisements.destinationUrl")} value={destinationUrl} onChangeText={setDestinationUrl} autoCapitalize="none" autoCorrect={false} keyboardType="url" placeholder="https://" />
           <Input label={t("admin.advertisements.placement")} value={t("admin.advertisements.homeList")} editable={false} />

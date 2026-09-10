@@ -35,6 +35,9 @@ const commonFields = {
 export const createAdvertisementSchema = z
   .object({
     ...commonFields,
+    // Kept only as a backwards-compatible internal identifier. The mobile admin
+    // form is media-first and no longer asks administrators for display copy.
+    title: commonFields.title.optional().default("Advertisement"),
     media: mediaSchema.optional(),
     status: z.enum(["draft", "active"]).default("draft"),
   })

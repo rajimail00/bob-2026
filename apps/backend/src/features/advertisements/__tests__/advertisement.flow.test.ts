@@ -50,6 +50,11 @@ describe("advertisement management", () => {
     expect((await request(app).post("/api/v1/admin/advertisements").set("Authorization", `Bearer ${admin.token}`).send(input({ media: { type: "image", url: "http://example.com/ad.jpg" } }))).status).toBe(400);
     expect((await request(app).post("/api/v1/admin/advertisements").set("Authorization", `Bearer ${admin.token}`).send(input({ media: { type: "video", url: "https://example.com/ad.mp4", mimeType: "image/jpeg" } }))).status).toBe(400);
     expect((await request(app).post("/api/v1/admin/advertisements").set("Authorization", `Bearer ${admin.token}`).send(input({ clientId: client.user.id }))).status).toBe(400);
+
+    const { title: _title, description: _description, ...mediaOnlyInput } = input({ status: "draft" });
+    const mediaOnlyCreated = await request(app).post("/api/v1/admin/advertisements").set("Authorization", `Bearer ${admin.token}`).send(mediaOnlyInput);
+    expect(mediaOnlyCreated.status).toBe(201);
+    expect(mediaOnlyCreated.body.advertisement.title).toBe("Advertisement");
   });
 
   it("lets an admin create, read, update, pause and soft-delete an advertisement with audits", async () => {

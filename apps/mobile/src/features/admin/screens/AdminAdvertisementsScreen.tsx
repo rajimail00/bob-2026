@@ -48,7 +48,7 @@ export function AdminAdvertisementsScreen({ navigation }: Props) {
   const date = (value?: string) => value ? new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—";
 
   const confirmAction = (item: Advertisement, action: "pause" | "archive" | "delete") => {
-    Alert.alert(t(`admin.advertisements.${action}Title`), t("admin.advertisements.confirmBody", { title: item.title }), [
+    Alert.alert(t(`admin.advertisements.${action}Title`), t("admin.advertisements.confirmBody", { title: t("advertisements.advertisement") }), [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t(`admin.advertisements.${action}`),
@@ -83,7 +83,7 @@ export function AdminAdvertisementsScreen({ navigation }: Props) {
                 <YStack width={72} height={72} borderRadius="$md" overflow="hidden" backgroundColor="$brand100" alignItems="center" justifyContent="center">
                   {item.media?.type === "image" ? <Image source={{ uri: item.media.url }} style={{ width: 72, height: 72 }} resizeMode="cover" /> : <Ionicons name={item.media?.type === "video" ? "videocam-outline" : "image-outline"} size={30} color="#4F8266" />}
                 </YStack>
-                <YStack flex={1} gap="$1"><Text variant="h4" numberOfLines={1}>{item.title}</Text><Text variant="caption">{t(`admin.advertisements.mediaTypes.${item.media?.type ?? "none"}`)} · {t(`admin.advertisements.audiences.${item.audience}`)}</Text><StatusPill label={t(`admin.advertisements.statuses.${effectiveStatus}`)} tone={statusTone(effectiveStatus)} /></YStack>
+                <YStack flex={1} gap="$1"><Text variant="h4" numberOfLines={1}>{t("advertisements.advertisement")} · {item._id.slice(-6)}</Text><Text variant="caption">{t(`admin.advertisements.mediaTypes.${item.media?.type ?? "none"}`)} · {t(`admin.advertisements.audiences.${item.audience}`)}</Text><StatusPill label={t(`admin.advertisements.statuses.${effectiveStatus}`)} tone={statusTone(effectiveStatus)} /></YStack>
               </XStack>
               <YStack gap="$1"><Text variant="caption">{t("admin.advertisements.startsAt")}: {date(item.startsAt)}</Text><Text variant="caption">{t("admin.advertisements.endsAt")}: {date(item.endsAt)}</Text><Text variant="caption">{t("admin.advertisements.placement")}: {t("admin.advertisements.homeList")} · {t("admin.advertisements.priority")}: {item.priority}</Text><Text variant="caption">{t("admin.advertisements.createdAt")}: {date(item.createdAt)}</Text><Text variant="caption">{t("admin.advertisements.updatedAt")}: {date(item.updatedAt)}</Text></YStack>
               <XStack flexWrap="wrap" gap="$2">

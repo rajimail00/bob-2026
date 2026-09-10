@@ -44,7 +44,7 @@ export function AdvertisementCard({ advertisement, screenActive = true, playback
     <Pressable
       onPress={canOpen ? () => void openSecureUrl(advertisement.destinationUrl) : undefined}
       role={canOpen ? "button" : undefined}
-      aria-label={canOpen ? t("advertisements.open", { title: advertisement.title }) : t("advertisements.label", { title: advertisement.title })}
+      aria-label={canOpen ? t("advertisements.open") : t("advertisements.label")}
     >
       <Card elevated padding={0} overflow="hidden" borderColor="$brand300">
         <YStack height={180} backgroundColor="$neutral100" alignItems="center" justifyContent="center">
@@ -71,10 +71,6 @@ export function AdvertisementCard({ advertisement, screenActive = true, playback
           <XStack position="absolute" top="$2" left="$2" backgroundColor="$backgroundStrong" borderRadius="$pill" paddingHorizontal="$3" paddingVertical="$1">
             <Text variant="small" color="$primary" fontWeight="700">{t("advertisements.sponsored")}</Text>
           </XStack>
-        </YStack>
-        <YStack padding="$3" gap="$1">
-          <Text variant="h4" numberOfLines={1}>{advertisement.title}</Text>
-          {advertisement.description ? <Text variant="caption" numberOfLines={2}>{advertisement.description}</Text> : null}
         </YStack>
       </Card>
     </Pressable>

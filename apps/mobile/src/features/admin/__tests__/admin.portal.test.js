@@ -94,6 +94,16 @@ test("advertisement screens include validation, media preview and confirmed dest
   expect(picker).toContain("requestMediaLibraryPermissionsAsync");
 });
 
+test("advertisement admin screens are media-first without title or description controls", () => {
+  const list = fs.readFileSync(path.join(__dirname, "../screens/AdminAdvertisementsScreen.tsx"), "utf8");
+  const form = fs.readFileSync(path.join(__dirname, "../screens/AdminAdvertisementFormScreen.tsx"), "utf8");
+  expect(form).not.toContain('t("admin.advertisements.internalTitle")');
+  expect(form).not.toContain('t("admin.advertisements.description")');
+  expect(form).not.toContain("setDescription");
+  expect(list).not.toContain("{item.title}");
+  expect(list).toContain('t("advertisements.advertisement")');
+});
+
 test("manage users excludes administrators and deleted accounts", () => {
   const source = fs.readFileSync(path.join(__dirname, "../screens/AdminUsersScreen.tsx"), "utf8");
   expect(source).toContain('const types = ["worker", "client"] as const');
