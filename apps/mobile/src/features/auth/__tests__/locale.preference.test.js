@@ -34,7 +34,7 @@ test("login, email verification, and session restoration apply the server locale
 test("Register and Profile share the complete central language list", () => {
   const sourceRoot = path.join(__dirname, "..", "..");
   const register = fs.readFileSync(path.join(sourceRoot, "auth", "screens", "RegisterScreen.tsx"), "utf8");
-  const profile = fs.readFileSync(path.join(sourceRoot, "profile", "screens", "ProfileScreen.tsx"), "utf8");
+  const profile = fs.readFileSync(path.join(sourceRoot, "profile", "screens", "ProfileSettingsScreen.tsx"), "utf8");
 
   expect(register).toContain("LANGUAGE_OPTIONS.map");
   expect(profile).toContain("LANGUAGE_OPTIONS.map");

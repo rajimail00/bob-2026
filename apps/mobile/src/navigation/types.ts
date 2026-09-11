@@ -32,11 +32,19 @@ export type OrdersStackParamList = {
   WorkerProfileSetup: undefined;
 };
 
+export type ProfileStackParamList = {
+  ProfileOverview: undefined;
+  ProfileSettings: undefined;
+  ProfileCategories: undefined;
+  ProfileEdit: undefined;
+  ProfileNotifications: undefined;
+};
+
 export type MainTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
   Orders: NavigatorScreenParams<OrdersStackParamList>;
   Post: undefined;
-  Profile: undefined;
+  Profile: NavigatorScreenParams<ProfileStackParamList>;
 };
 
 export type AdminTabParamList = {

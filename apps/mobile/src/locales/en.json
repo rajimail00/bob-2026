@@ -400,6 +400,7 @@
     "feedback": "Feedback",
     "help": "Help"
   },
+  "profileFlow": { "settings": "Settings", "categories": "Categories", "noCategories": "No service categories selected", "jobCount_one": "{{count}} job", "jobCount_other": "{{count}} jobs", "memberSince": "Member since {{date}}", "notAvailable": "Not available", "recentActivity": "Recent jobs and reviews", "activityError": "Your recent jobs could not be loaded.", "noActivity": "No recent jobs yet.", "openJob": "Open job {{title}}", "scheduled": "Scheduled: {{date}}", "chooseCategories": "Choose categories", "serviceHours": "Service hours", "availabilityUpdateError": "Service hours could not be saved.", "inviteMessage": "Discover local jobs and trusted help with BOB.", "actionUnavailable": "This feature is not available yet.", "contactUnavailableTitle": "Email app unavailable", "contactUnavailableBody": "Set up an email app to contact BOB support.", "feedbackSubject": "BOB feedback", "helpSubject": "BOB help", "upgradePro": "Upgrade to BOB Pro", "firstName": "First name", "lastName": "Last name", "email": "Email", "chooseUpToCategories": "Choose up to {{count}} categories", "selectedCategories": "{{selected}} of {{count}} selected", "categoryLimit": "You can choose up to {{count}} categories.", "categoryRequired": "Choose at least one category.", "categorySaveError": "Your categories could not be saved.", "categoriesLoadError": "Categories could not be loaded." },
   "subscriptionTiers": { "free": "Free", "pro": "Pro", "unlimited": "Unlimited" },
   "reviews": {
     "title": "Rate your experience",
