@@ -38,6 +38,7 @@ export type ProfileStackParamList = {
   ProfileCategories: undefined;
   ProfileEdit: undefined;
   ProfileNotifications: undefined;
+  ProfileAccount: undefined;
 };
 
 export type MainTabParamList = {

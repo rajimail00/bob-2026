@@ -5,6 +5,7 @@ import { Pressable } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Circle, XStack, YStack } from "tamagui";
+import { BobLogo } from "@/components/brand/BobLogo";
 import { Avatar } from "@/components/ui/Avatar";
 import { Text } from "@/components/ui/Text";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -38,9 +39,7 @@ export function AdminHeader({ title, showBack = false }: { title: string; showBa
           <Ionicons name="arrow-back" size={25} color="white" />
         </Pressable>
       ) : (
-        <Circle size={48} backgroundColor="white" alignItems="center" justifyContent="center">
-          <Text variant="h2" color="$primary">β</Text>
-        </Circle>
+        <BobLogo size={48} />
       )}
       <Text variant="h3" color="white" flex={1} numberOfLines={1}>{title}</Text>
       {!showBack ? (
@@ -50,7 +49,9 @@ export function AdminHeader({ title, showBack = false }: { title: string; showBa
         </Pressable>
       ) : null}
       <Pressable onPress={() => navigation.navigate("AdminAccount")} role="button" aria-label={t("admin.accessibility.account")} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-        <Avatar uri={user?.photoUrl} name={name} size={42} />
+        <Circle size={42} backgroundColor="white" alignItems="center" justifyContent="center">
+          <Avatar uri={user?.photoUrl} name={name} size={38} />
+        </Circle>
       </Pressable>
     </XStack>
   );

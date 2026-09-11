@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { FlatList, type ViewToken } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Input } from "@/components/ui/Input";
+import { CustomerHeader } from "@/components/layout/CustomerHeader";
 import { PillTabs } from "@/components/ui/PillTabs";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
@@ -21,7 +22,6 @@ import { JobCard } from "../components/JobCard";
 import { JobFilterModal, type JobFilters } from "../components/JobFilterModal";
 import { JobMapView } from "../components/JobMapView";
 import { isGloballyVisibleJob, useCategories, useJobs } from "../hooks/useJobs";
-import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { AdvertisementCard } from "@/features/advertisements/components/AdvertisementCard";
 import { useAdvertisements } from "@/features/advertisements/hooks/useAdvertisements";
 import { insertAdvertisements } from "@/features/advertisements/utils/insertAdvertisements";
@@ -94,6 +94,7 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <Screen padded={false}>
+      <CustomerHeader title={t("navigation.home")} />
       <YStack padding="$4" gap="$3">
         <XStack gap="$2" alignItems="center">
           <YStack flex={1}>
@@ -111,10 +112,6 @@ export function HomeScreen({ navigation }: Props) {
               }
             />
           </YStack>
-          <NotificationBell
-            onPress={() => navigation.navigate("Notifications")}
-            label={(count) => t("notifications.bellLabel", { count })}
-          />
           <XStack
             width={44}
             height={44}

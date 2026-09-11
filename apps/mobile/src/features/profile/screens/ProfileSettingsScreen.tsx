@@ -13,7 +13,6 @@ import { LANGUAGE_OPTIONS, type SupportedLocale } from "@/lib/i18n";
 import {
   useCompleteWorkerProfile,
   useDeleteAccount,
-  useLogout,
   useUpdateLocale,
 } from "@/features/auth/hooks/useAuthMutations";
 import { useAuthStore } from "@/features/auth/store/authStore";
@@ -28,7 +27,6 @@ const SUPPORT_EMAIL = "support@bob-app.com";
 export function ProfileSettingsScreen({ navigation }: Props) {
   const { t, i18n } = useTranslation();
   const user = useAuthStore((state) => state.user);
-  const logout = useLogout();
   const deleteAccount = useDeleteAccount();
   const updateLocale = useUpdateLocale();
   const updateWorkerProfile = useCompleteWorkerProfile();
@@ -197,7 +195,6 @@ export function ProfileSettingsScreen({ navigation }: Props) {
             <Text variant="label">{t("profile.subscription")}</Text>
             <Text fontWeight="600">BOB-{t(`subscriptionTiers.${user?.subscriptionTier ?? "free"}`)}</Text>
           </XStack>
-          <Button variant="outline" onPress={() => logout.mutate()} loading={logout.isPending}>{t("common.logout")}</Button>
           <Button variant="destructive" onPress={confirmAccountDeletion} loading={deleteAccount.isPending}>{t("profile.deactivateTitle")}</Button>
         </Card>
       </YStack>

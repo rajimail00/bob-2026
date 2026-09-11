@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
+import { CustomerHeader } from "@/components/layout/CustomerHeader";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { NumberStepper } from "@/components/ui/NumberStepper";
@@ -284,8 +285,9 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
   if (published) {
     return (
-      <Screen>
-        <YStack flex={1} alignItems="center" justifyContent="center" gap="$4">
+      <Screen padded={false}>
+        <CustomerHeader title={t("navigation.post")} />
+        <YStack flex={1} padding="$4" alignItems="center" justifyContent="center" gap="$4">
           <Text variant="h2" textAlign="center">
             {t("postJob.successTitle")}
           </Text>
@@ -305,7 +307,14 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   }
 
   if (categoriesQuery.isLoading || (isExistingJobMode && jobQuery.isLoading)) {
-    return <LoadingState label={t("common.loading")} />;
+    return isExistingJobMode ? (
+      <LoadingState label={t("common.loading")} />
+    ) : (
+      <Screen padded={false}>
+        <CustomerHeader title={t("navigation.post")} />
+        <LoadingState label={t("common.loading")} />
+      </Screen>
+    );
   }
   if (isExistingJobMode && (jobQuery.isError || !jobQuery.data)) {
     return (
@@ -323,6 +332,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+      {!isExistingJobMode ? <CustomerHeader title={t("navigation.post")} /> : null}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}

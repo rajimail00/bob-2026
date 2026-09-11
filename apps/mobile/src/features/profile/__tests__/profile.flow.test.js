@@ -19,7 +19,34 @@ test("the Profile tab uses a typed nested stack for the complete customer profil
   expect(stack).toContain('name="ProfileCategories"');
   expect(stack).toContain('name="ProfileEdit"');
   expect(stack).toContain('name="ProfileNotifications"');
+  expect(stack).toContain('name="ProfileAccount"');
   expect(types).toContain("Profile: NavigatorScreenParams<ProfileStackParamList>");
+});
+
+test("customer main screens share the branded header and account owns logout", () => {
+  const header = read("components/layout/CustomerHeader.tsx");
+  const logo = read("components/brand/BobLogo.tsx");
+  const home = read("features/home/screens/HomeScreen.tsx");
+  const orders = read("features/orders/screens/OrdersScreen.tsx");
+  const post = read("features/orders/screens/PostJobScreen.tsx");
+  const profile = fs.readFileSync(path.join(profileScreens, "ProfileScreen.tsx"), "utf8");
+  const settings = fs.readFileSync(path.join(profileScreens, "ProfileSettingsScreen.tsx"), "utf8");
+  const account = fs.readFileSync(path.join(profileScreens, "ProfileAccountScreen.tsx"), "utf8");
+  const adminHeader = read("features/admin/components/AdminHeader.tsx");
+
+  expect(logo).toContain('require("../../../assets/splash-icon.png")');
+  expect(header).toContain("<BobLogo");
+  expect(header).toContain('screen: "Notifications"');
+  expect(header).toContain('screen: "ProfileAccount"');
+  expect(adminHeader).toContain("<BobLogo");
+  expect(adminHeader).not.toContain(">β<");
+  for (const screen of [home, orders, post, profile]) {
+    expect(screen).toContain("<CustomerHeader");
+  }
+  expect(account).toContain("useLogout");
+  expect(account).toContain('t("common.logout")');
+  expect(settings).not.toContain("useLogout");
+  expect(settings).not.toContain('t("common.logout")');
 });
 
 test("profile overview uses authenticated categories and real posted and assigned jobs", () => {

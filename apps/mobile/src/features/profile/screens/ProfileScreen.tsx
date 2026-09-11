@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { NavigationProp } from "@react-navigation/native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ActivityIndicator, Image, Pressable } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView } from "react-native";
 import { useTranslation } from "react-i18next";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
+import { CustomerHeader } from "@/components/layout/CustomerHeader";
 import { Card } from "@/components/ui/Card";
 import { Screen } from "@/components/ui/Screen";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -56,8 +57,10 @@ export function ProfileScreen({ navigation }: Props) {
   };
 
   return (
-    <Screen scroll scrollBottomPadding={32}>
-      <YStack gap="$5" paddingTop="$3">
+    <Screen padded={false}>
+      <CustomerHeader title={t("navigation.profile")} />
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+      <YStack gap="$5">
         <XStack justifyContent="flex-end">
           <Pressable
             onPress={() => navigation.navigate("ProfileSettings")}
@@ -144,6 +147,7 @@ export function ProfileScreen({ navigation }: Props) {
           <Text muted textAlign="center">{t("profileFlow.noActivity")}</Text>
         )}
       </YStack>
+      </ScrollView>
     </Screen>
   );
 }

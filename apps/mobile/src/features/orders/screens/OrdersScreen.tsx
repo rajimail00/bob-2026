@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { SectionList } from "react-native";
 import { YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
+import { CustomerHeader } from "@/components/layout/CustomerHeader";
 import { PillTabs } from "@/components/ui/PillTabs";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
@@ -89,6 +90,7 @@ export function OrdersScreen({ navigation }: Props) {
 
   return (
     <Screen padded={false}>
+      <CustomerHeader title={t("navigation.orders")} />
       <YStack padding="$4">
         <PillTabs
           options={[
