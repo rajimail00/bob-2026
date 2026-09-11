@@ -146,7 +146,10 @@ export function JobCard({ job, onPress, distance, onDelete, isDeleting, badge }:
         </XStack>
 
         <XStack flexWrap="wrap" gap="$3" alignItems="center">
-          <IconLabel icon={getCategoryIcon(job.categoryId.slug)} label={undefined} />
+          <IconLabel
+            icon={getCategoryIcon(job.categoryId.slug)}
+            label={job.categoryId.name[locale] || job.categoryId.name.en}
+          />
           <IconLabel icon="calendar-outline" label={formatDay(job.date, locale, t("jobs.today"))} />
           <IconLabel icon="time-outline" label={formatTime(job.date, locale)} />
           {distance ? <IconLabel icon="location-outline" label={distance} /> : null}

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
 import { XStack, YStack } from "tamagui";
-import { getCategoryIcon } from "../constants/categoryIcons";
+import { getCategoryMarkerImage } from "../constants/categoryMarkerImages";
 import type { Job } from "../types/job.types";
 import { JobCard } from "./JobCard";
 
@@ -34,16 +34,19 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
         onPress={() => setSelectedJobId(null)}
         toolbarEnabled={false}
       >
-        {jobs.map((job) => (
-          <Marker
-            key={job._id}
-            coordinate={{ latitude: job.location.coordinates[1], longitude: job.location.coordinates[0] }}
-            onPress={() => setSelectedJobId(job._id)}
-            anchor={{ x: 0.5, y: 0.94 }}
-          >
-            <CategoryPin iconName={getCategoryIcon(job.categoryId.slug)} isSelected={job._id === selectedJobId} />
-          </Marker>
-        ))}
+        {jobs.map((job) => {
+          const isSelected = job._id === selectedJobId;
+
+          return (
+            <Marker
+              key={job._id}
+              coordinate={{ latitude: job.location.coordinates[1], longitude: job.location.coordinates[0] }}
+              onPress={() => setSelectedJobId(job._id)}
+              image={getCategoryMarkerImage(job.categoryId.slug, isSelected)}
+              anchor={{ x: 0.5, y: 0.92 }}
+            />
+          );
+        })}
       </MapView>
 
       {selectedJob ? (
@@ -83,50 +86,6 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
           </YStack>
         </YStack>
       ) : null}
-    </YStack>
-  );
-}
-
-function CategoryPin({ iconName, isSelected }: { iconName: keyof typeof Ionicons.glyphMap; isSelected: boolean }) {
-  const bubbleSize = isSelected ? 56 : 48;
-  const color = isSelected ? "$tan500" : "$primary";
-  const containerWidth = bubbleSize + 16;
-  const containerHeight = bubbleSize + 10;
-  const tailSize = 14;
-
-  return (
-    <YStack width={containerWidth} height={containerHeight} position="relative">
-      <YStack
-        position="absolute"
-        top={0}
-        left={(containerWidth - bubbleSize) / 2}
-        width={bubbleSize}
-        height={bubbleSize}
-        borderRadius={bubbleSize / 2}
-        backgroundColor={color}
-        alignItems="center"
-        justifyContent="center"
-        borderWidth={3}
-        borderColor="$backgroundStrong"
-        shadowColor="#000"
-        shadowOpacity={0.25}
-        shadowRadius={4}
-        shadowOffset={{ width: 0, height: 2 }}
-      >
-        <Ionicons name={iconName} size={isSelected ? 28 : 24} color="white" />
-      </YStack>
-      <YStack
-        position="absolute"
-        top={bubbleSize - tailSize / 2}
-        left={(containerWidth - tailSize) / 2}
-        width={tailSize}
-        height={tailSize}
-        backgroundColor={color}
-        borderBottomWidth={3}
-        borderRightWidth={3}
-        borderColor="$backgroundStrong"
-        style={{ transform: [{ rotate: "45deg" }] }}
-      />
     </YStack>
   );
 }

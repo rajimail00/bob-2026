@@ -6,9 +6,10 @@ import { useUnreadNotificationCount } from "../hooks/useNotifications";
 interface NotificationBellProps {
   onPress: () => void;
   label: (count: number) => string;
+  onBrand?: boolean;
 }
 
-export function NotificationBell({ onPress, label }: NotificationBellProps) {
+export function NotificationBell({ onPress, label, onBrand = false }: NotificationBellProps) {
   const { unreadCount } = useUnreadNotificationCount();
 
   return (
@@ -17,15 +18,15 @@ export function NotificationBell({ onPress, label }: NotificationBellProps) {
       height={44}
       borderRadius={22}
       borderWidth={1.5}
-      borderColor="$borderColor"
-      backgroundColor="$backgroundStrong"
+      borderColor={onBrand ? "white" : "$borderColor"}
+      backgroundColor={onBrand ? "transparent" : "$backgroundStrong"}
       alignItems="center"
       justifyContent="center"
       onPress={onPress}
       role="button"
       aria-label={label(unreadCount)}
     >
-      <Ionicons name="notifications-outline" size={21} color="#4F8266" />
+      <Ionicons name="notifications-outline" size={22} color={onBrand ? "white" : "#4F8266"} />
       {unreadCount > 0 ? (
         <YStack
           position="absolute"

@@ -17,6 +17,7 @@ interface ScreenProps {
   background?: "default" | "brand";
   safeAreaEdges?: Edge[];
   scrollBottomPadding?: number;
+  contentGap?: "$0" | "$1" | "$2" | "$3" | "$4" | "$5" | "$6";
 }
 
 /** Base screen shell: safe area + optional scroll + keyboard avoidance. Every screen composes this instead of raw SafeAreaView. */
@@ -27,6 +28,7 @@ export function Screen({
   background = "default",
   safeAreaEdges,
   scrollBottomPadding = 96,
+  contentGap = "$4",
 }: ScreenProps) {
   const bg = background === "brand" ? "$primary" : "$background";
   const scrollRef = useRef<ScrollView>(null);
@@ -58,7 +60,7 @@ export function Screen({
   );
 
   const content = (
-    <YStack flex={1} backgroundColor={bg} padding={padded ? "$4" : "$0"} gap="$4">
+    <YStack flex={1} backgroundColor={bg} padding={padded ? "$4" : "$0"} gap={contentGap}>
       {children}
     </YStack>
   );

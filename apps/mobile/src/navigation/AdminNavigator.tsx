@@ -5,6 +5,7 @@ import type { RouteProp } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "tamagui";
+import { ResponsiveTabLabel } from "@/components/navigation/ResponsiveTabLabel";
 import type { AdminStackParamList, AdminTabParamList } from "./types";
 import { AdminDashboardScreen } from "@/features/admin/screens/AdminDashboardScreen";
 import { AdminUsersScreen } from "@/features/admin/screens/AdminUsersScreen";
@@ -32,6 +33,13 @@ function AdminTabs() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const bottomPadding = Math.max(insets.bottom, 10);
+  const labels: Record<keyof AdminTabParamList, string> = {
+    AdminDashboard: t("admin.navigation.dashboard"),
+    AdminUsers: t("admin.navigation.users"),
+    AdminJobs: t("admin.navigation.jobs"),
+    AdminTickets: t("admin.navigation.tickets"),
+    AdminSettings: t("admin.navigation.settings"),
+  };
 
   return (
     <Tab.Navigator
@@ -48,10 +56,9 @@ function AdminTabs() {
         tabBarItemStyle: {
           paddingVertical: 2,
         },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          lineHeight: 13,
-        },
+        tabBarLabel: ({ color }: { color: string }) => (
+          <ResponsiveTabLabel label={labels[route.name]} color={color} maxWidth={68} />
+        ),
         tabBarIcon: ({ color, size }) => (
           <Ionicons name={icons[route.name]} color={color} size={size} />
         ),
@@ -60,27 +67,22 @@ function AdminTabs() {
       <Tab.Screen
         name="AdminDashboard"
         component={AdminDashboardScreen}
-        options={{ tabBarLabel: t("admin.navigation.dashboard") }}
       />
       <Tab.Screen
         name="AdminUsers"
         component={AdminUsersScreen}
-        options={{ tabBarLabel: t("admin.navigation.users") }}
       />
       <Tab.Screen
         name="AdminJobs"
         component={AdminJobsScreen}
-        options={{ tabBarLabel: t("admin.navigation.jobs") }}
       />
       <Tab.Screen
         name="AdminTickets"
         component={AdminTicketsScreen}
-        options={{ tabBarLabel: t("admin.navigation.tickets") }}
       />
       <Tab.Screen
         name="AdminSettings"
         component={AdminSettingsScreen}
-        options={{ tabBarLabel: t("admin.navigation.settings") }}
       />
     </Tab.Navigator>
   );

@@ -44,7 +44,7 @@ export function AdminHeader({ title, showBack = false }: { title: string; showBa
       <Text variant="h3" color="white" flex={1} numberOfLines={1}>{title}</Text>
       {!showBack ? (
         <Pressable onPress={() => navigation.navigate("AdminNotifications")} role="button" aria-label={t("admin.accessibility.notifications", { count: unread })} style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-          <Circle size={42} backgroundColor="white"><YStack flex={1} alignItems="center" justifyContent="center"><Ionicons name="notifications-outline" size={22} color="#4F8266" /></YStack></Circle>
+          <Circle size={42} backgroundColor="transparent" borderWidth={1.5} borderColor="white"><YStack flex={1} alignItems="center" justifyContent="center"><Ionicons name="notifications-outline" size={22} color="white" /></YStack></Circle>
           {unread > 0 ? <Circle position="absolute" right={0} top={0} size={18} backgroundColor="$danger"><Text variant="caption" color="white">{unread > 9 ? "9+" : unread}</Text></Circle> : null}
         </Pressable>
       ) : null}

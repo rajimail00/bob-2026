@@ -93,7 +93,7 @@ export function HomeScreen({ navigation }: Props) {
   };
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} contentGap="$0" safeAreaEdges={["top", "left", "right"]}>
       <CustomerHeader title={t("navigation.home")} />
       <YStack padding="$4" gap="$3">
         <XStack gap="$2" alignItems="center">
@@ -177,6 +177,7 @@ export function HomeScreen({ navigation }: Props) {
         />
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={homeListItems}
           keyExtractor={(item) => item.key}
           renderItem={({ item }) => (
@@ -197,7 +198,7 @@ export function HomeScreen({ navigation }: Props) {
               )}
             </YStack>
           )}
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: 8 }}
           refreshing={jobsQuery.isFetching || advertisementsQuery.isFetching}
           onRefresh={() => { void Promise.all([jobsQuery.refetch(), advertisementsQuery.refetch()]); }}
           onViewableItemsChanged={onViewableItemsChanged}

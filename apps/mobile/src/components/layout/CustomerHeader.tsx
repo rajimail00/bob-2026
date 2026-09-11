@@ -45,6 +45,7 @@ export function CustomerHeader({ title, showBack = false }: { title: string; sho
       <Text variant="h3" color="white" flex={1} numberOfLines={1}>{title}</Text>
       {!showBack ? (
         <NotificationBell
+          onBrand
           onPress={() => navigation.navigate("Home", { screen: "Notifications" })}
           label={(count) => t("notifications.bellLabel", { count })}
         />
