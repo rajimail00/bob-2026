@@ -1,4 +1,5 @@
 import { Pressable } from "react-native";
+import { useTranslation } from "react-i18next";
 import { XStack, YStack } from "tamagui";
 import { Card } from "@/components/ui/Card";
 import { Text } from "@/components/ui/Text";
@@ -10,14 +11,15 @@ function MiniTrend({ values }: { values: number[] }) {
 }
 
 export function AdminMetricCard({ label, metric, suffix, onPress }: { label: string; metric: Metric; suffix?: string; onPress?: () => void }) {
+  const { i18n } = useTranslation();
   const comparison = metric.comparison;
   return (
     <Pressable onPress={onPress} disabled={!onPress} role={onPress ? "button" : undefined} aria-label={label} style={{ width: "48%" }}>
       <Card elevated minHeight={158} justifyContent="space-between">
         <Text variant="small" color="$brand700" fontWeight="600">{label}</Text>
         <MiniTrend values={metric.series.map((point) => point.value)} />
-        <Text variant="h3">{metric.value === null ? "—" : `${metric.value.toLocaleString()}${suffix ?? ""}`}</Text>
-        <Text variant="caption" color={comparison !== null && comparison < 0 ? "$danger" : "$primary"}>{comparison === null ? "—" : `${comparison >= 0 ? "↑" : "↓"} ${Math.abs(comparison)}%`}</Text>
+        <Text variant="h3">{metric.value === null ? "—" : `${metric.value.toLocaleString(i18n.language)}${suffix ?? ""}`}</Text>
+        <Text variant="caption" color={comparison !== null && comparison < 0 ? "$danger" : "$primary"}>{comparison === null ? "—" : `${comparison >= 0 ? "↑" : "↓"} ${Math.abs(comparison).toLocaleString(i18n.language)}%`}</Text>
       </Card>
     </Pressable>
   );

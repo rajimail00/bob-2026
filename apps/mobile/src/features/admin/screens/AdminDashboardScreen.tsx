@@ -20,12 +20,16 @@ const periods: AdminPeriod[] = ["day", "week", "month", "year"];
 const metricKeys = ["allUsers", "activeUsers", "averageTime", "jobPosts", "activeJobs", "supportTickets"] as const;
 
 export function AdminDashboardScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<AdminStackParamList>>();
   const [period, setPeriod] = useState<AdminPeriod>("week");
   const [heatTab, setHeatTab] = useState<"geo" | "engagement" | "time">("geo");
   const query = useAdminDashboard(period);
   const data = query.data;
+  const activityLabel = (label: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(label)) return label;
+    return new Intl.DateTimeFormat(i18n.language, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${label}T00:00:00Z`));
+  };
   const drill = (key: typeof metricKeys[number]) => {
     if (key === "allUsers" || key === "activeUsers") navigation.navigate("AdminTabs", { screen: "AdminUsers" });
     if (key === "activeJobs" || key === "jobPosts") navigation.navigate("AdminTabs", { screen: "AdminJobs" });
@@ -46,7 +50,7 @@ export function AdminDashboardScreen() {
               <Text variant="h4">{t("admin.dashboard.activity")}</Text>
               {data.activity.length ? data.activity.map((point) => {
                 const max = Math.max(...data.activity.map((item) => item.value), 1);
-                return <XStack key={point.label} alignItems="center" gap="$2"><Text variant="caption" width={76}>{point.label}</Text><YStack height={12} borderRadius="$pill" backgroundColor="$brand100" flex={1}><YStack height={12} width={`${Math.max(4, (point.value / max) * 100)}%`} borderRadius="$pill" backgroundColor="$primary" /></YStack><Text variant="caption" width={26}>{point.value}</Text></XStack>;
+                return <XStack key={point.label} alignItems="center" gap="$2"><Text variant="caption" width={76}>{activityLabel(point.label)}</Text><YStack height={12} borderRadius="$pill" backgroundColor="$brand100" flex={1}><YStack height={12} width={`${Math.max(4, (point.value / max) * 100)}%`} borderRadius="$pill" backgroundColor="$primary" /></YStack><Text variant="caption" width={26}>{point.value.toLocaleString(i18n.language)}</Text></XStack>;
               }) : <Text muted>{t("admin.common.noData")}</Text>}
             </Card>
             <Card elevated gap="$3">
@@ -57,7 +61,7 @@ export function AdminDashboardScreen() {
                   {data.geo.map((point, index) => <MapCircle key={`${point.latitude}-${point.longitude}-${index}`} center={point} radius={Math.max(1500, point.count * 800)} fillColor="rgba(79,130,102,0.3)" strokeColor="#4F8266" />)}
                 </MapView>
               ) : <Text muted>{t("admin.common.noData")}</Text> : (
-                <YStack gap="$2">{data.activity.length ? data.activity.map((item) => <Pressable key={item.label}><XStack justifyContent="space-between"><Text>{item.label}</Text><Text color="$primary">{item.value}</Text></XStack></Pressable>) : <Text muted>{t("admin.common.noData")}</Text>}</YStack>
+                <YStack gap="$2">{data.activity.length ? data.activity.map((item) => <Pressable key={item.label}><XStack justifyContent="space-between"><Text>{activityLabel(item.label)}</Text><Text color="$primary">{item.value.toLocaleString(i18n.language)}</Text></XStack></Pressable>) : <Text muted>{t("admin.common.noData")}</Text>}</YStack>
               )}
             </Card>
             <Text variant="caption">{t("admin.dashboard.utcNote")}</Text>

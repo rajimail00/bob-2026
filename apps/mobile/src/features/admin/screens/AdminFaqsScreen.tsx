@@ -38,6 +38,7 @@ export function AdminFaqsScreen() {
   const [section, setSection] = useState("general");
   const [published, setPublished] = useState(false);
   const [search, setSearch] = useState("");
+  const currentLocale = i18n.language as keyof LocalizedText;
 
   const reset = () => {
     setEditing(undefined);
@@ -123,13 +124,13 @@ export function AdminFaqsScreen() {
             <Card key={item._id} elevated>
               <XStack gap="$3" alignItems="center">
                 <YStack flex={1}>
-                  <Text variant="h4">{item.question[i18n.language as keyof LocalizedText] || item.question.en}</Text>
+                  <Text variant="h4">{item.question[currentLocale] || item.question.en}</Text>
                   <Text variant="caption">{item.section} · {item.published ? t("admin.faqs.published") : t("admin.faqs.unpublished")}</Text>
                 </YStack>
                 <Pressable onPress={() => move(sourceIndex, -1)} role="button" aria-label={t("admin.categories.moveUp")}><Ionicons name="arrow-up" size={22} color="#4F8266" /></Pressable>
                 <Pressable onPress={() => move(sourceIndex, 1)} role="button" aria-label={t("admin.categories.moveDown")}><Ionicons name="arrow-down" size={22} color="#4F8266" /></Pressable>
                 <Pressable onPress={() => choose(item)} role="button" aria-label={t("admin.faqs.edit")}><Ionicons name="create-outline" size={23} color="#4F8266" /></Pressable>
-                <Pressable onPress={() => Alert.alert(t("admin.faqs.deleteTitle"), item.question.en, [{ text: t("common.cancel"), style: "cancel" }, { text: t("admin.faqs.delete"), style: "destructive", onPress: () => remove.mutate(item._id) }])} role="button" aria-label={t("admin.faqs.delete")}><Ionicons name="trash-outline" size={23} color="#C1554B" /></Pressable>
+                <Pressable onPress={() => Alert.alert(t("admin.faqs.deleteTitle"), item.question[currentLocale] || item.question.en, [{ text: t("common.cancel"), style: "cancel" }, { text: t("admin.faqs.delete"), style: "destructive", onPress: () => remove.mutate(item._id) }])} role="button" aria-label={t("admin.faqs.delete")}><Ionicons name="trash-outline" size={23} color="#C1554B" /></Pressable>
               </XStack>
             </Card>
           );

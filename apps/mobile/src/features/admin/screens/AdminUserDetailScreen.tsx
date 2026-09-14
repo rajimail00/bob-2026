@@ -13,6 +13,7 @@ import { LoadingState } from "@/components/ui/states/LoadingState";
 import type { AdminStackParamList } from "@/navigation/types";
 import { AdminHeader } from "../components/AdminHeader";
 import { useAdminCategories, useAdminUser, useSetAdminUserStatus } from "../hooks/useAdmin";
+import { LANGUAGE_OPTIONS } from "@/lib/i18n";
 
 export function AdminUserDetailScreen({ route, navigation }: NativeStackScreenProps<AdminStackParamList, "AdminUserDetail">) {
   const { t, i18n } = useTranslation();
@@ -31,6 +32,7 @@ export function AdminUserDetailScreen({ route, navigation }: NativeStackScreenPr
   const name = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email;
   const type = user.workerProfile ? "worker" : "client";
   const currentLocale = i18n.language as "en" | "de" | "es" | "fr";
+  const userLanguage = LANGUAGE_OPTIONS.find((language) => language.code === user.locale)?.label ?? user.locale.toUpperCase();
   const workerCategoryNames = user.workerProfile?.categories
     .map((categoryId) => categoriesQuery.data?.find((category) => category._id === categoryId || category.slug === categoryId))
     .filter((category) => category !== undefined)
@@ -68,8 +70,8 @@ export function AdminUserDetailScreen({ route, navigation }: NativeStackScreenPr
 
         <Card elevated gap="$2">
           <Detail label={t("admin.users.registered")} value={new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" }).format(new Date(user.createdAt))} />
-          <Detail label={t("admin.users.locale")} value={user.locale.toUpperCase()} />
-          <Detail label={t("admin.users.subscription")} value={user.subscriptionTier} />
+          <Detail label={t("admin.users.locale")} value={userLanguage} />
+          <Detail label={t("admin.users.subscription")} value={`BOB-${t(`subscriptionTiers.${user.subscriptionTier}`)}`} />
           <Detail label={t("admin.users.rating")} value={`${user.rating.average.toFixed(1)} (${user.rating.count})`} />
           {user.workerProfile ? (
             <>
@@ -77,7 +79,7 @@ export function AdminUserDetailScreen({ route, navigation }: NativeStackScreenPr
                 label={t("admin.users.categories")}
                 value={categoriesQuery.isLoading ? t("common.loading") : workerCategoryNames.join(", ") || t("admin.common.noData")}
               />
-              <Detail label={t("admin.users.serviceHours")} value={user.workerProfile.serviceHours} />
+              <Detail label={t("admin.users.serviceHours")} value={t(user.workerProfile.serviceHours === "24h" ? "workerProfile.allDay" : "workerProfile.standard")} />
             </>
           ) : null}
         </Card>
@@ -114,7 +116,10 @@ export function AdminUserDetailScreen({ route, navigation }: NativeStackScreenPr
           <Text variant="h4">{t("admin.users.audit")}</Text>
           {stats.audits.length ? stats.audits.map((entry) => (
             <Text key={entry._id} variant="small">
-              {entry.action} · {new Intl.DateTimeFormat(i18n.language, { dateStyle: "short", timeStyle: "short" }).format(new Date(entry.createdAt))}
+              {t("admin.audit.entry", {
+                action: t(`admin.auditActions.${entry.action}`, { defaultValue: t("admin.audit.unknown") }),
+                date: new Intl.DateTimeFormat(i18n.language, { dateStyle: "short", timeStyle: "short" }).format(new Date(entry.createdAt)),
+              })}
             </Text>
           )) : <Text muted>{t("admin.common.noData")}</Text>}
         </Card>

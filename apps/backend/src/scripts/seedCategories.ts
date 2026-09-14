@@ -13,10 +13,10 @@ const CATEGORIES = [
   { slug: "entertainment", icon: "headphones", name: { en: "Entertainment", de: "Unterhaltung", es: "Entretenimiento", fr: "Divertissement" } },
   { slug: "cleaning", icon: "spray", name: { en: "Cleaning", de: "Reinigung", es: "Limpieza", fr: "Nettoyage" } },
   { slug: "security", icon: "shield", name: { en: "Security", de: "Sicherheit", es: "Seguridad", fr: "Sécurité" } },
-  { slug: "repair", icon: "wrench", name: { en: "Repair", de: "Reperatur", es: "Reparación", fr: "Réparation" } },
+  { slug: "repair", icon: "wrench", name: { en: "Repair", de: "Reparatur", es: "Reparación", fr: "Réparation" } },
   { slug: "it", icon: "flag", name: { en: "IT", de: "IT", es: "TI", fr: "Informatique" } },
   { slug: "gardening", icon: "plant", name: { en: "Gardening", de: "Gartenpflege", es: "Jardinería", fr: "Jardinage" } },
-  { slug: "childcare", icon: "hand-heart", name: { en: "Childcare & Babysitting", de: "Kind- & Babysitting", es: "Cuidado infantil", fr: "Garde d'enfants et baby-sitting" } },
+  { slug: "childcare", icon: "hand-heart", name: { en: "Childcare & Babysitting", de: "Kinderbetreuung & Babysitting", es: "Cuidado infantil", fr: "Garde d'enfants et baby-sitting" } },
   { slug: "handyman", icon: "tools", name: { en: "Handyman", de: "Handwerk", es: "Manitas", fr: "Bricolage" } },
 ] as const;
 

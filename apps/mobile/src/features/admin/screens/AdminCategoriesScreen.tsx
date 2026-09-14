@@ -39,6 +39,7 @@ export function AdminCategoriesScreen() {
   const [imageUrl, setImageUrl] = useState<string>();
   const [names, setNames] = useState<LocalizedText>(emptyNames());
   const [search, setSearch] = useState("");
+  const currentLocale = i18n.language as keyof LocalizedText;
 
   const reset = () => {
     setEditing(undefined);
@@ -81,7 +82,7 @@ export function AdminCategoriesScreen() {
   };
 
   const confirmDelete = (category: Category) => {
-    Alert.alert(t("admin.categories.deleteTitle"), category.name.en, [
+    Alert.alert(t("admin.categories.deleteTitle"), category.name[currentLocale] || category.name.en, [
       { text: t("common.cancel"), style: "cancel" },
       {
         text: t("admin.categories.delete"),
@@ -91,7 +92,6 @@ export function AdminCategoriesScreen() {
     ]);
   };
 
-  const currentLocale = i18n.language as keyof LocalizedText;
   const filteredCategories = query.data?.filter((item) =>
     Object.values(item.name).some((name) => name.toLowerCase().includes(search.trim().toLowerCase()))
   );

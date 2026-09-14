@@ -29,7 +29,7 @@ type ManageableAccountStatus = (typeof statuses)[number];
 const sorts: NonNullable<UserQuery["sort"]>[] = ["newest", "oldest", "name_asc", "name_desc", "recent_activity"];
 
 export function AdminUsersScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<AdminStackParamList>>();
   const currentUserId = useAuthStore((state) => state.user?.id);
   const [search, setSearch] = useState("");
@@ -183,7 +183,7 @@ export function AdminUsersScreen() {
                     <YStack flex={1} gap="$1">
                       <Text variant="h4" numberOfLines={1}>{name}</Text>
                       <Text variant="caption" numberOfLines={1}>{item.email}</Text>
-                      <Text variant="caption" numberOfLines={1}>{new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(item.createdAt))} · {t(`admin.roles.${userType}`)}</Text>
+                      <Text variant="caption" numberOfLines={1}>{new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" }).format(new Date(item.createdAt))} · {t(`admin.roles.${userType}`)}</Text>
                     </YStack>
                     <YStack alignItems="flex-end" gap="$1">
                       <StatusPill label={t(`admin.accountStatus.${item.status}`)} tone={item.status === "active" ? "active" : item.status === "banned" ? "danger" : "neutral"} />
