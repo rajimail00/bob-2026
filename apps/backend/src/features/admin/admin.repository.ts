@@ -235,7 +235,7 @@ export const adminRepository = {
     return AdminAuditModel.create(data);
   },
 
-  listCategories() { return CategoryModel.find().sort({ order: 1 }).lean(); },
+  listCategories() { return CategoryModel.find({ deletedAt: { $exists: false } }).sort({ order: 1 }).lean(); },
   listFaqs(filter: Record<string, unknown>, pageNumber: number, size: number) {
     return Promise.all([
       FaqModel.find(filter).sort({ section: 1, order: 1 }).skip((pageNumber - 1) * size).limit(size).lean(),

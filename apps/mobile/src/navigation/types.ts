@@ -38,7 +38,6 @@ export type ProfileStackParamList = {
   ProfileCategories: undefined;
   ProfileEdit: undefined;
   ProfileNotifications: undefined;
-  ProfileAccount: undefined;
 };
 
 export type MainTabParamList = {
@@ -75,6 +74,7 @@ export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   CreateProfile: undefined;
   Main: NavigatorScreenParams<MainTabParamList>;
+  CustomerAccount: undefined;
   Admin: NavigatorScreenParams<AdminStackParamList>;
 };
 

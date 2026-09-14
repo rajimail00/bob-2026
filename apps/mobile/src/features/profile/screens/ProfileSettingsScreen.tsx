@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Alert, Linking, Pressable, Share } from "react-native";
+import { Alert, Linking, Pressable } from "react-native";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { XStack, YStack } from "tamagui";
@@ -12,13 +12,15 @@ import { getApiErrorMessage } from "@/lib/apiClient";
 import { LANGUAGE_OPTIONS, type SupportedLocale } from "@/lib/i18n";
 import {
   useCompleteWorkerProfile,
-  useDeleteAccount,
   useUpdateLocale,
 } from "@/features/auth/hooks/useAuthMutations";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import type { SubscriptionTier } from "@/features/auth/types/auth.types";
 import type { ProfileStackParamList } from "@/navigation/types";
 import { ProfileBackButton } from "../components/ProfileBackButton";
+import { FeedbackModal, InviteFriendsModal } from "../components/ProfileActionModals";
 import { ProfilePortrait } from "../components/ProfilePortrait";
+import { SubscriptionUpgradeModal } from "../components/SubscriptionUpgradeModal";
 
 type Props = NativeStackScreenProps<ProfileStackParamList, "ProfileSettings">;
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -27,13 +29,15 @@ const SUPPORT_EMAIL = "support@bob-app.com";
 export function ProfileSettingsScreen({ navigation }: Props) {
   const { t, i18n } = useTranslation();
   const user = useAuthStore((state) => state.user);
-  const deleteAccount = useDeleteAccount();
   const updateLocale = useUpdateLocale();
   const updateWorkerProfile = useCompleteWorkerProfile();
   const currentLocale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLocale>(user?.locale ?? currentLocale);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [languageError, setLanguageError] = useState<string>();
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
   useEffect(() => {
     if (user?.locale) setSelectedLanguage(user.locale);
@@ -72,14 +76,6 @@ export function ProfileSettingsScreen({ navigation }: Props) {
     }
   };
 
-  const inviteFriends = async () => {
-    try {
-      await Share.share({ message: t("profileFlow.inviteMessage") });
-    } catch {
-      Alert.alert(t("profile.invite"), t("profileFlow.actionUnavailable"));
-    }
-  };
-
   const openEmail = async (subject: string) => {
     const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`;
     if (await Linking.canOpenURL(url)) {
@@ -89,22 +85,35 @@ export function ProfileSettingsScreen({ navigation }: Props) {
     Alert.alert(t("profileFlow.contactUnavailableTitle"), t("profileFlow.contactUnavailableBody"));
   };
 
-  const confirmAccountDeletion = () => {
-    Alert.alert(t("profile.deactivateTitle"), t("profile.deactivateBody"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("profile.deactivateTitle"),
-        style: "destructive",
-        onPress: () => deleteAccount.mutate(undefined, {
-          onError: (error) => Alert.alert(t("profile.deleteErrorTitle"), getApiErrorMessage(error, t("profile.deleteError"))),
-        }),
-      },
-    ]);
+  const openFeedbackDestination = async () => {
+    const configuredReviewUrl = process.env.EXPO_PUBLIC_REVIEW_URL?.trim();
+    setFeedbackModalOpen(false);
+
+    if (configuredReviewUrl) {
+      try {
+        await Linking.openURL(configuredReviewUrl);
+        return;
+      } catch {
+        Alert.alert(t("profile.feedback"), t("profileFlow.reviewOpenError"));
+        return;
+      }
+    }
+
+    await openEmail(t("profileFlow.feedbackSubject"));
+  };
+
+  const requestSubscriptionUpgrade = (tier: SubscriptionTier) => {
+    const planName = `BOB-${t(`subscriptionTiers.${tier}`)}`;
+    Alert.alert(
+      t("profileFlow.upgradeUnavailableTitle"),
+      t("profileFlow.upgradeUnavailableBody", { plan: planName }),
+    );
   };
 
   return (
-    <Screen scroll scrollBottomPadding={32}>
-      <YStack gap="$4" paddingTop="$2">
+    <>
+      <Screen scroll scrollBottomPadding={32}>
+        <YStack gap="$4" paddingTop="$2">
         <XStack alignItems="center">
           <ProfileBackButton onPress={navigation.goBack} />
           <Text variant="h3" flex={1}>{t("profileFlow.settings")}</Text>
@@ -141,11 +150,11 @@ export function ProfileSettingsScreen({ navigation }: Props) {
 
           <SettingsPair>
             <SettingsAction icon="notifications-outline" label={t("notificationPreferences.shortTitle")} onPress={() => navigation.navigate("ProfileNotifications")} />
-            <SettingsAction icon="share-social-outline" label={t("profile.invite")} onPress={() => void inviteFriends()} />
+            <SettingsAction icon="share-social-outline" label={t("profile.invite")} onPress={() => setInviteModalOpen(true)} />
           </SettingsPair>
 
           <SettingsPair>
-            <SettingsAction icon="heart-outline" label={t("profile.feedback")} onPress={() => void openEmail(t("profileFlow.feedbackSubject"))} />
+            <SettingsAction icon="heart-outline" label={t("profile.feedback")} onPress={() => setFeedbackModalOpen(true)} />
             <SettingsAction icon="help-circle-outline" label={t("profile.help")} onPress={() => void openEmail(t("profileFlow.helpSubject"))} />
           </SettingsPair>
         </YStack>
@@ -183,22 +192,31 @@ export function ProfileSettingsScreen({ navigation }: Props) {
           {languageError ? <Text variant="small" color="$danger">{languageError}</Text> : null}
         </YStack>
 
-        <Button
-          fullWidth
-          onPress={() => Alert.alert(t("profileFlow.upgradePro"), t("profileFlow.actionUnavailable"))}
-        >
-          {t("profileFlow.upgradePro")}
-        </Button>
+          <Card gap="$3">
+            <XStack justifyContent="space-between" alignItems="center">
+              <Text variant="label">{t("profile.subscription")}</Text>
+              <Text fontWeight="600">BOB-{t(`subscriptionTiers.${user?.subscriptionTier ?? "free"}`)}</Text>
+            </XStack>
+            <Button fullWidth onPress={() => setUpgradeModalOpen(true)}>
+              {t("profileFlow.upgradePro")}
+            </Button>
+          </Card>
+        </YStack>
+      </Screen>
 
-        <Card gap="$3">
-          <XStack justifyContent="space-between">
-            <Text variant="label">{t("profile.subscription")}</Text>
-            <Text fontWeight="600">BOB-{t(`subscriptionTiers.${user?.subscriptionTier ?? "free"}`)}</Text>
-          </XStack>
-          <Button variant="destructive" onPress={confirmAccountDeletion} loading={deleteAccount.isPending}>{t("profile.deactivateTitle")}</Button>
-        </Card>
-      </YStack>
-    </Screen>
+      <SubscriptionUpgradeModal
+        visible={upgradeModalOpen}
+        currentTier={user?.subscriptionTier ?? "free"}
+        onClose={() => setUpgradeModalOpen(false)}
+        onUpgrade={requestSubscriptionUpgrade}
+      />
+      <InviteFriendsModal visible={inviteModalOpen} onClose={() => setInviteModalOpen(false)} />
+      <FeedbackModal
+        visible={feedbackModalOpen}
+        onClose={() => setFeedbackModalOpen(false)}
+        onReview={() => void openFeedbackDestination()}
+      />
+    </>
   );
 }
 

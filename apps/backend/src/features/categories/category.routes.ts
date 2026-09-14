@@ -7,7 +7,7 @@ export const categoryRouter = Router();
 categoryRouter.get(
   "/",
   asyncHandler(async (_req, res) => {
-    const categories = await CategoryModel.find().sort({ order: 1 });
+    const categories = await CategoryModel.find({ deletedAt: { $exists: false } }).sort({ order: 1 });
     res.status(200).json({ categories });
   })
 );

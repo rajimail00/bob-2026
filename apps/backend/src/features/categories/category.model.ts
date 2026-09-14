@@ -12,6 +12,7 @@ const categorySchema = new Schema(
     icon: { type: String, required: true },
     imageUrl: { type: String, trim: true },
     order: { type: Number, default: 0 },
+    deletedAt: { type: Date },
   },
   { timestamps: true }
 );

@@ -9,10 +9,12 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Text } from "@/components/ui/Text";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
-import type { MainTabParamList } from "@/navigation/types";
+import type { MainTabParamList, RootStackParamList } from "@/navigation/types";
+
+type CustomerHeaderParamList = MainTabParamList & Pick<RootStackParamList, "CustomerAccount">;
 
 export function CustomerHeader({ title, showBack = false }: { title: string; showBack?: boolean }) {
-  const navigation = useNavigation<NavigationProp<MainTabParamList>>();
+  const navigation = useNavigation<NavigationProp<CustomerHeaderParamList>>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const user = useAuthStore((state) => state.user);
@@ -51,7 +53,7 @@ export function CustomerHeader({ title, showBack = false }: { title: string; sho
         />
       ) : null}
       <Pressable
-        onPress={() => navigation.navigate("Profile", { screen: "ProfileAccount" })}
+        onPress={() => navigation.navigate("CustomerAccount")}
         role="button"
         aria-label={t("customerHeader.openAccount")}
         style={{ minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }}

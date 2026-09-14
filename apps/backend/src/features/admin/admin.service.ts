@@ -257,10 +257,21 @@ export const adminService = {
     return category;
   },
   async deleteCategory(adminId: string, id: string) {
-    if (await JobModel.exists({ categoryId: id })) throw AppError.conflict("This category is used by jobs and cannot be deleted.");
-    const category = await CategoryModel.findByIdAndDelete(id);
+    const deletedAt = new Date();
+    const category = await CategoryModel.findOneAndUpdate(
+      { _id: id, deletedAt: { $exists: false } },
+      { $set: { deletedAt } },
+      { new: false }
+    );
     if (!category) throw AppError.notFound("Category not found.");
-    await adminRepository.createAudit({ adminId, action: "category.deleted", targetType: "category", targetId: id, before: category.toObject() });
+    await adminRepository.createAudit({
+      adminId,
+      action: "category.deleted",
+      targetType: "category",
+      targetId: id,
+      before: category.toObject(),
+      after: { deletedAt },
+    });
   },
   async reorderCategories(adminId: string, items: { id: string; order: number }[]) {
     await CategoryModel.bulkWrite(items.map(({ id, order }) => ({ updateOne: { filter: { _id: id }, update: { $set: { order } } } })));
