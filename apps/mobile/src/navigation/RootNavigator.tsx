@@ -3,7 +3,6 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuthStore } from "@/features/auth/store/authStore";
 import { CreateProfileScreen } from "@/features/auth/screens/CreateProfileScreen";
 import { useMe } from "@/features/auth/hooks/useMe";
-import { ProfileAccountScreen } from "@/features/profile/screens/ProfileAccountScreen";
 import { LoadingState } from "@/components/ui/states/LoadingState";
 import { Screen } from "@/components/ui/Screen";
 import { AuthNavigator } from "./AuthNavigator";
@@ -59,10 +58,7 @@ export function RootNavigator() {
         ) : !hasCompletedProfile ? (
           <Stack.Screen name="CreateProfile" component={AuthenticatedProfileSetup} />
         ) : (
-          <Stack.Group>
-            <Stack.Screen name="Main" component={AuthenticatedApp} />
-            <Stack.Screen name="CustomerAccount" component={ProfileAccountScreen} />
-          </Stack.Group>
+          <Stack.Screen name="Main" component={AuthenticatedApp} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

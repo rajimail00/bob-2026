@@ -26,34 +26,44 @@ test("the Profile tab uses a typed nested stack for the complete customer profil
 test("customer main screens share the branded header and account actions are independent from the Profile tab", () => {
   const header = read("components/layout/CustomerHeader.tsx");
   const root = read("navigation/RootNavigator.tsx");
+  const adminNavigator = read("navigation/AdminNavigator.tsx");
   const types = read("navigation/types.ts");
+  const accountMenu = read("components/layout/HeaderAccountMenu.tsx");
   const logo = read("components/brand/BobLogo.tsx");
   const home = read("features/home/screens/HomeScreen.tsx");
   const orders = read("features/orders/screens/OrdersScreen.tsx");
   const post = read("features/orders/screens/PostJobScreen.tsx");
   const profile = fs.readFileSync(path.join(profileScreens, "ProfileScreen.tsx"), "utf8");
   const settings = fs.readFileSync(path.join(profileScreens, "ProfileSettingsScreen.tsx"), "utf8");
-  const account = fs.readFileSync(path.join(profileScreens, "ProfileAccountScreen.tsx"), "utf8");
   const adminHeader = read("features/admin/components/AdminHeader.tsx");
 
   expect(logo).toContain('require("../../../assets/splash-icon.png")');
   expect(header).toContain("<BobLogo");
   expect(header).toContain('screen: "Notifications"');
-  expect(header).toContain('navigation.navigate("CustomerAccount")');
-  expect(header).not.toContain('navigation.navigate("Profile", { screen: "ProfileAccount" })');
-  expect(root).toContain('name="CustomerAccount"');
-  expect(types).toContain("CustomerAccount: undefined");
+  expect(header).toContain("<HeaderAccountMenu");
+  expect(header).toContain('mode="customer"');
+  expect(header).toContain("setAccountMenuOpen((open) => !open)");
+  expect(header).not.toContain('navigation.navigate("CustomerAccount")');
+  expect(root).not.toContain('name="CustomerAccount"');
+  expect(types).not.toContain("CustomerAccount: undefined");
   expect(adminHeader).toContain("<BobLogo");
+  expect(adminHeader).toContain("<HeaderAccountMenu");
+  expect(adminHeader).toContain('mode="admin"');
+  expect(adminHeader).not.toContain('navigation.navigate("AdminAccount")');
+  expect(adminNavigator).not.toContain('name="AdminAccount"');
+  expect(types).not.toContain("AdminAccount: undefined");
   expect(adminHeader).not.toContain(">β<");
   for (const screen of [home, orders, post, profile]) {
     expect(screen).toContain("<CustomerHeader");
   }
-  expect(account).toContain("useLogout");
-  expect(account).toContain('t("common.logout")');
-  expect(account).toContain("useDeleteAccount");
-  expect(account).toContain('t("profile.deactivateTitle")');
-  expect(account).toContain('<Screen padded={false} scroll scrollBottomPadding={32}>');
-  expect(account.indexOf('t("common.logout")')).toBeLessThan(account.lastIndexOf('t("profile.deactivateTitle")'));
+  expect(accountMenu).toContain("useLogout");
+  expect(accountMenu).toContain('t("common.logout")');
+  expect(accountMenu).toContain("useDeleteAccount");
+  expect(accountMenu).toContain('mode === "customer"');
+  expect(accountMenu).toContain('t("profile.deactivateTitle")');
+  expect(accountMenu).toContain("onRequestClose={onClose}");
+  expect(accountMenu).toContain('testID="account-menu-backdrop"');
+  expect(accountMenu.indexOf('t("common.logout")')).toBeLessThan(accountMenu.lastIndexOf('t("profile.deactivateTitle")'));
   expect(settings).not.toContain("useLogout");
   expect(settings).not.toContain('t("common.logout")');
   expect(settings).not.toContain("useDeleteAccount");

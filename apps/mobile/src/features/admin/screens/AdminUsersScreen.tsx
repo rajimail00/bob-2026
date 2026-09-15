@@ -20,7 +20,7 @@ import { AdminFilters } from "../components/AdminFilters";
 import { AdminFilterSection, AdminFilterSheet } from "../components/AdminFilterSheet";
 import { AdminHeader } from "../components/AdminHeader";
 import { AdminSearchBar } from "../components/AdminSearchBar";
-import { useAdminUsers, useBulkAdminUserStatus, useSetAdminUserStatus } from "../hooks/useAdmin";
+import { useAdminUsers, useBulkAdminUserStatus } from "../hooks/useAdmin";
 import type { AccountStatus, AdminUser, UserQuery } from "../types/admin.types";
 
 const statuses: Exclude<AccountStatus, "deleted">[] = ["active", "banned"];
@@ -42,7 +42,6 @@ export function AdminUsersScreen() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const longPressHandled = useRef(false);
   const query = useAdminUsers({ page, pageSize: 20, search: useDeferredValue(search) || undefined, status, type, sort });
-  const statusMutation = useSetAdminUserStatus();
   const bulkMutation = useBulkAdminUserStatus();
 
   const exitSelectionMode = useCallback(() => {
@@ -101,19 +100,6 @@ export function AdminUsersScreen() {
           style: nextStatus === "banned" ? "destructive" : "default",
           onPress: () => bulkMutation.mutate({ userIds, status: nextStatus }, { onSuccess: exitSelectionMode }),
         },
-      ]
-    );
-  };
-
-  const act = (user: AdminUser) => {
-    if (user.status === "deleted") return;
-    const next = user.status === "active" ? "banned" : "active";
-    Alert.alert(
-      t(`admin.users.${next}Title`),
-      t("admin.users.confirmStatus", { name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email }),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        { text: t(`admin.users.${next}`), style: next === "banned" ? "destructive" : "default", onPress: () => statusMutation.mutate({ id: user._id, status: next }) },
       ]
     );
   };
@@ -187,7 +173,6 @@ export function AdminUsersScreen() {
                     </YStack>
                     <YStack alignItems="flex-end" gap="$1">
                       <StatusPill label={t(`admin.accountStatus.${item.status}`)} tone={item.status === "active" ? "active" : item.status === "banned" ? "danger" : "neutral"} />
-                      {!selectionMode ? <Pressable onPress={() => act(item)} role="button" aria-label={t("admin.common.actions")} style={{ minWidth: 44, minHeight: 44, alignItems: "flex-end", justifyContent: "center" }}><Ionicons name="ellipsis-vertical" size={24} color="#2C312A" /></Pressable> : null}
                     </YStack>
                   </XStack>
                 </Card>

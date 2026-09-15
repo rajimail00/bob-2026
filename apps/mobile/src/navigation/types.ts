@@ -67,14 +67,12 @@ export type AdminStackParamList = {
   AdminAdvertisementForm: { advertisementId?: string } | undefined;
   AdminConfiguration: undefined;
   AdminNotifications: undefined;
-  AdminAccount: undefined;
 };
 
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   CreateProfile: undefined;
   Main: NavigatorScreenParams<MainTabParamList>;
-  CustomerAccount: undefined;
   Admin: NavigatorScreenParams<AdminStackParamList>;
 };
 

@@ -4,15 +4,17 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Alert,
+  findNodeHandle,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  type TextInput,
   View,
 } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,6 +23,7 @@ import { Button } from "@/components/ui/Button";
 import { CustomerHeader } from "@/components/layout/CustomerHeader";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { KeyboardScrollContext } from "@/components/ui/KeyboardScrollContext";
 import { NumberStepper } from "@/components/ui/NumberStepper";
 import { PillTabs } from "@/components/ui/PillTabs";
 import { Screen } from "@/components/ui/Screen";
@@ -102,7 +105,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const initializedEditJobId = useRef<string | null>(null);
   const submitInFlight = useRef(false);
   const formScrollRef = useRef<ScrollView>(null);
-  const formFieldOffsets = useRef({ title: 0, description: 0, address: 0, budget: 0 });
+  const formFieldOffsets = useRef({ address: 0 });
   const focusScrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [step, setStep] = useState(0);
@@ -143,17 +146,27 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const values = watch();
   const selectedCategory = categoriesQuery.data?.find((category) => category._id === values.categoryId);
 
-  const scrollFormFieldIntoView = (field: "title" | "description" | "address" | "budget") => {
+  const scrollFocusedInput = useCallback((input: TextInput | null) => {
+    if (!input) return;
     if (focusScrollTimeout.current) clearTimeout(focusScrollTimeout.current);
     focusScrollTimeout.current = setTimeout(
       () => {
-        formScrollRef.current?.scrollTo({
-          y: Math.max(0, formFieldOffsets.current[field] - 16),
-          animated: true,
-        });
+        const inputHandle = findNodeHandle(input);
+        if (inputHandle === null) return;
+        formScrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(inputHandle, 32, true);
       },
-      Platform.OS === "ios" ? 250 : 180
+      Platform.OS === "ios" ? 250 : 300
     );
+  }, []);
+
+  const scrollAddressIntoView = () => {
+    if (focusScrollTimeout.current) clearTimeout(focusScrollTimeout.current);
+    focusScrollTimeout.current = setTimeout(() => {
+      formScrollRef.current?.scrollTo({
+        y: Math.max(0, formFieldOffsets.current.address - 16),
+        animated: true,
+      });
+    }, Platform.OS === "ios" ? 250 : 300);
   };
 
   useEffect(
@@ -335,23 +348,24 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
       {!isExistingJobMode ? <CustomerHeader title={t("navigation.post")} /> : null}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <YStack flex={1} backgroundColor="$background">
           <YStack paddingHorizontal="$4" paddingTop="$4">
             <StepDots total={STEP_COUNT} current={step} />
           </YStack>
 
-          <ScrollView
-            ref={formScrollRef}
-            style={{ flex: 1 }}
-            contentContainerStyle={{
-              padding: 16,
-              paddingBottom: step === 1 || step === 2 ? 180 : 32,
-            }}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-          >
+          <KeyboardScrollContext.Provider value={scrollFocusedInput}>
+            <ScrollView
+              ref={formScrollRef}
+              style={{ flex: 1 }}
+              contentContainerStyle={{
+                padding: 16,
+                paddingBottom: step === 1 || step === 2 ? 180 : 32,
+              }}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+            >
           <YStack gap="$5">
             {step === 0 ? (
               <YStack gap="$4">
@@ -388,11 +402,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                   <Text variant="label">{t("postJob.mediaOptional")}</Text>
                   <MediaPicker media={media} onChange={setMedia} />
                 </YStack>
-                <View
-                  onLayout={(event) => {
-                    formFieldOffsets.current.title = event.nativeEvent.layout.y;
-                  }}
-                >
+                <View>
                   <Controller
                     control={control}
                     name="title"
@@ -401,18 +411,13 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                         label={t("postJob.titleLabel")}
                         value={field.value}
                         onChangeText={field.onChange}
-                        onFocus={() => scrollFormFieldIntoView("title")}
                         onBlur={field.onBlur}
                         error={errors.title ? t(errors.title.message ?? "") : undefined}
                       />
                     )}
                   />
                 </View>
-                <View
-                  onLayout={(event) => {
-                    formFieldOffsets.current.description = event.nativeEvent.layout.y;
-                  }}
-                >
+                <View>
                   <Controller
                     control={control}
                     name="description"
@@ -421,7 +426,6 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                         label={t("postJob.descriptionLabel")}
                         value={field.value}
                         onChangeText={field.onChange}
-                        onFocus={() => scrollFormFieldIntoView("description")}
                         onBlur={field.onBlur}
                         multiline
                         numberOfLines={4}
@@ -520,7 +524,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                           <LocationPickerMap
                             coords={location.status === "granted" ? location.coords : { lat: 0, lng: 0 }}
                             address={field.value}
-                            onSearchFocus={() => scrollFormFieldIntoView("address")}
+                            onSearchFocus={scrollAddressIntoView}
                             onLocationChange={({ coords, address }) => {
                               setLocation({ status: "granted", coords });
                               field.onChange(address);
@@ -561,11 +565,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                   />
                 </YStack>
 
-                <View
-                  onLayout={(event) => {
-                    formFieldOffsets.current.budget = event.nativeEvent.layout.y;
-                  }}
-                >
+                <View>
                   <Controller
                     control={control}
                     name="budget"
@@ -575,7 +575,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                         keyboardType="number-pad"
                         value={field.value ? String(field.value) : ""}
                         onChangeText={(v) => field.onChange(Number(v.replace(/[^0-9]/g, "")) || 0)}
-                        onFocus={() => scrollFormFieldIntoView("budget")}
+                        onBlur={field.onBlur}
                         error={errors.budget ? t(errors.budget.message ?? "") : undefined}
                       />
                     )}
@@ -717,7 +717,8 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
               </YStack>
             ) : null}
             </YStack>
-          </ScrollView>
+            </ScrollView>
+          </KeyboardScrollContext.Provider>
 
           <YStack padding="$4" gap="$3" borderTopWidth={1} borderColor="$borderColor" backgroundColor="$background">
           {submitError ? (

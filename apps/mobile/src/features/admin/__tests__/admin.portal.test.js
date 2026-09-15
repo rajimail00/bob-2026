@@ -56,6 +56,9 @@ test("manage users supports individual long-press selection and selected-only bu
   expect(source).not.toContain('t("admin.bulk.selectUsers")');
   expect(source).toContain("activeFilterCount={activeFilters.length}");
   expect(source).not.toContain("<AdminActiveFilters");
+  expect(source).not.toContain('name="ellipsis-vertical"');
+  expect(source).not.toContain("const act =");
+  expect(source).not.toContain("useSetAdminUserStatus");
 });
 
 test("advertisement management is reachable from Settings with create and edit routes", () => {

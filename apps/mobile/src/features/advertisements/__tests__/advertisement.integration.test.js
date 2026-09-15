@@ -15,22 +15,28 @@ test("active advertisements use the real authenticated API placement", async () 
   expect(apiClient.get).toHaveBeenCalledWith("/advertisements/active", { params: { placement: "home_list" } });
 });
 
-test("advertisements are inserted predictably after every five jobs without changing job order", () => {
-  const originalJobs = jobs(12);
+test("advertisements are inserted predictably after every two jobs without changing job order", () => {
+  const originalJobs = jobs(7);
   const result = insertAdvertisements(originalJobs, advertisements(3));
   expect(result.map((item) => item.key)).toEqual([
-    "job:job-1", "job:job-2", "job:job-3", "job:job-4", "job:job-5", "advertisement:ad-1",
-    "job:job-6", "job:job-7", "job:job-8", "job:job-9", "job:job-10", "advertisement:ad-2",
-    "job:job-11", "job:job-12",
+    "job:job-1", "job:job-2", "advertisement:ad-1",
+    "job:job-3", "job:job-4", "advertisement:ad-2",
+    "job:job-5", "job:job-6", "advertisement:ad-3",
+    "job:job-7",
   ]);
-  expect(originalJobs.map((job) => job._id)).toEqual(jobs(12).map((job) => job._id));
+  expect(originalJobs.map((job) => job._id)).toEqual(jobs(7).map((job) => job._id));
 });
 
-test("one advertisement appears once at the end of a short non-empty list", () => {
-  expect(insertAdvertisements(jobs(4), advertisements(1)).map((item) => item.key)).toEqual([
-    "job:job-1", "job:job-2", "job:job-3", "job:job-4", "advertisement:ad-1",
+test("two advertisements appear after their two-job slots in a four-job list", () => {
+  expect(insertAdvertisements(jobs(4), advertisements(2)).map((item) => item.key)).toEqual([
+    "job:job-1", "job:job-2", "advertisement:ad-1",
+    "job:job-3", "job:job-4", "advertisement:ad-2",
   ]);
+});
+
+test("advertisements are not shown without a complete two-job slot", () => {
   expect(insertAdvertisements([], advertisements(1))).toEqual([]);
+  expect(insertAdvertisements(jobs(1), advertisements(1)).map((item) => item.key)).toEqual(["job:job-1"]);
   expect(insertAdvertisements(jobs(6), [])).toHaveLength(6);
 });
 
