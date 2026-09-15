@@ -80,6 +80,15 @@ test("profile overview uses authenticated categories and real posted and assigne
   expect(overview).toContain('navigation.navigate("ProfileSettings")');
 });
 
+test("shared profile portraits render uploaded photos and fallback initials as circles", () => {
+  const portrait = read("features/profile/components/ProfilePortrait.tsx");
+
+  expect(portrait).toContain("borderRadius={size / 2}");
+  expect(portrait).toContain("borderRadius: (size - 2) / 2");
+  expect(portrait).toContain('resizeMode="cover"');
+  expect(portrait).toContain('overflow="hidden"');
+});
+
 test("settings opens edit, categories, and notification screens and persists locale", () => {
   const settings = fs.readFileSync(path.join(profileScreens, "ProfileSettingsScreen.tsx"), "utf8");
 

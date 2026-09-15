@@ -112,7 +112,7 @@ export function ProfileSettingsScreen({ navigation }: Props) {
 
   return (
     <>
-      <Screen scroll scrollBottomPadding={32}>
+      <Screen scroll scrollBottomPadding={16} safeAreaEdges={["top", "left", "right"]}>
         <YStack gap="$4" paddingTop="$2">
         <XStack alignItems="center">
           <ProfileBackButton onPress={navigation.goBack} />

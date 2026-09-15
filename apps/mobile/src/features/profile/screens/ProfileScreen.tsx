@@ -57,28 +57,27 @@ export function ProfileScreen({ navigation }: Props) {
   };
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} contentGap="$0" safeAreaEdges={["top", "left", "right"]}>
       <CustomerHeader title={t("navigation.profile")} />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
-      <YStack gap="$5">
-        <XStack justifyContent="flex-end">
-          <Pressable
-            onPress={() => navigation.navigate("ProfileSettings")}
-            role="button"
-            aria-label={t("accessibility.profileSettings")}
-            hitSlop={10}
-            style={{ width: 48, height: 48, alignItems: "center", justifyContent: "center" }}
-          >
-            <Ionicons name="settings-outline" size={30} color="#4F8266" />
-          </Pressable>
-        </XStack>
-
-        <YStack alignItems="center">
-          <ProfilePortrait uri={user?.photoUrl} name={user?.firstName} size={100} />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 }}>
+      <YStack gap="$4">
+        <YStack alignItems="center" gap="$1">
+          <XStack width="100%" height={44} justifyContent="flex-end" alignItems="center">
+            <Pressable
+              onPress={() => navigation.navigate("ProfileSettings")}
+              role="button"
+              aria-label={t("accessibility.profileSettings")}
+              hitSlop={10}
+              style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+            >
+              <Ionicons name="settings-outline" size={28} color="#4F8266" />
+            </Pressable>
+          </XStack>
+          <ProfilePortrait uri={user?.photoUrl} name={user?.firstName} size={112} />
         </YStack>
 
-        <XStack gap="$4" alignItems="stretch">
-          <YStack flex={1} gap="$3">
+        <XStack gap="$3" alignItems="stretch">
+          <YStack flex={1} gap="$3" paddingVertical="$1">
             <Text variant="h4">{user?.firstName} {user?.lastName}</Text>
             <YStack gap="$2">
               <Text variant="small" fontWeight="600">{t("profileFlow.categories")}</Text>
@@ -110,7 +109,7 @@ export function ProfileScreen({ navigation }: Props) {
 
           <YStack width={1} backgroundColor="$borderColor" />
 
-          <YStack flex={1} gap="$2">
+          <YStack flex={1} gap="$2" paddingVertical="$1">
             <XStack alignItems="center" gap="$2">
               <Ionicons name="ribbon-outline" size={24} color="#4F8266" />
               <Text variant="h4">{(user?.rating.average ?? 0).toFixed(1)}/5</Text>

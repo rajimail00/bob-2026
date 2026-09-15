@@ -89,7 +89,7 @@ export function OrdersScreen({ navigation }: Props) {
   );
 
   return (
-    <Screen padded={false}>
+    <Screen padded={false} contentGap="$0" safeAreaEdges={["top", "left", "right"]}>
       <CustomerHeader title={t("navigation.orders")} />
       <YStack padding="$4">
         <PillTabs
@@ -141,7 +141,7 @@ export function OrdersScreen({ navigation }: Props) {
                 />
               </YStack>
             )}
-            contentContainerStyle={{ paddingBottom: 24 }}
+            contentContainerStyle={{ paddingBottom: 8 }}
             refreshing={postedQuery.isFetching}
             onRefresh={() => postedQuery.refetch()}
           />
@@ -198,6 +198,7 @@ export function OrdersScreen({ navigation }: Props) {
             <YStack paddingHorizontal="$4" paddingBottom="$3">
               <JobCard
                 job={item.jobId}
+                softTitle
                 onPress={() =>
                   navigation.navigate("JobDetail", {
                     jobId: item.jobId._id,
@@ -213,7 +214,7 @@ export function OrdersScreen({ navigation }: Props) {
               />
             </YStack>
           )}
-          contentContainerStyle={{ paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: 8 }}
           refreshing={appliedQuery.isFetching}
           onRefresh={() => appliedQuery.refetch()}
         />

@@ -45,6 +45,7 @@ interface JobCardBadge {
   count: number;
   showZero?: boolean;
   accessibilityLabel?: string;
+  placement?: "overlay-top-left" | "footer-bottom-right";
 }
 
 interface JobCardProps {
@@ -53,17 +54,48 @@ interface JobCardProps {
   distance?: string;
   onDelete?: () => void;
   isDeleting?: boolean;
-  /** Small notification badge over the thumbnail's top-left corner — new applicants (bell) on
-   * posted jobs, or unread messages (chat bubble) on jobs the viewer applied to. */
+  softTitle?: boolean;
+  /** Optional count badge. It can overlay media or sit in the card footer when the surrounding
+   * screen needs to keep the title and metadata clear. */
   badge?: JobCardBadge;
 }
 
 /** The compact, icon-row job card used in every list/map/grid context. Full detail lives on
  * the job detail screen — this card is deliberately minimal. */
-export function JobCard({ job, onPress, distance, onDelete, isDeleting, badge }: JobCardProps) {
+export function JobCard({ job, onPress, distance, onDelete, isDeleting, softTitle = false, badge }: JobCardProps) {
   const { t, i18n } = useTranslation();
   const locale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
   const thumbnail = job.media?.[0];
+  const showBadge = Boolean(badge && (badge.count > 0 || badge.showZero));
+
+  const renderBadge = (floating: boolean) => badge ? (
+    <XStack
+      position={floating ? "absolute" : undefined}
+      top={floating ? "$3" : undefined}
+      left={floating ? "$3" : undefined}
+      alignSelf={floating ? undefined : "flex-end"}
+      minWidth={44}
+      height={32}
+      borderRadius="$pill"
+      paddingHorizontal="$2"
+      backgroundColor="$brand50"
+      borderWidth={1}
+      borderColor="$brand200"
+      alignItems="center"
+      justifyContent="center"
+      gap="$1"
+      shadowColor="#000"
+      shadowOpacity={0.1}
+      shadowRadius={4}
+      accessibilityRole="text"
+      accessibilityLabel={badge.accessibilityLabel}
+    >
+      <Ionicons name={badge.icon} size={15} color={color.brand600} />
+      <Text variant="small" fontWeight="700" color="$brand800">
+        {badge.count}
+      </Text>
+    </XStack>
+  ) : null;
 
   return (
     <Card elevated pressStyle={{ opacity: 0.9 }} onPress={onPress} accessibilityRole="button" padding={0} overflow="hidden">
@@ -87,33 +119,7 @@ export function JobCard({ job, onPress, distance, onDelete, isDeleting, badge }:
         </YStack>
       ) : null}
 
-      {badge && (badge.count > 0 || badge.showZero) ? (
-        <XStack
-          position="absolute"
-          top="$3"
-          left="$3"
-          minWidth={44}
-          height={32}
-          borderRadius="$pill"
-          paddingHorizontal="$2"
-          backgroundColor="$brand50"
-          borderWidth={1}
-          borderColor="$brand200"
-          alignItems="center"
-          justifyContent="center"
-          gap="$1"
-          shadowColor="#000"
-          shadowOpacity={0.1}
-          shadowRadius={4}
-          accessibilityRole="text"
-          accessibilityLabel={badge.accessibilityLabel}
-        >
-          <Ionicons name={badge.icon} size={15} color={color.brand600} />
-          <Text variant="small" fontWeight="700" color="$brand800">
-            {badge.count}
-          </Text>
-        </XStack>
-      ) : null}
+      {showBadge && badge?.placement !== "footer-bottom-right" ? renderBadge(true) : null}
 
       {onDelete ? (
         <XStack
@@ -139,7 +145,7 @@ export function JobCard({ job, onPress, distance, onDelete, isDeleting, badge }:
 
       <YStack padding="$3" gap="$2">
         <XStack justifyContent="space-between" alignItems="flex-start" gap="$2">
-          <Text variant="body" fontWeight="600" flex={1} numberOfLines={1}>
+          <Text variant="h4" fontWeight="700" color={softTitle ? "$neutral700" : "$color"} flex={1} numberOfLines={2}>
             {job.title}
           </Text>
           <StatusPill label={t(`jobs.status.${job.status}`)} tone={STATUS_TONE[job.status]} />
@@ -157,9 +163,18 @@ export function JobCard({ job, onPress, distance, onDelete, isDeleting, badge }:
           <IconLabel icon="person-outline" label={String(job.peopleNeeded)} />
         </XStack>
 
-        <Text variant="body" muted numberOfLines={2}>
-          {job.description}
-        </Text>
+        {showBadge && badge?.placement === "footer-bottom-right" ? (
+          <XStack alignItems="flex-end" gap="$2">
+            <Text variant="body" muted numberOfLines={2} flex={1}>
+              {job.description}
+            </Text>
+            {renderBadge(false)}
+          </XStack>
+        ) : (
+          <Text variant="body" muted numberOfLines={2}>
+            {job.description}
+          </Text>
+        )}
       </YStack>
     </Card>
   );

@@ -45,7 +45,7 @@ export function ProfileNotificationPreferencesScreen({ navigation }: Props) {
   };
 
   return (
-    <Screen>
+    <Screen safeAreaEdges={["top", "left", "right"]}>
       <YStack gap="$5" paddingTop="$2">
         <XStack alignItems="center" justifyContent="space-between">
           <HeaderAction label={t("common.back")} onPress={navigation.goBack} />

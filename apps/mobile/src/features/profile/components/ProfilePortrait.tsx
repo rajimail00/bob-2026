@@ -18,7 +18,7 @@ export function ProfilePortrait({ uri, name, size = 96 }: ProfilePortraitProps) 
     <YStack
       width={size}
       height={size}
-      borderRadius="$md"
+      borderRadius={size / 2}
       borderWidth={1}
       borderColor="$primary"
       backgroundColor="$brand100"
@@ -31,7 +31,7 @@ export function ProfilePortrait({ uri, name, size = 96 }: ProfilePortraitProps) 
           source={{ uri }}
           resizeMode="cover"
           onError={() => setFailed(true)}
-          style={{ width: size - 2, height: size - 2 }}
+          style={{ width: size - 2, height: size - 2, borderRadius: (size - 2) / 2 }}
         />
       ) : (
         <Text variant="h2" color="$primary">

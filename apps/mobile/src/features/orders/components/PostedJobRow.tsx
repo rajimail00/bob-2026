@@ -44,12 +44,14 @@ export function PostedJobRow({ job, onPress }: PostedJobRowProps) {
       <JobCard
         job={job}
         onPress={onPress}
+        softTitle
         onDelete={job.status === "active" ? confirmDelete : undefined}
         isDeleting={deleteJob.isPending}
         badge={{
           icon: "people-outline",
           count: applicationCount,
           showZero: true,
+          placement: "footer-bottom-right",
           accessibilityLabel: t("orders.applicationCount", { count: applicationCount }),
         }}
       />

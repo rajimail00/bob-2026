@@ -77,7 +77,7 @@ export function EditProfileScreen({ navigation }: Props) {
   };
 
   return (
-    <Screen scroll scrollBottomPadding={32}>
+    <Screen scroll scrollBottomPadding={16} safeAreaEdges={["top", "left", "right"]}>
       <YStack gap="$5" paddingTop="$2">
         <XStack justifyContent="space-between" alignItems="center">
           <Pressable onPress={navigation.goBack} role="button" aria-label={t("profile.backToSettings")} hitSlop={10}>

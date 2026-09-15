@@ -298,7 +298,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
   if (published) {
     return (
-      <Screen padded={false}>
+      <Screen padded={false} contentGap="$0" safeAreaEdges={["top", "left", "right"]}>
         <CustomerHeader title={t("navigation.post")} />
         <YStack flex={1} padding="$4" alignItems="center" justifyContent="center" gap="$4">
           <Text variant="h2" textAlign="center">
@@ -323,7 +323,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
     return isExistingJobMode ? (
       <LoadingState label={t("common.loading")} />
     ) : (
-      <Screen padded={false}>
+      <Screen padded={false} contentGap="$0" safeAreaEdges={["top", "left", "right"]}>
         <CustomerHeader title={t("navigation.post")} />
         <LoadingState label={t("common.loading")} />
       </Screen>
@@ -344,7 +344,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const isCustomDate = !isTomorrow && new Date(values.date).toDateString() !== new Date().toDateString();
 
   return (
-    <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
       {!isExistingJobMode ? <CustomerHeader title={t("navigation.post")} /> : null}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
