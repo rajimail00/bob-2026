@@ -10,3 +10,7 @@ coverage/
 .DS_Store
 .tamagui/
 apps/mobile/assets/old/
+
+# Generated Next.js and TypeScript files
+apps/admin/.next/
+*.tsbuildinfo

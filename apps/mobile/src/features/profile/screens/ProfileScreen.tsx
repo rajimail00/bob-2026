@@ -60,92 +60,92 @@ export function ProfileScreen({ navigation }: Props) {
     <Screen padded={false} contentGap="$0" safeAreaEdges={["top", "left", "right"]}>
       <CustomerHeader title={t("navigation.profile")} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8 }}>
-      <YStack gap="$4">
-        <YStack alignItems="center" gap="$1">
-          <XStack width="100%" height={44} justifyContent="flex-end" alignItems="center">
-            <Pressable
-              onPress={() => navigation.navigate("ProfileSettings")}
-              role="button"
-              aria-label={t("accessibility.profileSettings")}
-              hitSlop={10}
-              style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
-            >
-              <Ionicons name="settings-outline" size={28} color="#4F8266" />
-            </Pressable>
-          </XStack>
-          <ProfilePortrait uri={user?.photoUrl} name={user?.firstName} size={112} />
-        </YStack>
-
-        <XStack gap="$3" alignItems="stretch">
-          <YStack flex={1} gap="$3" paddingVertical="$1">
-            <Text variant="h4">{user?.firstName} {user?.lastName}</Text>
-            <YStack gap="$2">
-              <Text variant="small" fontWeight="600">{t("profileFlow.categories")}</Text>
-              {categoriesQuery.isLoading ? <ActivityIndicator color="#4F8266" /> : categories.length ? (
-                <XStack flexWrap="wrap" gap="$2">
-                  {categories.map((category) => (
-                    <YStack
-                      key={category._id}
-                      width={34}
-                      height={34}
-                      borderRadius="$sm"
-                      borderWidth={1}
-                      borderColor="$primary"
-                      alignItems="center"
-                      justifyContent="center"
-                      accessibilityLabel={category.name[locale] || category.name.en}
-                    >
-                      {category.imageUrl ? (
-                        <Image source={{ uri: category.imageUrl }} style={{ width: 28, height: 28, borderRadius: 4 }} />
-                      ) : (
-                        <Ionicons name={getCategoryIcon(category.slug)} size={18} color="#4F8266" />
-                      )}
-                    </YStack>
-                  ))}
-                </XStack>
-              ) : <Text variant="caption">{t("profileFlow.noCategories")}</Text>}
-            </YStack>
-          </YStack>
-
-          <YStack width={1} backgroundColor="$borderColor" />
-
-          <YStack flex={1} gap="$2" paddingVertical="$1">
-            <XStack alignItems="center" gap="$2">
-              <Ionicons name="ribbon-outline" size={24} color="#4F8266" />
-              <Text variant="h4">{(user?.rating.average ?? 0).toFixed(1)}/5</Text>
+        <YStack gap="$4">
+          <YStack alignItems="center" gap="$1">
+            <XStack width="100%" height={44} justifyContent="flex-end" alignItems="center">
+              <Pressable
+                onPress={() => navigation.navigate("ProfileSettings")}
+                role="button"
+                aria-label={t("accessibility.profileSettings")}
+                hitSlop={10}
+                style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+              >
+                <Ionicons name="settings-outline" size={28} color="#4F8266" />
+              </Pressable>
             </XStack>
-            <Text variant="body">{t("profile.reviewCount", { count: user?.rating.count ?? 0 })}</Text>
-            <Text variant="body">{t("profileFlow.jobCount", { count: allJobs.length })}</Text>
-            <Text variant="body">
-              {t("profileFlow.memberSince", {
-                date: user?.createdAt ? dateFormatter.format(new Date(user.createdAt)) : t("profileFlow.notAvailable"),
-              })}
-            </Text>
+            <ProfilePortrait uri={user?.photoUrl} name={user?.firstName} size={112} />
           </YStack>
-        </XStack>
 
-        <YStack height={1} backgroundColor="$borderColor" />
-        <Text variant="label" textAlign="center">{t("profileFlow.recentActivity")}</Text>
+          <XStack gap="$3" alignItems="stretch">
+            <YStack flex={1} gap="$3" paddingVertical="$1">
+              <Text variant="h4">{user?.firstName} {user?.lastName}</Text>
+              <YStack gap="$2">
+                <Text variant="small" fontWeight="600">{t("profileFlow.categories")}</Text>
+                {categoriesQuery.isLoading ? <ActivityIndicator color="#4F8266" /> : categories.length ? (
+                  <XStack flexWrap="wrap" gap="$2">
+                    {categories.map((category) => (
+                      <YStack
+                        key={category._id}
+                        width={34}
+                        height={34}
+                        borderRadius="$sm"
+                        borderWidth={1}
+                        borderColor="$primary"
+                        alignItems="center"
+                        justifyContent="center"
+                        accessibilityLabel={category.name[locale] || category.name.en}
+                      >
+                        {category.imageUrl ? (
+                          <Image source={{ uri: category.imageUrl }} style={{ width: 28, height: 28, borderRadius: 4 }} />
+                        ) : (
+                          <Ionicons name={getCategoryIcon(category.slug)} size={18} color="#4F8266" />
+                        )}
+                      </YStack>
+                    ))}
+                  </XStack>
+                ) : <Text variant="caption">{t("profileFlow.noCategories")}</Text>}
+              </YStack>
+            </YStack>
 
-        {postedQuery.isLoading || assignedQuery.isLoading ? (
-          <ActivityIndicator color="#4F8266" />
-        ) : postedQuery.isError || assignedQuery.isError ? (
-          <YStack alignItems="center" gap="$2">
-            <Text muted textAlign="center">{t("profileFlow.activityError")}</Text>
-            <Button size="sm" variant="outline" onPress={() => { void postedQuery.refetch(); void assignedQuery.refetch(); }}>
-              {t("common.retry")}
-            </Button>
-          </YStack>
-        ) : recentJobs.length ? (
-          <YStack gap="$3">
-            {recentJobs.map((job) => (
-              <RecentJobCard key={job._id} job={job} locale={locale} onPress={() => openJob(job._id)} />
-            ))}
-          </YStack>
-        ) : (
-          <Text muted textAlign="center">{t("profileFlow.noActivity")}</Text>
-        )}
-      </YStack>
+            <YStack width={1} backgroundColor="$borderColor" />
+
+            <YStack flex={1} gap="$2" paddingVertical="$1">
+              <XStack alignItems="center" gap="$2">
+                <Ionicons name="ribbon-outline" size={24} color="#4F8266" />
+                <Text variant="h4">{(user?.rating.average ?? 0).toFixed(1)}/5</Text>
+              </XStack>
+              <Text variant="body">{t("profile.reviewCount", { count: user?.rating.count ?? 0 })}</Text>
+              <Text variant="body">{t("profileFlow.jobCount", { count: allJobs.length })}</Text>
+              <Text variant="body">
+                {t("profileFlow.memberSince", {
+                  date: user?.createdAt ? dateFormatter.format(new Date(user.createdAt)) : t("profileFlow.notAvailable"),
+                })}
+              </Text>
+            </YStack>
+          </XStack>
+
+          <YStack height={1} backgroundColor="$borderColor" />
+          <Text variant="label" textAlign="center">{t("profileFlow.recentActivity")}</Text>
+
+          {postedQuery.isLoading || assignedQuery.isLoading ? (
+            <ActivityIndicator color="#4F8266" />
+          ) : postedQuery.isError || assignedQuery.isError ? (
+            <YStack alignItems="center" gap="$2">
+              <Text muted textAlign="center">{t("profileFlow.activityError")}</Text>
+              <Button size="sm" variant="outline" onPress={() => { void postedQuery.refetch(); void assignedQuery.refetch(); }}>
+                {t("common.retry")}
+              </Button>
+            </YStack>
+          ) : recentJobs.length ? (
+            <YStack gap="$3">
+              {recentJobs.map((job) => (
+                <RecentJobCard key={job._id} job={job} locale={locale} onPress={() => openJob(job._id)} />
+              ))}
+            </YStack>
+          ) : (
+            <Text muted textAlign="center">{t("profileFlow.noActivity")}</Text>
+          )}
+        </YStack>
       </ScrollView>
     </Screen>
   );

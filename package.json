@@ -10,6 +10,10 @@
     "backend:typecheck": "npm run typecheck -w apps/backend",
     "backend:test": "npm run test -w apps/backend",
     "backend:seed-admin": "npm run seed:admin -w apps/backend",
+    "admin:dev": "npm run dev -w apps/admin",
+    "admin:build": "npm run build -w apps/admin",
+    "admin:typecheck": "npm run typecheck -w apps/admin",
+    "admin:test": "npm run test -w apps/admin",
     "mobile:start": "npm run start -w apps/mobile",
     "mobile:typecheck": "npm run typecheck -w apps/mobile"
   },
