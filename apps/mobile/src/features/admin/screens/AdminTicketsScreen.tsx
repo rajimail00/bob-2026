@@ -197,7 +197,6 @@ export function AdminTicketsScreen() {
                     <YStack gap="$2" alignItems="flex-end">
                       <StatusPill label={t(`admin.ticketStatus.${item.status}`)} tone={item.status === "resolved" || item.status === "closed" ? "brand" : "active"} />
                       <StatusPill label={t(`admin.priority.${item.priority}`)} tone={item.priority === "urgent" || item.priority === "high" ? "danger" : "neutral"} />
-                      {!selectionMode ? <Ionicons name="ellipsis-vertical" size={22} color="#2C312A" /> : null}
                     </YStack>
                   </XStack>
                 </Card>

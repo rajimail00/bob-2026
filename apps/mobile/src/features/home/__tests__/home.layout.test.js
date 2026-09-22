@@ -7,6 +7,15 @@ function read(relativePath) {
   return fs.readFileSync(path.join(sourceRoot, relativePath), "utf8");
 }
 
+test("Home filter sheet keeps Clear filters above the Android navigation bar", () => {
+  const filter = read("features/home/components/JobFilterModal.tsx");
+
+  expect(filter).toContain("navigationBarTranslucent");
+  expect(filter).toContain('<SafeAreaView edges={["bottom"]}');
+  expect(filter).toContain("style={{ flexShrink: 1 }}");
+  expect(filter).toContain('onPress={onClear}');
+});
+
 test("customer and admin tabs render complete responsive translated labels", () => {
   const label = read("components/navigation/ResponsiveTabLabel.tsx");
   const customerTabs = read("navigation/MainTabNavigator.tsx");

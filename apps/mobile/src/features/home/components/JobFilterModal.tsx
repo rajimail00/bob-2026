@@ -1,6 +1,7 @@
 import Slider from "@react-native-community/slider";
 import { useTranslation } from "react-i18next";
 import { Modal, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
 import { NumberStepper } from "@/components/ui/NumberStepper";
@@ -49,9 +50,9 @@ export function JobFilterModal({ visible, onClose, categories, filters, onChange
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <YStack flex={1} justifyContent="flex-end" backgroundColor="rgba(0,0,0,0.35)">
-        <YStack backgroundColor="$background" borderTopLeftRadius="$lg" borderTopRightRadius="$lg" maxHeight="85%">
+        <SafeAreaView edges={["bottom"]} style={{ backgroundColor: "white", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "85%" }}>
           <XStack justifyContent="space-between" alignItems="center" padding="$4" paddingBottom="$2">
             <Text variant="h3">{t("filters.title")}</Text>
             <Text
@@ -65,7 +66,7 @@ export function JobFilterModal({ visible, onClose, categories, filters, onChange
             </Text>
           </XStack>
 
-          <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 20 }}>
+          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 20 }}>
             <YStack gap="$3">
               <Text variant="label">{t("filters.category")}</Text>
               <XStack flexWrap="wrap" gap="$2">
@@ -134,7 +135,7 @@ export function JobFilterModal({ visible, onClose, categories, filters, onChange
               {t("filters.clear")}
             </Button>
           </ScrollView>
-        </YStack>
+        </SafeAreaView>
       </YStack>
     </Modal>
   );

@@ -171,6 +171,7 @@ test("support tickets matches the long-press selection and filter-sheet pattern"
   expect(source).toContain('bulkStatus("in_progress")');
   expect(source).toContain('bulkStatus("resolved")');
   expect(source).not.toContain('t("admin.bulk.selectPage")');
+  expect(source).not.toContain('name="ellipsis-vertical"');
 
   apiClient.post.mockReset();
   apiClient.post.mockResolvedValue({ data: { tickets: [] } });
@@ -178,6 +179,19 @@ test("support tickets matches the long-press selection and filter-sheet pattern"
   await adminApi.bulkUpdateTickets(ticketIds, { status: "resolved" });
   expect(apiClient.post).toHaveBeenCalledTimes(3);
   expect(apiClient.post.mock.calls.map(([, body]) => body.ticketIds.length)).toEqual([100, 100, 5]);
+});
+
+test("admin mobile pagination and heat map controls fit the phone layout", () => {
+  const ads = fs.readFileSync(path.join(__dirname, "../screens/AdminAdvertisementsScreen.tsx"), "utf8");
+  const jobs = fs.readFileSync(path.join(__dirname, "../screens/AdminJobsScreen.tsx"), "utf8");
+  const dashboard = fs.readFileSync(path.join(__dirname, "../screens/AdminDashboardScreen.tsx"), "utf8");
+  const button = fs.readFileSync(path.join(__dirname, "../../../components/ui/Button.tsx"), "utf8");
+
+  expect(ads).toContain('safeAreaEdges={["top", "bottom", "left", "right"]}');
+  expect(jobs).toContain('ListFooterComponentStyle={{ marginTop: "auto" }}');
+  expect(jobs).toContain('paddingBottom: 24');
+  expect(dashboard).toContain('paddingHorizontal="$1" singleLine');
+  expect(button).toContain('numberOfLines={singleLine ? 1 : undefined}');
 });
 
 test("job management keeps filter state in the sheet without rendering filter chips", () => {

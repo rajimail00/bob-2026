@@ -63,7 +63,7 @@ export function AdminAdvertisementsScreen({ navigation }: Props) {
   };
 
   return (
-    <Screen padded={false} safeAreaEdges={["top", "left", "right"]}>
+    <Screen padded={false} safeAreaEdges={["top", "bottom", "left", "right"]}>
       <AdminHeader title={t("admin.advertisements.title")} showBack />
       <AdminSearchBar value={search} onChangeText={(value) => { setSearch(value); setPage(1); }} placeholder={t("admin.common.search")} label={t("admin.advertisements.searchLabel")} onOpenFilters={() => setFiltersOpen(true)} activeFilterCount={status ? 1 : 0} />
       <XStack paddingHorizontal="$4" paddingVertical="$3"><Button fullWidth size="sm" onPress={() => navigation.navigate("AdminAdvertisementForm")}>{t("admin.advertisements.create")}</Button></XStack>

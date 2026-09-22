@@ -55,7 +55,7 @@ export function AdminDashboardScreen() {
             </Card>
             <Card elevated gap="$3">
               <Text variant="h4">{t("admin.dashboard.heatMap")}</Text>
-              <XStack gap="$2">{(["geo", "engagement", "time"] as const).map((value) => <Button key={value} size="sm" flex={1} variant={heatTab === value ? "primary" : "outline"} onPress={() => setHeatTab(value)}>{t(`admin.dashboard.${value}`)}</Button>)}</XStack>
+              <XStack gap="$2">{(["geo", "engagement", "time"] as const).map((value) => <Button key={value} size="sm" flex={1} minWidth={0} paddingHorizontal="$1" singleLine variant={heatTab === value ? "primary" : "outline"} onPress={() => setHeatTab(value)}>{t(`admin.dashboard.${value}`)}</Button>)}</XStack>
               {heatTab === "geo" ? data.geo.length ? (
                 <MapView style={{ height: 230, borderRadius: 14 }} initialRegion={{ latitude: data.geo[0]?.latitude ?? 51.1657, longitude: data.geo[0]?.longitude ?? 10.4515, latitudeDelta: 10, longitudeDelta: 10 }} scrollEnabled={false} zoomEnabled={false}>
                   {data.geo.map((point, index) => <MapCircle key={`${point.latitude}-${point.longitude}-${index}`} center={point} radius={Math.max(1500, point.count * 800)} fillColor="rgba(79,130,102,0.3)" strokeColor="#4F8266" />)}

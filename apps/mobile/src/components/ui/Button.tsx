@@ -67,11 +67,12 @@ type ButtonFrameProps = GetProps<typeof ButtonFrame>;
 export interface ButtonProps extends Omit<ButtonFrameProps, "children"> {
   children: string;
   loading?: boolean;
+  singleLine?: boolean;
   onPress?: () => void;
 }
 
 /** The single button component for the app — do not introduce PrimaryButton/SubmitButton variants, extend this instead. */
-export function Button({ children, loading = false, disabled, variant = "primary", onPress, ...rest }: ButtonProps) {
+export function Button({ children, loading = false, singleLine = false, disabled, variant = "primary", onPress, ...rest }: ButtonProps) {
   const isDisabled = disabled || loading;
 
   return (
@@ -86,7 +87,7 @@ export function Button({ children, loading = false, disabled, variant = "primary
       {loading ? (
         <ActivityIndicator color={SPINNER_COLOR_BY_VARIANT[variant ?? "primary"]} />
       ) : (
-        <ButtonText variant={variant}>{children}</ButtonText>
+        <ButtonText variant={variant} numberOfLines={singleLine ? 1 : undefined} adjustsFontSizeToFit={singleLine} minimumFontScale={singleLine ? 0.75 : undefined}>{children}</ButtonText>
       )}
     </ButtonFrame>
   );

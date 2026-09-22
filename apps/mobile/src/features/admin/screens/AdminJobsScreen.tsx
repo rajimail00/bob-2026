@@ -88,7 +88,8 @@ export function AdminJobsScreen() {
       <FlatList
         data={query.data?.items ?? []}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 110 }}
+        contentContainerStyle={{ flexGrow: 1, padding: 16, gap: 12, paddingBottom: 24 }}
+        ListFooterComponentStyle={{ marginTop: "auto" }}
         refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
         ListEmptyComponent={<EmptyState title={t("admin.jobs.empty")} />}
         renderItem={({ item }) => (
