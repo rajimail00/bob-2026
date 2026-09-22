@@ -38,7 +38,7 @@ test("Home map and list fill the area above the tab bar without duplicate bottom
   expect(home).toContain('contentContainerStyle={{ paddingBottom: 8 }}');
 });
 
-test("map jobs show full category information and marker artwork is not cropped", () => {
+test("map jobs show full category information with compact uncropped marker artwork", () => {
   const card = read("features/home/components/JobCard.tsx");
   const map = read("features/home/components/JobMapView.tsx");
   const markerImages = read("features/home/constants/categoryMarkerImages.ts");
@@ -53,6 +53,25 @@ test("map jobs show full category information and marker artwork is not cropped"
   expect(map).not.toContain("function CategoryPin");
   expect(map).not.toContain("pinColor=");
   expect(map).not.toContain("collapsable={false}");
+});
+
+test("all native job marker images use compact consistent dimensions", () => {
+  const markerDirectory = path.join(sourceRoot, "..", "assets", "map-markers");
+  const markerFiles = fs.readdirSync(markerDirectory).filter((name) => name.endsWith(".png"));
+
+  expect(markerFiles.length).toBeGreaterThan(0);
+  for (const name of markerFiles) {
+    const png = fs.readFileSync(path.join(markerDirectory, name));
+    expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([48, 56]);
+  }
+});
+
+test("welcome screen uses the canonical BOB mark instead of a letter placeholder", () => {
+  const welcome = read("features/auth/screens/WelcomeScreen.tsx");
+
+  expect(welcome).toContain("<BobLogo size={96} />");
+  expect(welcome).not.toContain("<Text variant=\"display\"");
 });
 
 test("My Orders keeps the applicant count clear of the card heading", () => {

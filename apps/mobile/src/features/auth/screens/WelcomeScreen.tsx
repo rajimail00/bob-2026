@@ -2,6 +2,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import { YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
+import { BobLogo } from "@/components/brand/BobLogo";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
 import type { AuthStackParamList } from "@/navigation/types";
@@ -14,11 +15,7 @@ export function WelcomeScreen({ navigation }: Props) {
   return (
     <Screen background="brand">
       <YStack flex={1} alignItems="center" justifyContent="center" gap="$3">
-        <YStack width={96} height={96} borderRadius={48} backgroundColor="$backgroundStrong" alignItems="center" justifyContent="center">
-          <Text variant="display" color="$primary">
-            B
-          </Text>
-        </YStack>
+        <BobLogo size={96} />
         <Text variant="h2" color="$primaryText" marginTop="$4">
           {t("auth.welcome")}
         </Text>
