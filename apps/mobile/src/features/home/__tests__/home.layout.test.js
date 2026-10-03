@@ -47,6 +47,16 @@ test("Home map and list fill the area above the tab bar without duplicate bottom
   expect(home).toContain('contentContainerStyle={{ paddingBottom: 8 }}');
 });
 
+test("Home keeps the map visible when there are no active jobs", () => {
+  const home = read("features/home/screens/HomeScreen.tsx");
+  const map = read("features/home/components/JobMapView.tsx");
+
+  expect(home.indexOf('viewMode === "map"')).toBeLessThan(home.indexOf("jobs.length === 0"));
+  expect(map).toContain("const DEFAULT_MAP_REGION: Region");
+  expect(map).toContain("return DEFAULT_MAP_REGION");
+  expect(map).not.toContain("?? 0");
+});
+
 test("map jobs show full category information with compact uncropped marker artwork", () => {
   const card = read("features/home/components/JobCard.tsx");
   const map = read("features/home/components/JobMapView.tsx");

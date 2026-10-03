@@ -15,13 +15,33 @@ interface JobMapViewProps {
   onSelectJob: (job: Job) => void;
 }
 
+const DEFAULT_MAP_REGION: Region = {
+  latitude: 51.1657,
+  longitude: 10.4515,
+  latitudeDelta: 10,
+  longitudeDelta: 10,
+};
+
 export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
   const { t } = useTranslation();
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   const initialRegion: Region = useMemo(() => {
-    const center = userCoords ?? { lat: jobs[0]?.location.coordinates[1] ?? 0, lng: jobs[0]?.location.coordinates[0] ?? 0 };
-    return { latitude: center.lat, longitude: center.lng, latitudeDelta: 0.08, longitudeDelta: 0.08 };
+    if (userCoords) {
+      return { latitude: userCoords.lat, longitude: userCoords.lng, latitudeDelta: 0.08, longitudeDelta: 0.08 };
+    }
+
+    const firstJob = jobs[0];
+    if (firstJob) {
+      return {
+        latitude: firstJob.location.coordinates[1],
+        longitude: firstJob.location.coordinates[0],
+        latitudeDelta: 0.08,
+        longitudeDelta: 0.08,
+      };
+    }
+
+    return DEFAULT_MAP_REGION;
   }, [userCoords, jobs]);
 
   const selectedJob = jobs.find((j) => j._id === selectedJobId) ?? null;

@@ -167,14 +167,14 @@ export function HomeScreen({ navigation }: Props) {
           retryLabel={t("common.retry")}
           onRetry={() => jobsQuery.refetch()}
         />
-      ) : jobs.length === 0 ? (
-        <EmptyState title={t("home.emptyTitle")} body={t("home.emptyBody")} />
       ) : viewMode === "map" ? (
         <JobMapView
           jobs={jobs}
           userCoords={location.status === "granted" ? location.coords : null}
           onSelectJob={(job) => navigation.navigate("JobDetail", { jobId: job._id })}
         />
+      ) : jobs.length === 0 ? (
+        <EmptyState title={t("home.emptyTitle")} body={t("home.emptyBody")} />
       ) : (
         <FlatList
           style={{ flex: 1 }}
