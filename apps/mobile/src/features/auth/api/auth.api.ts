@@ -21,6 +21,14 @@ export const authApi = {
     return data;
   },
 
+  async forgotPassword(email: string) {
+    await apiClient.post("/auth/forgot-password", { email });
+  },
+
+  async resetPassword(input: { email: string; code: string; password: string }) {
+    await apiClient.post("/auth/reset-password", input);
+  },
+
   async logout() {
     await apiClient.post("/auth/logout");
   },

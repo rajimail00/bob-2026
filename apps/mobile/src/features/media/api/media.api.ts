@@ -9,10 +9,15 @@ export interface UploadedMedia {
  * Uploads a locally-captured photo/video (via expo-image-picker) to the backend,
  * which streams it to Cloudinary and returns the hosted URL.
  */
-export async function uploadMedia(localUri: string, kind: "photo" | "video"): Promise<UploadedMedia> {
-  const filename = localUri.split("/").pop() ?? `upload-${Date.now()}`;
-  const extension = filename.includes(".") ? filename.split(".").pop() : kind === "photo" ? "jpg" : "mp4";
-  const mimeType = kind === "photo" ? `image/${extension === "jpg" ? "jpeg" : extension}` : `video/${extension}`;
+export async function uploadMedia(
+  localUri: string,
+  kind: "photo" | "video",
+  file?: { name: string; mimeType: string }
+): Promise<UploadedMedia> {
+  // Camera providers often return content:// URIs without a useful filename or
+  // extension. Always give multipart a safe, explicit media identity.
+  const filename = file?.name ?? `bob-${kind}-${Date.now()}.${kind === "photo" ? "jpg" : "mp4"}`;
+  const mimeType = file?.mimeType ?? (kind === "photo" ? "image/jpeg" : "video/mp4");
 
   const formData = new FormData();
   // React Native's fetch/FormData accepts this { uri, name, type } shape for file fields.

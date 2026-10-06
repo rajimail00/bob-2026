@@ -3,11 +3,13 @@ import { AppError } from "../../lib/errors.js";
 import { authService } from "./auth.service.js";
 import {
   createProfileSchema,
+  forgotPasswordSchema,
   localePreferenceSchema,
   loginSchema,
   notificationPreferencesSchema,
   refreshSchema,
   registerSchema,
+  resetPasswordSchema,
   verifyEmailSchema,
   workerProfileSchema,
 } from "./auth.validation.js";
@@ -35,6 +37,18 @@ export const authController = {
     const input = loginSchema.parse(req.body);
     const result = await authService.login(input);
     res.status(200).json(result);
+  },
+
+  async forgotPassword(req: Request, res: Response) {
+    const input = forgotPasswordSchema.parse(req.body);
+    await authService.requestPasswordReset(input);
+    res.status(204).send();
+  },
+
+  async resetPassword(req: Request, res: Response) {
+    const input = resetPasswordSchema.parse(req.body);
+    await authService.resetPassword(input);
+    res.status(204).send();
   },
 
   async refresh(req: Request, res: Response) {

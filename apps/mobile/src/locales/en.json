@@ -28,6 +28,19 @@
     "createProfileTitle": "Create profile",
     "firstNameLabel": "First name",
     "lastNameLabel": "Last name",
+    "forgotPassword": "Forgot password?",
+    "forgotPasswordTitle": "Reset password",
+    "forgotPasswordBody": "Enter your account email and we'll send you a six-digit reset code.",
+    "sendResetCode": "Send reset code",
+    "resetCodeSent": "If an active account exists for this email, a reset code has been sent. Enter it below.",
+    "resetCodeLabel": "Reset code",
+    "newPasswordLabel": "New password",
+    "resetPassword": "Set new password",
+    "resetInvalid": "That reset code is invalid or has expired. Request a new one.",
+    "resetSuccessTitle": "Password updated",
+    "resetSuccessBody": "You can now log in with your new password.",
+    "backToLogin": "Back to login",
+    "useDifferentEmail": "Use a different email",
     "errors": {
       "emailRequired": "Enter your email address",
       "emailInvalid": "Enter a valid email address",
@@ -263,6 +276,7 @@
     "minute": "Minute {{value}}"
   },
   "mediaPicker": {
+    "compressionError": "Couldn't compress that file. Choose a different photo or video and try again.",
     "libraryPermission": "Photo library access is off — enable it in settings to add photos or videos.",
     "cameraPermission": "Camera access is off — enable it in settings to add photos or videos.",
     "filesTooLarge": "One of those files is over 10MB — choose a shorter video or smaller photo.",
@@ -457,6 +471,7 @@
     "accessibility": { "back": "Go back", "notifications": "Admin notifications, {{count}} unread", "account": "Open administrator account", "clearSearch": "Clear search" }
   },
   "apiErrors": {
+    "PASSWORD_RESET_INVALID": "That reset code is invalid or has expired. Request a new one.",
     "AUTH_REQUIRED": "Please log in to continue.",
     "SESSION_EXPIRED": "Your session expired. Please log in again.",
     "EMAIL_EXISTS": "An account with this email already exists.",

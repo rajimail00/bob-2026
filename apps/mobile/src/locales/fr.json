@@ -28,6 +28,19 @@
     "createProfileTitle": "Créer un profil",
     "firstNameLabel": "Prénom",
     "lastNameLabel": "Nom",
+    "forgotPassword": "Mot de passe oublié ?",
+    "forgotPasswordTitle": "Réinitialiser le mot de passe",
+    "forgotPasswordBody": "Saisissez l’adresse e-mail de votre compte. Nous vous enverrons un code à six chiffres.",
+    "sendResetCode": "Envoyer le code",
+    "resetCodeSent": "Si un compte actif existe pour cette adresse, un code a été envoyé. Saisissez-le ci-dessous.",
+    "resetCodeLabel": "Code de réinitialisation",
+    "newPasswordLabel": "Nouveau mot de passe",
+    "resetPassword": "Définir le mot de passe",
+    "resetInvalid": "Ce code est invalide ou a expiré. Demandez-en un nouveau.",
+    "resetSuccessTitle": "Mot de passe mis à jour",
+    "resetSuccessBody": "Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.",
+    "backToLogin": "Retour à la connexion",
+    "useDifferentEmail": "Utiliser une autre adresse",
     "errors": {
       "emailRequired": "Saisissez votre adresse e-mail",
       "emailInvalid": "Saisissez une adresse e-mail valide",
@@ -217,6 +230,7 @@
   },
   "datePicker": { "previousMonth": "Mois précédent", "nextMonth": "Mois suivant", "cancel": "Annuler", "confirm": "OK", "hour": "Heure {{value}}", "minute": "Minute {{value}}" },
   "mediaPicker": {
+    "compressionError": "Impossible de compresser ce fichier. Choisissez une autre photo ou vidéo et réessayez.",
     "libraryPermission": "L’accès à la photothèque est désactivé. Activez-le dans les réglages.", "cameraPermission": "L’accès à l’appareil photo est désactivé. Activez-le dans les réglages.", "filesTooLarge": "Un fichier dépasse 10 Mo. Choisissez une vidéo plus courte ou une photo plus petite.", "fileTooLarge": "Ce fichier dépasse 10 Mo. Choisissez une vidéo plus courte ou une photo plus petite.", "error": "Impossible d’ajouter ce fichier. Réessayez.", "remove": "Supprimer le média", "photoGallery": "Photo de la galerie ({{count}}/{{max}})", "videoGallery": "Vidéo de la galerie ({{count}}/{{max}})", "camera": "Utiliser l’appareil photo", "limits": "Jusqu’à {{photos}} photos et {{videos}} vidéos de 10 Mo chacune. La galerie est recommandée."
   },
   "locationPicker": { "selected": "Position sélectionnée", "finding": "Recherche de l’adresse…", "instruction": "Touchez la carte ou déplacez le repère pour définir l’adresse", "searchPlaceholder": "Saisissez la rue, le numéro, la ville ou le code postal", "searchLabel": "Recherche d’adresse", "search": "Rechercher", "clear": "Effacer la recherche d’adresse", "emptySearch": "Saisissez une adresse à rechercher.", "notFound": "Cette adresse est introuvable. Vérifiez-la ou déplacez le repère manuellement.", "searchFailed": "Impossible de rechercher cette adresse. Réessayez.", "serviceUnavailable": "La recherche d’adresses est indisponible. Vérifiez votre connexion et réessayez.", "reverseFailed": "Le repère a été déplacé, mais l’adresse n’a pas pu être actualisée. Ajustez-la manuellement ou réessayez.", "permissionDenied": "L’accès à la position est requis pour rechercher une adresse sur cet appareil." },
@@ -274,6 +288,7 @@
     "accessibility": { "back": "Retour", "notifications": "Notifications administrateur, {{count}} non lues", "account": "Ouvrir le compte administrateur", "clearSearch": "Effacer la recherche" }
   },
   "apiErrors": {
+    "PASSWORD_RESET_INVALID": "Ce code est invalide ou a expiré. Demandez-en un nouveau.",
     "AUTH_REQUIRED": "Connectez-vous pour continuer.", "SESSION_EXPIRED": "Votre session a expiré. Reconnectez-vous.", "EMAIL_EXISTS": "Un compte existe déjà avec cette adresse e-mail.", "INVALID_CREDENTIALS": "L’adresse e-mail ou le mot de passe est incorrect.", "EMAIL_NOT_VERIFIED": "Vérifiez votre adresse e-mail avant de vous connecter.", "VERIFICATION_INVALID": "Le code est incorrect. Réessayez.", "VERIFICATION_EXPIRED": "Le code a expiré. Demandez-en un nouveau.", "JOB_NOT_FOUND": "Cette mission n’existe plus.", "JOB_NOT_ACTIVE": "Cette mission n’accepte plus de candidatures.", "JOB_EDIT_LOCKED": "Cette mission ne peut plus être modifiée.", "JOB_REPOST_LOCKED": "Cette mission ne peut pas être republiée.", "APPLICATION_DUPLICATE": "Vous avez déjà postulé à cette mission.", "APPLICATION_FORBIDDEN": "Configurez votre profil prestataire avant de postuler.", "MESSAGE_FORBIDDEN": "Vous ne participez pas à cette conversation.", "REVIEW_DUPLICATE": "Vous avez déjà évalué cette mission.", "MEDIA_TOO_LARGE": "Le fichier sélectionné est trop volumineux.", "MEDIA_UNSUPPORTED": "Ce type de fichier n’est pas pris en charge.", "ACCOUNT_DELETE_FORBIDDEN": "Seul un compte actif peut être supprimé."
   }
 }

@@ -17,6 +17,17 @@ export const loginSchema = z.object({
 });
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().min(1, "auth.errors.emailRequired").email("auth.errors.emailInvalid"),
+});
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  code: z.string().regex(/^\d{6}$/, "auth.errors.codeInvalid"),
+  password: z.string().min(8, "auth.errors.passwordTooShort"),
+});
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
 export const createProfileSchema = z.object({
   firstName: z.string().trim().min(1, "auth.errors.firstNameRequired").max(60),
   lastName: z.string().trim().min(1, "auth.errors.lastNameRequired").max(60),

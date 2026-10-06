@@ -71,6 +71,16 @@ export function LoginScreen({ navigation }: Props) {
               />
             )}
           />
+          <XStack justifyContent="flex-end">
+            <Text
+              variant="body"
+              color="$primary"
+              fontWeight="700"
+              onPress={() => navigation.navigate("ForgotPassword")}
+            >
+              {t("auth.forgotPassword")}
+            </Text>
+          </XStack>
         </YStack>
 
         {submitError ? (

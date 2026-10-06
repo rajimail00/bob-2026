@@ -28,6 +28,23 @@ export async function sendVerificationEmail(to: string, code: string, locale: st
   });
 }
 
+export async function sendPasswordResetEmail(to: string, code: string, locale: string): Promise<void> {
+  const subject = RESET_SUBJECT_BY_LOCALE[locale] ?? RESET_SUBJECT_BY_LOCALE.en;
+
+  if (!transporter) {
+    // A reset code is an authentication secret, so never print it to logs.
+    console.log(`[mailer] password reset requested for ${to}; SMTP is not configured`);
+    return;
+  }
+
+  await transporter.sendMail({
+    from: env.SMTP_FROM,
+    to,
+    subject,
+    text: `${code}\n\n${RESET_BODY_BY_LOCALE[locale] ?? RESET_BODY_BY_LOCALE.en}`,
+  });
+}
+
 const SUBJECT_BY_LOCALE: Record<string, string> = {
   en: "Your BOB verification code",
   de: "Dein BOB-Bestätigungscode",
@@ -40,4 +57,18 @@ const BODY_BY_LOCALE: Record<string, string> = {
   de: "Gib diesen Code in der App ein, um deine E-Mail-Adresse zu bestätigen. Er läuft in 15 Minuten ab.",
   es: "Introduce este código en la app para verificar tu correo electrónico. Caduca en 15 minutos.",
   fr: "Saisissez ce code dans l’application pour vérifier votre adresse e-mail. Il expire dans 15 minutes.",
+};
+
+const RESET_SUBJECT_BY_LOCALE: Record<string, string> = {
+  en: "Reset your BOB password",
+  de: "Setze dein BOB-Passwort zurück",
+  es: "Restablece tu contraseña de BOB",
+  fr: "Réinitialisez votre mot de passe BOB",
+};
+
+const RESET_BODY_BY_LOCALE: Record<string, string> = {
+  en: "Enter this code in the app to set a new password. It expires in 15 minutes. If you did not request this, you can ignore this email.",
+  de: "Gib diesen Code in der App ein, um ein neues Passwort festzulegen. Er läuft in 15 Minuten ab. Wenn du dies nicht angefordert hast, kannst du diese E-Mail ignorieren.",
+  es: "Introduce este código en la app para establecer una nueva contraseña. Caduca en 15 minutos. Si no lo solicitaste, puedes ignorar este correo.",
+  fr: "Saisissez ce code dans l’application pour définir un nouveau mot de passe. Il expire dans 15 minutes. Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail.",
 };

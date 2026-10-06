@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Alert,
   findNodeHandle,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -118,6 +119,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [draftTime, setDraftTime] = useState(new Date());
   const [hasSelectedRepostDate, setHasSelectedRepostDate] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const {
     control,
@@ -175,6 +177,19 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
     },
     []
   );
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+      setIsKeyboardVisible(true);
+    });
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+      setIsKeyboardVisible(false);
+    });
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isExistingJobMode || !jobId || !jobQuery.data || initializedEditJobId.current === jobId) {
@@ -720,55 +735,57 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
             </ScrollView>
           </KeyboardScrollContext.Provider>
 
-          <YStack padding="$4" gap="$3" borderTopWidth={1} borderColor="$borderColor" backgroundColor="$background">
-          {submitError ? (
-            <YStack gap="$2">
-              <Text variant="small" color="$danger">
-                {submitError}
-              </Text>
-              {location.status === "denied" ? (
-                <Button variant="outline" onPress={() => void requestLocation()}>
-                  {t("postJob.locationRetry")}
-                </Button>
+          {!isKeyboardVisible ? (
+            <YStack padding="$4" gap="$3" borderTopWidth={1} borderColor="$borderColor" backgroundColor="$background">
+              {submitError ? (
+                <YStack gap="$2">
+                  <Text variant="small" color="$danger">
+                    {submitError}
+                  </Text>
+                  {location.status === "denied" ? (
+                    <Button variant="outline" onPress={() => void requestLocation()}>
+                      {t("postJob.locationRetry")}
+                    </Button>
+                  ) : null}
+                </YStack>
               ) : null}
+
+              <XStack gap="$3">
+                {step > 0 ? (
+                  <Button variant="outline" onPress={goBack}>
+                    {t("common.back")}
+                  </Button>
+                ) : null}
+                {step < STEP_COUNT - 1 ? (
+                  <Button onPress={goNext} fullWidth={step === 0}>
+                    {t("common.continue")}
+                  </Button>
+                ) : (
+                  <Button
+                    onPress={onSubmit}
+                    loading={
+                      isRepostMode
+                        ? repostJob.isPending
+                        : isEditMode
+                          ? updateJob.isPending
+                          : createJob.isPending
+                    }
+                    disabled={
+                      isRepostMode &&
+                      !canSubmitRepost(hasSelectedRepostDate, repostJob.isPending)
+                    }
+                    fullWidth
+                  >
+                    {isRepostMode
+                      ? t("jobReposting.publish")
+                      : isEditMode
+                        ? t("jobEditing.saveChanges")
+                        : t("postJob.publish")}
+                  </Button>
+                )}
+              </XStack>
             </YStack>
           ) : null}
-
-          <XStack gap="$3">
-            {step > 0 ? (
-              <Button variant="outline" onPress={goBack}>
-                {t("common.back")}
-              </Button>
-            ) : null}
-            {step < STEP_COUNT - 1 ? (
-              <Button onPress={goNext} fullWidth={step === 0}>
-                {t("common.continue")}
-              </Button>
-            ) : (
-              <Button
-                onPress={onSubmit}
-                loading={
-                  isRepostMode
-                    ? repostJob.isPending
-                    : isEditMode
-                      ? updateJob.isPending
-                      : createJob.isPending
-                }
-                disabled={
-                  isRepostMode &&
-                  !canSubmitRepost(hasSelectedRepostDate, repostJob.isPending)
-                }
-                fullWidth
-              >
-                {isRepostMode
-                  ? t("jobReposting.publish")
-                  : isEditMode
-                    ? t("jobEditing.saveChanges")
-                    : t("postJob.publish")}
-              </Button>
-            )}
-          </XStack>
-          </YStack>
         </YStack>
       </KeyboardAvoidingView>
     </SafeAreaView>

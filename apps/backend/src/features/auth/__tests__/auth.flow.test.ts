@@ -2,9 +2,13 @@ import request from "supertest";
 import { describe, expect, it, vi } from "vitest";
 
 const sentCodes: Record<string, string> = {};
+const sentResetCodes: Record<string, string> = {};
 vi.mock("../../../lib/mailer.js", () => ({
   sendVerificationEmail: vi.fn(async (to: string, code: string) => {
     sentCodes[to] = code;
+  }),
+  sendPasswordResetEmail: vi.fn(async (to: string, code: string) => {
+    sentResetCodes[to] = code;
   }),
 }));
 
@@ -98,6 +102,57 @@ describe("auth flow", () => {
       .post("/api/v1/auth/login")
       .send({ email: "wrongpass@example.com", password: "totally-wrong" });
     expect(res.status).toBe(401);
+  });
+
+  it("resets a verified account password without revealing unknown emails", async () => {
+    const email = "password-reset@example.com";
+    const verifyCode = await registerAndGetCode(email);
+    await request(app).post("/api/v1/auth/verify-email").send({ email, code: verifyCode });
+    const sessionBeforeReset = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email, password: "correct-horse-1" });
+
+    const unknown = await request(app)
+      .post("/api/v1/auth/forgot-password")
+      .send({ email: "unknown@example.com" });
+    expect(unknown.status).toBe(204);
+
+    const requested = await request(app)
+      .post("/api/v1/auth/forgot-password")
+      .send({ email });
+    expect(requested.status).toBe(204);
+    expect(sentResetCodes[email]).toMatch(/^\d{6}$/);
+
+    const invalid = await request(app)
+      .post("/api/v1/auth/reset-password")
+      .send({ email, code: "000000", password: "new-correct-horse-2" });
+    expect(invalid.status).toBe(400);
+    expect(invalid.body.error.errorId).toBe("PASSWORD_RESET_INVALID");
+
+    const reset = await request(app)
+      .post("/api/v1/auth/reset-password")
+      .send({ email, code: sentResetCodes[email], password: "new-correct-horse-2" });
+    expect(reset.status).toBe(204);
+
+    const oldLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email, password: "correct-horse-1" });
+    expect(oldLogin.status).toBe(401);
+
+    const staleRefresh = await request(app)
+      .post("/api/v1/auth/refresh")
+      .send({ refreshToken: sessionBeforeReset.body.refreshToken });
+    expect(staleRefresh.status).toBe(401);
+
+    const newLogin = await request(app)
+      .post("/api/v1/auth/login")
+      .send({ email, password: "new-correct-horse-2" });
+    expect(newLogin.status).toBe(200);
+
+    const reused = await request(app)
+      .post("/api/v1/auth/reset-password")
+      .send({ email, code: sentResetCodes[email], password: "another-password" });
+    expect(reused.status).toBe(400);
   });
 
   it("returns 401 for /auth/me without a token", async () => {

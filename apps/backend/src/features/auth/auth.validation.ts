@@ -20,6 +20,17 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address"),
+});
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = forgotPasswordSchema.extend({
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });

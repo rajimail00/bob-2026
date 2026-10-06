@@ -20,6 +20,8 @@ authRouter.post("/register", authRateLimit, asyncHandler(authController.register
 authRouter.post("/verify-email", authRateLimit, asyncHandler(authController.verifyEmail));
 authRouter.post("/resend-code", authRateLimit, asyncHandler(authController.resendCode));
 authRouter.post("/login", authRateLimit, asyncHandler(authController.login));
+authRouter.post("/forgot-password", authRateLimit, asyncHandler(authController.forgotPassword));
+authRouter.post("/reset-password", authRateLimit, asyncHandler(authController.resetPassword));
 authRouter.post("/refresh", asyncHandler(authController.refresh));
 authRouter.post("/logout", requireAuth, asyncHandler(authController.logout));
 authRouter.delete("/account", requireAuth, asyncHandler(authController.deleteAccount));

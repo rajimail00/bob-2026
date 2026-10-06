@@ -6,6 +6,7 @@ import { ActivityIndicator, Image } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Text } from "@/components/ui/Text";
 import { uploadMedia, type UploadedMedia } from "@/features/media/api/media.api";
+import { compressMedia } from "@/features/media/utils/compressMedia";
 import { getApiErrorMessage } from "@/lib/apiClient";
 
 const MAX_PHOTOS = 5;
@@ -20,6 +21,14 @@ interface MediaPickerProps {
 
 function isOversized(fileSize: number | undefined): boolean {
   return Boolean(fileSize && fileSize > MAX_FILE_BYTES);
+}
+
+async function prepareForUpload(asset: ImagePicker.ImagePickerAsset, kind: "photo" | "video") {
+  try {
+    return await compressMedia(asset, kind);
+  } catch {
+    throw new Error("MEDIA_COMPRESSION_FAILED");
+  }
 }
 
 /** Photo/video capture + Cloudinary upload for the post-a-job wizard's media step. */
@@ -51,23 +60,33 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
       });
       if (result.canceled || result.assets.length === 0) return;
 
-      const oversized = result.assets.some((a) => isOversized(a.fileSize));
-      if (oversized) {
-        setError(t("mediaPicker.filesTooLarge"));
-        return;
-      }
-
       setIsUploading(true);
       // Accumulate locally and commit once at the end — calling onChange per item would each
       // close over the same stale `media` prop from this render and clobber one another.
       const uploaded: UploadedMedia[] = [];
       for (const asset of result.assets.slice(0, remaining)) {
+        // Compress before enforcing the upload limit so a large camera/gallery
+        // original can still become a valid, fast upload.
+        // eslint-disable-next-line no-await-in-loop -- bounded media list must stay in selection order
+        const prepared = await prepareForUpload(asset, kind);
+        if (isOversized(prepared.fileSize)) {
+          throw new Error("MEDIA_TOO_LARGE_AFTER_COMPRESSION");
+        }
         // eslint-disable-next-line no-await-in-loop -- uploads must stay in order; this list is at most a handful of items
-        uploaded.push(await uploadMedia(asset.uri, kind));
+        uploaded.push(await uploadMedia(prepared.uri, kind, {
+          name: prepared.name,
+          mimeType: prepared.mimeType,
+        }));
       }
       onChange([...media, ...uploaded]);
     } catch (err) {
-      setError(getApiErrorMessage(err, t("mediaPicker.error")));
+      setError(
+        err instanceof Error && err.message === "MEDIA_TOO_LARGE_AFTER_COMPRESSION"
+          ? t("mediaPicker.fileTooLarge")
+          : err instanceof Error && err.message === "MEDIA_COMPRESSION_FAILED"
+            ? t("mediaPicker.compressionError")
+            : getApiErrorMessage(err, t("mediaPicker.error"))
+      );
     } finally {
       setIsUploading(false);
     }
@@ -95,17 +114,23 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
       });
       if (result.canceled || !result.assets[0]) return;
 
-      const asset = result.assets[0];
-      if (isOversized(asset.fileSize)) {
+      setIsUploading(true);
+      const prepared = await prepareForUpload(result.assets[0], kind);
+      if (isOversized(prepared.fileSize)) {
         setError(t("mediaPicker.fileTooLarge"));
         return;
       }
-
-      setIsUploading(true);
-      const uploaded = await uploadMedia(asset.uri, kind);
+      const uploaded = await uploadMedia(prepared.uri, kind, {
+        name: prepared.name,
+        mimeType: prepared.mimeType,
+      });
       onChange([...media, uploaded]);
     } catch (err) {
-      setError(getApiErrorMessage(err, t("mediaPicker.error")));
+      setError(
+        err instanceof Error && err.message === "MEDIA_COMPRESSION_FAILED"
+          ? t("mediaPicker.compressionError")
+          : getApiErrorMessage(err, t("mediaPicker.error"))
+      );
     } finally {
       setIsUploading(false);
     }

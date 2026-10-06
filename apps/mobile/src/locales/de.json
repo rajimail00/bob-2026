@@ -28,6 +28,19 @@
     "createProfileTitle": "Profil erstellen",
     "firstNameLabel": "Vorname",
     "lastNameLabel": "Nachname",
+    "forgotPassword": "Passwort vergessen?",
+    "forgotPasswordTitle": "Passwort zurücksetzen",
+    "forgotPasswordBody": "Gib die E-Mail-Adresse deines Kontos ein. Wir senden dir einen sechsstelligen Code.",
+    "sendResetCode": "Code senden",
+    "resetCodeSent": "Wenn ein aktives Konto mit dieser E-Mail-Adresse existiert, wurde ein Code gesendet. Gib ihn unten ein.",
+    "resetCodeLabel": "Zurücksetzungscode",
+    "newPasswordLabel": "Neues Passwort",
+    "resetPassword": "Neues Passwort festlegen",
+    "resetInvalid": "Der Code ist ungültig oder abgelaufen. Fordere einen neuen an.",
+    "resetSuccessTitle": "Passwort aktualisiert",
+    "resetSuccessBody": "Du kannst dich jetzt mit deinem neuen Passwort anmelden.",
+    "backToLogin": "Zurück zur Anmeldung",
+    "useDifferentEmail": "Andere E-Mail-Adresse verwenden",
     "errors": {
       "emailRequired": "Gib deine E-Mail-Adresse ein",
       "emailInvalid": "Gib eine gültige E-Mail-Adresse ein",
@@ -217,6 +230,7 @@
   },
   "datePicker": { "previousMonth": "Vorheriger Monat", "nextMonth": "Nächster Monat", "cancel": "Abbrechen", "confirm": "OK", "hour": "Stunde {{value}}", "minute": "Minute {{value}}" },
   "mediaPicker": {
+    "compressionError": "Die Datei konnte nicht komprimiert werden. Wähle ein anderes Foto oder Video und versuche es erneut.",
     "libraryPermission": "Der Zugriff auf die Mediathek ist deaktiviert. Aktiviere ihn in den Einstellungen.", "cameraPermission": "Der Kamerazugriff ist deaktiviert. Aktiviere ihn in den Einstellungen.", "filesTooLarge": "Eine der Dateien ist größer als 10 MB. Wähle ein kürzeres Video oder ein kleineres Foto.", "fileTooLarge": "Die Datei ist größer als 10 MB. Wähle ein kürzeres Video oder ein kleineres Foto.", "error": "Die Datei konnte nicht hinzugefügt werden. Versuche es erneut.", "remove": "Medium entfernen", "photoGallery": "Foto aus Galerie ({{count}}/{{max}})", "videoGallery": "Video aus Galerie ({{count}}/{{max}})", "camera": "Kamera verwenden", "limits": "Bis zu {{photos}} Fotos und {{videos}} Videos mit jeweils 10 MB. Die Galerie wird empfohlen."
   },
   "locationPicker": { "selected": "Ausgewählter Standort", "finding": "Adresse wird gesucht…", "instruction": "Tippe auf die Karte oder ziehe die Markierung, um die Adresse festzulegen", "searchPlaceholder": "Straße, Hausnummer, Stadt oder Postleitzahl eingeben", "searchLabel": "Adresssuche", "search": "Suchen", "clear": "Adresssuche löschen", "emptySearch": "Gib eine Adresse für die Suche ein.", "notFound": "Diese Adresse wurde nicht gefunden. Prüfe sie oder verschiebe die Markierung manuell.", "searchFailed": "Die Adresse konnte nicht gesucht werden. Versuche es erneut.", "serviceUnavailable": "Die Adresssuche ist nicht verfügbar. Prüfe deine Verbindung und versuche es erneut.", "reverseFailed": "Die Markierung wurde verschoben, aber die Adresse konnte nicht aktualisiert werden. Passe sie manuell an oder versuche es erneut.", "permissionDenied": "Für die Adresssuche ist auf diesem Gerät der Standortzugriff erforderlich." },
@@ -274,6 +288,7 @@
     "accessibility": { "back": "Zurück", "notifications": "Admin-Benachrichtigungen, {{count}} ungelesen", "account": "Administratorkonto öffnen", "clearSearch": "Suche löschen" }
   },
   "apiErrors": {
+    "PASSWORD_RESET_INVALID": "Der Code ist ungültig oder abgelaufen. Fordere einen neuen an.",
     "AUTH_REQUIRED": "Melde dich an, um fortzufahren.", "SESSION_EXPIRED": "Deine Sitzung ist abgelaufen. Melde dich erneut an.", "EMAIL_EXISTS": "Ein Konto mit dieser E-Mail-Adresse besteht bereits.", "INVALID_CREDENTIALS": "E-Mail-Adresse oder Passwort ist falsch.", "EMAIL_NOT_VERIFIED": "Bestätige deine E-Mail-Adresse vor der Anmeldung.", "VERIFICATION_INVALID": "Der Code ist falsch. Versuche es erneut.", "VERIFICATION_EXPIRED": "Der Code ist abgelaufen. Fordere einen neuen an.", "JOB_NOT_FOUND": "Dieser Auftrag existiert nicht mehr.", "JOB_NOT_ACTIVE": "Dieser Auftrag nimmt keine Bewerbungen mehr an.", "JOB_EDIT_LOCKED": "Dieser Auftrag kann nicht mehr bearbeitet werden.", "JOB_REPOST_LOCKED": "Dieser Auftrag kann nicht erneut veröffentlicht werden.", "APPLICATION_DUPLICATE": "Du hast dich bereits auf diesen Auftrag beworben.", "APPLICATION_FORBIDDEN": "Richte vor der Bewerbung dein Arbeitsprofil ein.", "MESSAGE_FORBIDDEN": "Du bist nicht Teil dieser Unterhaltung.", "REVIEW_DUPLICATE": "Du hast diesen Auftrag bereits bewertet.", "MEDIA_TOO_LARGE": "Die ausgewählte Datei ist zu groß.", "MEDIA_UNSUPPORTED": "Dieser Dateityp wird nicht unterstützt.", "ACCOUNT_DELETE_FORBIDDEN": "Nur ein aktives Konto kann gelöscht werden."
   }
 }

@@ -37,33 +37,14 @@ export class AddressSearchError extends Error {
   }
 }
 
-const COUNTRY_NAMES = new Set([
-  "austria",
-  "deutschland",
-  "france",
-  "germany",
-  "india",
-  "italia",
-  "italy",
-  "nederland",
-  "netherlands",
-  "österreich",
-  "schweiz",
-  "spain",
-  "suisse",
-  "switzerland",
-  "united kingdom",
-  "united states",
-  "usa",
-  "españa",
-]);
-
 export function buildGeocodeQuery(address: string) {
-  const trimmed = address.trim();
-  const parts = trimmed.split(",").map((part) => part.trim()).filter(Boolean);
-  const finalPart = parts.at(-1)?.toLowerCase() ?? "";
-  const hasCountry = parts.length >= 3 || COUNTRY_NAMES.has(finalPart);
-  return hasCountry ? trimmed : `${trimmed}, Germany`;
+  return address.trim().replace(/\s+/g, " ");
+}
+
+export function buildGeocodeQueries(address: string) {
+  const exact = buildGeocodeQuery(address);
+  const expandedAliases = exact.replace(/\btrivandrum\b/gi, "Thiruvananthapuram");
+  return [...new Set([exact, expandedAliases])].filter(Boolean);
 }
 
 export function formatAddress(
@@ -89,29 +70,43 @@ function isServiceUnavailableError(error: unknown) {
 
 export async function resolveAddressSearch(
   address: string,
-  selectedLabel: string,
+  _selectedLabel: string,
   geocode: typeof Location.geocodeAsync = Location.geocodeAsync,
-  reverseGeocode: typeof Location.reverseGeocodeAsync = Location.reverseGeocodeAsync
+  reverseGeocode: typeof Location.reverseGeocodeAsync = Location.reverseGeocodeAsync,
+  referenceCoords?: Coords
 ) {
   const trimmed = address.trim();
   if (!trimmed) throw new AddressSearchError("empty");
 
-  let results: Location.LocationGeocodedLocation[];
-  try {
-    results = await geocode(buildGeocodeQuery(trimmed));
-  } catch (error) {
+  const results: Location.LocationGeocodedLocation[] = [];
+  let lastError: unknown;
+  for (const query of buildGeocodeQueries(trimmed)) {
+    try {
+      // Android geocoders may recognize a city's modern name while users type
+      // a familiar local alias, such as Trivandrum.
+      results.push(...await geocode(query));
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (results.length === 0 && lastError) {
     throw new AddressSearchError(
-      isServiceUnavailableError(error) ? "serviceUnavailable" : "searchFailed"
+      isServiceUnavailableError(lastError) ? "serviceUnavailable" : "searchFailed"
     );
   }
 
-  const bestResult = results.find(
+  const validResults = results.filter(
     (result) => Number.isFinite(result.latitude) && Number.isFinite(result.longitude)
   );
+  const bestResult = referenceCoords
+    ? [...validResults].sort(
+      (a, b) => distanceSquared(a, referenceCoords) - distanceSquared(b, referenceCoords)
+    )[0]
+    : validResults[0];
   if (!bestResult) throw new AddressSearchError("notFound");
 
   const coords = { lat: bestResult.latitude, lng: bestResult.longitude };
-  let cleanAddress = trimmed;
   let reverseGeocodeFailed = false;
 
   try {
@@ -119,13 +114,23 @@ export async function resolveAddressSearch(
       latitude: coords.lat,
       longitude: coords.lng,
     });
-    if (reverseResult) cleanAddress = formatAddress(reverseResult, selectedLabel);
-    else reverseGeocodeFailed = true;
+    if (!reverseResult) reverseGeocodeFailed = true;
   } catch {
     reverseGeocodeFailed = true;
   }
 
-  return { coords, address: cleanAddress, reverseGeocodeFailed };
+  // Keep the landmark the user entered. Reverse geocoders commonly replace a
+  // place such as "Medical College Ulloor" with only its nearest road.
+  return { coords, address: buildGeocodeQuery(trimmed), reverseGeocodeFailed };
+}
+
+function distanceSquared(
+  result: Location.LocationGeocodedLocation,
+  reference: Coords
+) {
+  const latitudeDelta = result.latitude - reference.lat;
+  const longitudeDelta = result.longitude - reference.lng;
+  return latitudeDelta * latitudeDelta + longitudeDelta * longitudeDelta;
 }
 
 /** Address search plus a draggable/tappable map, synchronized with the parent job form. */
@@ -191,7 +196,13 @@ export function LocationPickerMap({
         return;
       }
 
-      const result = await resolveAddressSearch(searchText, t("locationPicker.selected"));
+      const result = await resolveAddressSearch(
+        searchText,
+        t("locationPicker.selected"),
+        Location.geocodeAsync,
+        Location.reverseGeocodeAsync,
+        coords
+      );
       if (searchRevision.current !== revision) return;
 
       setSearchText(result.address);

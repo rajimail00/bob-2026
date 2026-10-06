@@ -28,6 +28,19 @@
     "createProfileTitle": "Crear perfil",
     "firstNameLabel": "Nombre",
     "lastNameLabel": "Apellido",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "forgotPasswordTitle": "Restablecer contraseña",
+    "forgotPasswordBody": "Introduce el correo de tu cuenta y te enviaremos un código de seis dígitos.",
+    "sendResetCode": "Enviar código",
+    "resetCodeSent": "Si existe una cuenta activa con este correo, se ha enviado un código. Introdúcelo abajo.",
+    "resetCodeLabel": "Código de restablecimiento",
+    "newPasswordLabel": "Nueva contraseña",
+    "resetPassword": "Establecer contraseña",
+    "resetInvalid": "El código no es válido o ha caducado. Solicita uno nuevo.",
+    "resetSuccessTitle": "Contraseña actualizada",
+    "resetSuccessBody": "Ya puedes iniciar sesión con tu nueva contraseña.",
+    "backToLogin": "Volver al inicio de sesión",
+    "useDifferentEmail": "Usar otro correo",
     "errors": {
       "emailRequired": "Introduce tu correo electrónico",
       "emailInvalid": "Introduce un correo electrónico válido",
@@ -217,6 +230,7 @@
   },
   "datePicker": { "previousMonth": "Mes anterior", "nextMonth": "Mes siguiente", "cancel": "Cancelar", "confirm": "Aceptar", "hour": "Hora {{value}}", "minute": "Minuto {{value}}" },
   "mediaPicker": {
+    "compressionError": "No se pudo comprimir el archivo. Elige otra foto o vídeo e inténtalo de nuevo.",
     "libraryPermission": "El acceso a la galería está desactivado. Actívalo en los ajustes.", "cameraPermission": "El acceso a la cámara está desactivado. Actívalo en los ajustes.", "filesTooLarge": "Uno de los archivos supera los 10 MB. Elige un vídeo más corto o una foto más pequeña.", "fileTooLarge": "El archivo supera los 10 MB. Elige un vídeo más corto o una foto más pequeña.", "error": "No se pudo añadir el archivo. Inténtalo de nuevo.", "remove": "Eliminar archivo", "photoGallery": "Foto de la galería ({{count}}/{{max}})", "videoGallery": "Vídeo de la galería ({{count}}/{{max}})", "camera": "Usar cámara", "limits": "Hasta {{photos}} fotos y {{videos}} vídeos de 10 MB cada uno. Se recomienda la galería."
   },
   "locationPicker": { "selected": "Ubicación seleccionada", "finding": "Buscando dirección…", "instruction": "Toca el mapa o arrastra el marcador para establecer la dirección", "searchPlaceholder": "Introduce calle, número, ciudad o código postal", "searchLabel": "Búsqueda de dirección", "search": "Buscar", "clear": "Borrar búsqueda de dirección", "emptySearch": "Introduce una dirección para buscar.", "notFound": "No encontramos esa dirección. Revísala o ajusta el marcador manualmente.", "searchFailed": "No se pudo buscar esa dirección. Inténtalo de nuevo.", "serviceUnavailable": "La búsqueda de direcciones no está disponible. Comprueba tu conexión e inténtalo de nuevo.", "reverseFailed": "El marcador se movió, pero no se pudo actualizar la dirección. Ajústala manualmente o inténtalo de nuevo.", "permissionDenied": "Se necesita acceso a la ubicación para buscar una dirección en este dispositivo." },
@@ -274,6 +288,7 @@
     "accessibility": { "back": "Volver", "notifications": "Notificaciones de admin, {{count}} sin leer", "account": "Abrir cuenta de administrador", "clearSearch": "Borrar búsqueda" }
   },
   "apiErrors": {
+    "PASSWORD_RESET_INVALID": "El código no es válido o ha caducado. Solicita uno nuevo.",
     "AUTH_REQUIRED": "Inicia sesión para continuar.", "SESSION_EXPIRED": "Tu sesión ha caducado. Inicia sesión de nuevo.", "EMAIL_EXISTS": "Ya existe una cuenta con este correo electrónico.", "INVALID_CREDENTIALS": "El correo electrónico o la contraseña son incorrectos.", "EMAIL_NOT_VERIFIED": "Verifica tu correo antes de iniciar sesión.", "VERIFICATION_INVALID": "El código es incorrecto. Inténtalo de nuevo.", "VERIFICATION_EXPIRED": "El código ha caducado. Solicita uno nuevo.", "JOB_NOT_FOUND": "Este trabajo ya no existe.", "JOB_NOT_ACTIVE": "Este trabajo ya no acepta solicitudes.", "JOB_EDIT_LOCKED": "Este trabajo ya no se puede editar.", "JOB_REPOST_LOCKED": "Este trabajo no se puede volver a publicar.", "APPLICATION_DUPLICATE": "Ya has solicitado este trabajo.", "APPLICATION_FORBIDDEN": "Configura tu perfil de trabajador antes de solicitarlo.", "MESSAGE_FORBIDDEN": "No formas parte de esta conversación.", "REVIEW_DUPLICATE": "Ya has valorado este trabajo.", "MEDIA_TOO_LARGE": "El archivo seleccionado es demasiado grande.", "MEDIA_UNSUPPORTED": "Este tipo de archivo no es compatible.", "ACCOUNT_DELETE_FORBIDDEN": "Solo se puede eliminar una cuenta activa."
   }
 }

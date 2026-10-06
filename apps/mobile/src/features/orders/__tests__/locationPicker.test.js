@@ -5,6 +5,7 @@ import {
   AddressSearchError,
   LocationPickerMap,
   buildGeocodeQuery,
+  buildGeocodeQueries,
   resolveAddressSearch,
 } from "../components/LocationPickerMap";
 
@@ -107,8 +108,8 @@ test.each([
   "Alexanderplatz 1, 10178 Berlin",
   "Marienplatz 1, 80331 München",
   "Domkloster 4, 50667 Köln",
-])("biases the German-style address %s toward Germany", (address) => {
-  expect(buildGeocodeQuery(address)).toBe(`${address}, Germany`);
+])("does not force a country onto the address %s", (address) => {
+  expect(buildGeocodeQuery(address)).toBe(address);
 });
 
 test("preserves a complete international address", () => {
@@ -117,17 +118,47 @@ test("preserves a complete international address", () => {
   );
 });
 
+test("tries both the familiar and modern city names for Trivandrum", () => {
+  expect(buildGeocodeQueries("Medical College Ulloor, Trivandrum")).toEqual([
+    "Medical College Ulloor, Trivandrum",
+    "Medical College Ulloor, Thiruvananthapuram",
+  ]);
+});
+
+test("keeps the searched landmark and chooses the result nearest the phone", async () => {
+  Location.geocodeAsync
+    .mockResolvedValueOnce([{ latitude: 28.6139, longitude: 77.209 }])
+    .mockResolvedValueOnce([{ latitude: 8.5241, longitude: 76.9366 }]);
+  Location.reverseGeocodeAsync.mockResolvedValue([{
+    street: "Medical College Ulloor Road",
+    city: "Thiruvananthapuram",
+    country: "India",
+  }]);
+
+  await expect(resolveAddressSearch(
+    "Medical College Ulloor, Trivandrum",
+    "Selected",
+    Location.geocodeAsync,
+    Location.reverseGeocodeAsync,
+    { lat: 8.52, lng: 76.93 }
+  )).resolves.toEqual({
+    coords: { lat: 8.5241, lng: 76.9366 },
+    address: "Medical College Ulloor, Trivandrum",
+    reverseGeocodeFailed: false,
+  });
+});
+
 test("successful address search returns coordinates and a clean reverse-geocoded address", async () => {
   Location.geocodeAsync.mockResolvedValue([{ latitude: 52.5219, longitude: 13.4132 }]);
   Location.reverseGeocodeAsync.mockResolvedValue([reverseResult]);
 
   await expect(resolveAddressSearch("Alexanderplatz 1, 10178 Berlin", "Selected")).resolves.toEqual({
     coords: { lat: 52.5219, lng: 13.4132 },
-    address: "Alexanderplatz 1, 10178 Berlin, Deutschland",
+    address: "Alexanderplatz 1, 10178 Berlin",
     reverseGeocodeFailed: false,
   });
   expect(Location.geocodeAsync).toHaveBeenCalledWith(
-    "Alexanderplatz 1, 10178 Berlin, Germany"
+    "Alexanderplatz 1, 10178 Berlin"
   );
 });
 
@@ -177,7 +208,7 @@ test("the Search action updates the parent with the result coordinates", async (
   await waitFor(() =>
     expect(onLocationChange).toHaveBeenCalledWith({
       coords: { lat: 52.5219, lng: 13.4132 },
-      address: "Alexanderplatz 1, 10178 Berlin, Deutschland",
+      address: "Alexanderplatz 1, 10178 Berlin",
       reverseGeocodeFailed: false,
     })
   );

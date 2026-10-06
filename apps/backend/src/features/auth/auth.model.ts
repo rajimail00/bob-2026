@@ -99,6 +99,8 @@ const userSchema = new Schema(
     isEmailVerified: { type: Boolean, default: false },
     emailVerificationCodeHash: { type: String, select: false },
     emailVerificationExpiresAt: { type: Date, select: false },
+    passwordResetCodeHash: { type: String, select: false },
+    passwordResetExpiresAt: { type: Date, select: false },
 
     // Not select:false: needed on every refresh/logout lookup (via findById), and it's a plain counter, not a secret.
     refreshTokenVersion: { type: Number, default: 0 },

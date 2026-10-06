@@ -37,6 +37,7 @@
           "microphonePermission": "BOB uses your microphone to record video for the job you're posting."
         }
       ],
+      "react-native-compressor",
       "expo-video"
     ],
     "assetBundlePatterns": [

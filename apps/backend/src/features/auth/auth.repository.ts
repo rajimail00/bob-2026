@@ -4,7 +4,9 @@ export const authRepository = {
   findByEmail(email: string, withSecrets = false) {
     const query = UserModel.findOne({ email });
     return withSecrets
-      ? query.select("+passwordHash +emailVerificationCodeHash +emailVerificationExpiresAt +refreshTokenVersion")
+      ? query.select(
+        "+passwordHash +emailVerificationCodeHash +emailVerificationExpiresAt +passwordResetCodeHash +passwordResetExpiresAt +refreshTokenVersion"
+      )
       : query;
   },
 

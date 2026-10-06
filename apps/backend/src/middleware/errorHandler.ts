@@ -21,7 +21,13 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   if (err instanceof MulterError) {
     const message =
       err.code === "LIMIT_FILE_SIZE" ? "File is too large (max 10MB)." : "Couldn't process the uploaded file.";
-    res.status(400).json({ error: { code: "VALIDATION_ERROR", message } });
+    res.status(400).json({
+      error: {
+        code: "VALIDATION_ERROR",
+        errorId: err.code === "LIMIT_FILE_SIZE" ? "MEDIA_TOO_LARGE" : undefined,
+        message,
+      },
+    });
     return;
   }
 

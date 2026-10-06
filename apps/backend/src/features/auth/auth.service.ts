@@ -2,17 +2,19 @@ import bcrypt from "bcryptjs";
 import crypto from "node:crypto";
 import { AppError } from "../../lib/errors.js";
 import { deleteCloudinaryAssetByUrl } from "../../lib/cloudinary.js";
-import { sendVerificationEmail } from "../../lib/mailer.js";
+import { sendPasswordResetEmail, sendVerificationEmail } from "../../lib/mailer.js";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../../lib/jwt.js";
 import { jobService } from "../jobs/job.service.js";
 import { authRepository } from "./auth.repository.js";
 import { accountDeletionRepository } from "./accountDeletion.repository.js";
 import type {
   CreateProfileInput,
+  ForgotPasswordInput,
   LoginInput,
   LocalePreferenceInput,
   NotificationPreferencesInput,
   RegisterInput,
+  ResetPasswordInput,
   VerifyEmailInput,
   WorkerProfileInput,
 } from "./auth.validation.js";
@@ -23,6 +25,7 @@ import {
 
 const SALT_ROUNDS = 12;
 const VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000;
+const PASSWORD_RESET_CODE_TTL_MS = 15 * 60 * 1000;
 
 function generateVerificationCode(): string {
   return crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
@@ -113,6 +116,50 @@ export const authService = {
 
     const tokens = issueTokenPair(user);
     return { user: toPublicUser(user), ...tokens };
+  },
+
+  async requestPasswordReset(input: ForgotPasswordInput) {
+    const user = await authRepository.findByEmail(input.email, true);
+
+    // Keep the public response identical for known and unknown emails to prevent
+    // account discovery through this endpoint.
+    if (!user || user.status !== "active" || !user.isEmailVerified) return;
+
+    const code = generateVerificationCode();
+    user.passwordResetCodeHash = await bcrypt.hash(code, SALT_ROUNDS);
+    user.passwordResetExpiresAt = new Date(Date.now() + PASSWORD_RESET_CODE_TTL_MS);
+    await authRepository.save(user);
+    await sendPasswordResetEmail(user.email, code, user.locale);
+  },
+
+  async resetPassword(input: ResetPasswordInput) {
+    const user = await authRepository.findByEmail(input.email, true);
+    const invalidReset = () =>
+      AppError.badRequest(
+        "The reset code is invalid or has expired. Request a new code.",
+        undefined,
+        "PASSWORD_RESET_INVALID"
+      );
+
+    if (
+      !user ||
+      user.status !== "active" ||
+      !user.passwordResetCodeHash ||
+      !user.passwordResetExpiresAt ||
+      user.passwordResetExpiresAt.getTime() < Date.now()
+    ) {
+      throw invalidReset();
+    }
+
+    const isMatch = await bcrypt.compare(input.code, user.passwordResetCodeHash);
+    if (!isMatch) throw invalidReset();
+
+    user.passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
+    user.passwordResetCodeHash = undefined;
+    user.passwordResetExpiresAt = undefined;
+    // Prevent every existing refresh token from creating a new session.
+    user.refreshTokenVersion = (user.refreshTokenVersion ?? 0) + 1;
+    await authRepository.save(user);
   },
 
   async refresh(refreshToken: string) {
@@ -236,6 +283,8 @@ export const authService = {
     // Remove verification secrets and invalidate refresh tokens.
     user.emailVerificationCodeHash = undefined;
     user.emailVerificationExpiresAt = undefined;
+    user.passwordResetCodeHash = undefined;
+    user.passwordResetExpiresAt = undefined;
     user.refreshTokenVersion = (user.refreshTokenVersion ?? 0) + 1;
 
     user.status = "deleted";
