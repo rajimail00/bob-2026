@@ -4,7 +4,7 @@ import { decryptSession, type AdminSession } from "@/lib/session-crypto";
 import { encodedSession, SESSION_COOKIE, sessionCookieOptions, sessionSecret } from "@/lib/session";
 
 export const runtime = "nodejs";
-const allowedRoot = /^(admin(?:\/|$)|media$)/;
+const allowedRoot = /^(admin(?:\/|$)|auth(?:\/|$)|jobs(?:\/|$)|applications(?:\/|$)|categories(?:\/|$)|notifications(?:\/|$)|advertisements(?:\/|$)|media(?:\/|$))/;
 const mutationMethods = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
 function originAllowed(request: NextRequest) {
@@ -37,8 +37,11 @@ async function handler(request: NextRequest, context: { params: Promise<{ path: 
 
   const cookie = request.cookies.get(SESSION_COOKIE)?.value;
   let session = cookie ? decryptSession(cookie, sessionSecret()) : null;
-  if (!session || session.user.role !== "admin" || session.user.status !== "active") {
+  if (!session || session.user.status !== "active") {
     return NextResponse.json({ error: { message: "Authentication required." } }, { status: 401 });
+  }
+  if (path.startsWith("admin") && session.user.role !== "admin") {
+    return NextResponse.json({ error: { message: "Administrator access is required." } }, { status: 403 });
   }
 
   const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.arrayBuffer();
@@ -59,7 +62,7 @@ async function handler(request: NextRequest, context: { params: Promise<{ path: 
     headers: { "content-type": upstream.headers.get("content-type") ?? "application/json" },
   });
   if (refreshed) response.cookies.set(SESSION_COOKIE, encodedSession(session), sessionCookieOptions());
-  if (upstream.status === 401 || upstream.status === 403) {
+  if (upstream.status === 401) {
     response.cookies.set(SESSION_COOKIE, "", { ...sessionCookieOptions(), maxAge: 0 });
   }
   return response;

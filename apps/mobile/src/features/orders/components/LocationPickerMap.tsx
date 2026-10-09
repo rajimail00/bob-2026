@@ -14,11 +14,24 @@ export interface Coords {
   lng: number;
 }
 
+export interface PrecisePlaceResult {
+  placeId?: string;
+  coords: Coords;
+  address: string;
+}
+
+export type PrecisePlaceSearch = (
+  query: string,
+  referenceCoords?: Coords,
+  languageCode?: string
+) => Promise<PrecisePlaceResult | null>;
+
 interface LocationPickerMapProps {
   coords: Coords;
   address: string;
   onLocationChange: (next: { coords: Coords; address: string }) => void;
   onSearchFocus?: () => void;
+  precisePlaceSearch?: PrecisePlaceSearch;
 }
 
 export type AddressSearchErrorCode =
@@ -73,10 +86,27 @@ export async function resolveAddressSearch(
   _selectedLabel: string,
   geocode: typeof Location.geocodeAsync = Location.geocodeAsync,
   reverseGeocode: typeof Location.reverseGeocodeAsync = Location.reverseGeocodeAsync,
-  referenceCoords?: Coords
+  referenceCoords?: Coords,
+  precisePlaceSearch?: PrecisePlaceSearch,
+  languageCode?: string
 ) {
   const trimmed = address.trim();
   if (!trimmed) throw new AddressSearchError("empty");
+
+  if (precisePlaceSearch) {
+    const preciseResult = await precisePlaceSearch(trimmed, referenceCoords, languageCode);
+    if (
+      preciseResult
+      && Number.isFinite(preciseResult.coords.lat)
+      && Number.isFinite(preciseResult.coords.lng)
+    ) {
+      return {
+        coords: preciseResult.coords,
+        address: preciseResult.address || buildGeocodeQuery(trimmed),
+        reverseGeocodeFailed: false,
+      };
+    }
+  }
 
   const results: Location.LocationGeocodedLocation[] = [];
   let lastError: unknown;
@@ -139,8 +169,9 @@ export function LocationPickerMap({
   address,
   onLocationChange,
   onSearchFocus,
+  precisePlaceSearch,
 }: LocationPickerMapProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const mapRef = useRef<MapView>(null);
   const searchRevision = useRef(0);
   const [searchText, setSearchText] = useState(address);
@@ -201,7 +232,9 @@ export function LocationPickerMap({
         t("locationPicker.selected"),
         Location.geocodeAsync,
         Location.reverseGeocodeAsync,
-        coords
+        coords,
+        precisePlaceSearch,
+        i18n?.language
       );
       if (searchRevision.current !== revision) return;
 

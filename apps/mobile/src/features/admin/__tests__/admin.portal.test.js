@@ -39,7 +39,8 @@ test("category management supports persistent image upload with an icon fallback
   expect(screen).toContain("<CategoryImagePicker");
   expect(screen).toContain("item.imageUrl");
   expect(screen).toContain('width="47.5%"');
-  expect(picker).toContain('uploadMedia(asset.uri, "photo")');
+  expect(picker).toContain('compressMedia(asset, "photo")');
+  expect(picker).toContain("aspectRatio={1}");
   expect(picker).toContain("requestMediaLibraryPermissionsAsync");
   expect(categoryType).toContain("imageUrl?: string | null");
 });

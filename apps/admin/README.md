@@ -1,6 +1,6 @@
-# BOB Admin Portal
+# BOB Web Portal
 
-Desktop-first administration website for the BOB platform. It uses the existing Express API and does not connect to MongoDB directly.
+Responsive customer, worker, and administration website for the BOB platform. It uses the same Express API as the mobile app and does not connect to MongoDB directly.
 
 ## Local setup
 
@@ -11,7 +11,9 @@ Desktop-first administration website for the BOB platform. It uses the existing 
 5. Start the website with `npm run admin:dev`.
 6. Open `http://localhost:3001`.
 
-The login form expects the email and password of an existing active administrator account. There is no public administrator registration flow.
+The Discover map uses the Google Maps JavaScript API. Add a separate browser-restricted key as `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env.local`; restrict it to the website origins and do not copy an Android unrestricted key into the browser bundle.
+
+The shared login accepts active customer, worker, and administrator accounts. Customers and workers are sent to `/portal/home`; administrators are sent to `/dashboard`. Public registration creates ordinary user accounts and never grants administrator access.
 
 ## Validation
 

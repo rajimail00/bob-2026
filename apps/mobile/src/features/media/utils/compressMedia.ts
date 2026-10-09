@@ -4,7 +4,10 @@ import { Video, getImageMetaData, getVideoMetaData } from "react-native-compress
 
 const MAX_IMAGE_EDGE = 1600;
 const IMAGE_QUALITY = 0.72;
-const MAX_VIDEO_EDGE = 1280;
+// Keep a 30-second job video comfortably below the API's 10 MB ceiling.
+// The compressor's automatic bitrate profile targets roughly 0.7-1.2 Mbps at
+// 720p, which also makes uploads practical on a mobile connection.
+const MAX_VIDEO_EDGE = 720;
 
 export interface PreparedMedia {
   uri: string;

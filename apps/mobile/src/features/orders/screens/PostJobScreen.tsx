@@ -48,6 +48,7 @@ import type { SupportedLocale } from "@/lib/i18n";
 import { useCurrentLocation } from "@/lib/useCurrentLocation";
 import type { OrdersStackParamList } from "@/navigation/types";
 import { LocationPickerMap } from "../components/LocationPickerMap";
+import { searchPrecisePlace } from "../api/location.api";
 import { MediaPicker } from "../components/MediaPicker";
 import { StepDots } from "../components/StepDots";
 import { postJobSchema, type PostJobFormValues } from "../validation/postJob.schema";
@@ -539,6 +540,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                           <LocationPickerMap
                             coords={location.status === "granted" ? location.coords : { lat: 0, lng: 0 }}
                             address={field.value}
+                            precisePlaceSearch={searchPrecisePlace}
                             onSearchFocus={scrollAddressIntoView}
                             onLocationChange={({ coords, address }) => {
                               setLocation({ status: "granted", coords });

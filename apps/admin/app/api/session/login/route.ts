@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   const input = await request.json().catch(() => null) as { email?: string; password?: string } | null;
   const email = input?.email?.trim().toLowerCase();
   if (!email || !input?.password) {
-    return NextResponse.json({ error: { message: "Enter your admin email and password." } }, { status: 400 });
+    return NextResponse.json({ error: { message: "Enter your email and password." } }, { status: 400 });
   }
 
   const response = await fetch(backendUrl("auth/login"), {
@@ -23,11 +23,8 @@ export async function POST(request: NextRequest) {
   if (!response.ok || !data?.user || !data.accessToken || !data.refreshToken) {
     return NextResponse.json({ error: { message: data?.error?.message ?? "Invalid email or password." } }, { status: response.status || 401 });
   }
-  if (data.user.role !== "admin") {
-    return NextResponse.json({ error: { message: "This account does not have administrator access." } }, { status: 403 });
-  }
   if (data.user.status !== "active") {
-    return NextResponse.json({ error: { message: "This administrator account is not active." } }, { status: 403 });
+    return NextResponse.json({ error: { message: "This account is not active." } }, { status: 403 });
   }
 
   const result = NextResponse.json({ user: data.user });

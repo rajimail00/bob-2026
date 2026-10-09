@@ -19,12 +19,12 @@ export async function refreshSession(session: AdminSession): Promise<AdminSessio
   return { ...session, accessToken: data.accessToken, refreshToken: data.refreshToken };
 }
 
-export async function currentAdmin(session: AdminSession): Promise<AdminSessionUser | null> {
+export async function currentUser(session: AdminSession): Promise<AdminSessionUser | null> {
   const response = await fetch(backendUrl("auth/me"), {
     headers: { authorization: `Bearer ${session.accessToken}` },
     cache: "no-store",
   });
   if (!response.ok) return null;
   const data = await response.json() as { user: AdminSessionUser };
-  return data.user.role === "admin" && data.user.status === "active" ? data.user : null;
+  return data.user.status === "active" ? data.user : null;
 }

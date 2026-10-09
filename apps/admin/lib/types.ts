@@ -15,6 +15,14 @@ export interface AdminSessionUser {
   firstName?: string;
   lastName?: string;
   photoUrl?: string;
+  phone?: string;
+  bio?: string;
+  locale?: "en" | "de" | "es" | "fr";
+  rating?: { average: number; count: number };
+  workerProfile?: { categories: string[]; serviceHours: "standard" | "24h"; completedJobsCount: number };
+  notificationPrefs?: Record<string, boolean>;
+  subscriptionTier?: "free" | "pro" | "unlimited";
+  isEmailVerified?: boolean;
 }
 
 export interface SeriesPoint { label: string; value: number }
@@ -72,3 +80,5 @@ export interface Advertisement {
   effectiveStatus?: "draft" | "active" | "paused" | "archived" | "scheduled" | "expired";
   startsAt?: string; endsAt?: string; priority: number; createdAt?: string; updatedAt?: string;
 }
+export interface Faq { _id: string; question: LocalizedText; answer: LocalizedText; section: string; order: number; published: boolean; createdAt?: string; updatedAt?: string }
+export interface AdminConfiguration { supportEmail?: string; maintenanceMessage?: string }

@@ -12,6 +12,7 @@ import { applicationRouter } from "./features/applications/application.routes.js
 import { notificationRouter } from "./features/notifications/notification.routes.js";
 import { adminRouter } from "./features/admin/admin.routes.js";
 import { advertisementRouter } from "./features/advertisements/advertisement.routes.js";
+import { locationRouter } from "./features/location/location.routes.js";
 
 export function createApp() {
   const app = express();
@@ -38,6 +39,7 @@ export function createApp() {
   app.use("/api/v1/applications", applicationRouter);
   app.use("/api/v1/notifications", notificationRouter);
   app.use("/api/v1/advertisements", advertisementRouter);
+  app.use("/api/v1/location", locationRouter);
   app.use("/api/v1/admin", adminRouter);
 
   app.use(notFoundHandler);

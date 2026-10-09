@@ -25,6 +25,15 @@ import type { Category, LocalizedText } from "../types/admin.types";
 
 const emptyNames = (): LocalizedText => ({ en: "", de: "", es: "", fr: "" });
 const localeCodes = ["en", "de", "es", "fr"] as const;
+const CATEGORY_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function normalizeCategorySlug(value: string) {
+  return value
+    .toLowerCase()
+    .trimStart()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+/, "");
+}
 
 export function AdminCategoriesScreen() {
   const { t, i18n } = useTranslation();
@@ -57,13 +66,16 @@ export function AdminCategoriesScreen() {
     setNames(category.name);
   };
 
-  const valid = Boolean(slug.trim() && icon.trim() && Object.values(names).every((value) => value.trim()));
+  const normalizedSlug = normalizeCategorySlug(slug).replace(/-+$/, "");
+  const valid = Boolean(CATEGORY_SLUG_PATTERN.test(normalizedSlug) && icon.trim() && Object.values(names).every((value) => value.trim()));
   const save = () => {
     const input = {
-      slug: slug.trim(),
+      slug: normalizedSlug,
       icon: icon.trim(),
       imageUrl: imageUrl ?? null,
-      name: names,
+      name: Object.fromEntries(
+        localeCodes.map((locale) => [locale, names[locale].trim()])
+      ) as LocalizedText,
       order: editing?.order ?? (query.data?.length ?? 0),
     };
     if (editing) update.mutate({ id: editing._id, ...input }, { onSuccess: reset });
@@ -109,7 +121,7 @@ export function AdminCategoriesScreen() {
             label={t("admin.categories.shortName")}
             placeholder={t("admin.categories.shortNamePlaceholder")}
             value={slug}
-            onChangeText={setSlug}
+            onChangeText={(value) => setSlug(normalizeCategorySlug(value))}
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -162,9 +174,9 @@ export function AdminCategoriesScreen() {
                   <Pressable onPress={() => choose(item)} role="button" aria-label={t("admin.categories.editCategory", { name: item.name[currentLocale] || item.name.en })}>
                     <YStack alignItems="center" gap="$2">
                       {item.imageUrl ? (
-                        <Image source={{ uri: item.imageUrl }} resizeMode="cover" style={{ width: "100%", height: 88, borderRadius: 12 }} />
+                        <Image source={{ uri: item.imageUrl }} resizeMode="cover" style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }} />
                       ) : (
-                        <YStack width="100%" height={88} borderRadius="$md" backgroundColor="$brand100" alignItems="center" justifyContent="center">
+                        <YStack width="100%" aspectRatio={1} borderRadius="$md" backgroundColor="$brand100" alignItems="center" justifyContent="center">
                           <Ionicons name={(Ionicons.glyphMap[item.icon as keyof typeof Ionicons.glyphMap] ? item.icon : "briefcase-outline") as keyof typeof Ionicons.glyphMap} size={34} color="#4F8266" />
                         </YStack>
                       )}

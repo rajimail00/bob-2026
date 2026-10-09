@@ -7,6 +7,7 @@ import type { AdminUser, Page } from "@/lib/types";
 import { useRemoteData } from "@/lib/use-remote-data";
 import { EmptyState, ErrorState, formatDate, formatName, LoadingState, PageIntro, Pagination, SearchField, StatusPill } from "@/components/ui";
 import { Icon } from "@/components/Icon";
+import { MobileUsersCards } from "@/components/admin/MobileAdminCards";
 
 export function UsersPage() {
   const [search, setSearch] = useState("");
@@ -16,6 +17,7 @@ export function UsersPage() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const path = useMemo(() => `admin/users${queryString({ page, pageSize: 20, search, type, status, sort })}`, [page, search, type, status, sort]);
   const query = useRemoteData<Page<AdminUser>>(path);
   const eligibleOnPage = query.data?.items.filter((item) => item.role !== "admin").map(idFor) ?? [];
@@ -43,6 +45,7 @@ export function UsersPage() {
   return (
     <>
       <PageIntro title="Manage Users" description="Search accounts, inspect activity, and control account access." />
+      <button className={`mobile-filter-button admin-mobile-only ${mobileFiltersOpen ? "open" : ""}`} onClick={() => setMobileFiltersOpen((value) => !value)} aria-expanded={mobileFiltersOpen} aria-label="Open user filters"><Icon name={mobileFiltersOpen ? "close" : "settings"} /></button>
       <div className="toolbar">
         <SearchField value={search} onChange={(value) => setFilter(() => setSearch(value))} placeholder="Search by name or email" />
         <select value={type} onChange={(event) => setFilter(() => setType(event.target.value))} aria-label="User type"><option value="">All user types</option><option value="client">Clients</option><option value="worker">Workers</option><option value="admin">Administrators</option></select>
@@ -55,6 +58,7 @@ export function UsersPage() {
           <><div className="table-wrap"><table className="data-table"><thead><tr><th className="check-cell"><input className="row-checkbox" type="checkbox" aria-label="Select this page" checked={eligibleOnPage.length > 0 && eligibleOnPage.every((id) => selected.includes(id))} onChange={(event) => setSelected(event.target.checked ? eligibleOnPage : [])} /></th><th>User</th><th>Type</th><th>Status</th><th>Subscription</th><th>Registered</th><th aria-label="Actions" /></tr></thead><tbody>{query.data.items.map((user) => { const id = idFor(user); const name = formatName(user); return <tr key={id}><td><input className="row-checkbox" type="checkbox" aria-label={`Select ${name}`} checked={selected.includes(id)} disabled={user.role === "admin"} onChange={() => toggle(id)} /></td><td><div className="table-primary"><strong>{name}</strong><small>{user.email}</small></div></td><td><StatusPill value={user.role} /></td><td><StatusPill value={user.status} /></td><td style={{ textTransform: "capitalize" }}>{user.subscriptionTier}</td><td>{formatDate(user.createdAt)}</td><td><div className="table-actions"><button className={user.status === "active" ? "button button-danger button-small" : "button button-secondary button-small"} disabled={busy || user.role === "admin"} onClick={() => updateStatus(id, user.status === "active" ? "banned" : "active", name)}>{user.status === "active" ? "Ban" : "Reactivate"}</button><Link className="link-action" href={`/users/${id}`}>View <Icon name="chevron" size={15} /></Link></div></td></tr>; })}</tbody></table></div><Pagination page={query.data.page} pageSize={query.data.pageSize} total={query.data.total} onPage={(value) => { setPage(value); setSelected([]); }} /></>
         )}
       </section>
+      {!query.loading && !query.error ? <MobileUsersCards data={query.data} selected={selected} onToggle={toggle} onPage={(value) => { setPage(value); setSelected([]); }} /> : null}
     </>
   );
 }

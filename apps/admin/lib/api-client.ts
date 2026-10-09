@@ -8,9 +8,12 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   const headers = new Headers(init?.headers);
   if (init?.body && !(init.body instanceof FormData) && !headers.has("content-type")) headers.set("content-type", "application/json");
   const response = await fetch(`/api/backend/${path.replace(/^\//, "")}`, { ...init, headers, cache: "no-store" });
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401) {
     window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`);
-    throw new ApiError(response.status === 403 ? "Administrator access is required." : "Your session has expired.", response.status, response.status === 403 ? "ACCESS_DENIED" : "SESSION_EXPIRED");
+    throw new ApiError("Your session has expired.", response.status, "SESSION_EXPIRED");
+  }
+  if (response.status === 403) {
+    throw new ApiError("You do not have access to this action.", response.status, "ACCESS_DENIED");
   }
   if (!response.ok) {
     const body = await response.json().catch(() => null) as { error?: { message?: string; code?: string } } | null;

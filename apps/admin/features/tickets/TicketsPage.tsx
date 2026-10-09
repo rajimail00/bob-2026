@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, formatDate, formatName, LoadingState, PageIntro
 import { apiFetch, queryString } from "@/lib/api-client";
 import type { Page, Ticket, TicketStatus } from "@/lib/types";
 import { useRemoteData } from "@/lib/use-remote-data";
+import { MobileTicketsCards } from "@/components/admin/MobileAdminCards";
 
 export function TicketsPage() {
   const [search, setSearch] = useState("");
@@ -16,6 +17,7 @@ export function TicketsPage() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const path = useMemo(() => `admin/tickets${queryString({ page, pageSize: 20, search, status, priority, sort })}`, [page, search, status, priority, sort]);
   const query = useRemoteData<Page<Ticket>>(path);
   function filter(change: () => void) { setPage(1); setSelected([]); change(); }
@@ -29,7 +31,9 @@ export function TicketsPage() {
   }
   return <>
     <PageIntro title="Support Tickets" description="Respond to reports, prioritize urgent cases, and track resolutions." />
+    <button className={`mobile-filter-button admin-mobile-only ${mobileFiltersOpen ? "open" : ""}`} onClick={() => setMobileFiltersOpen((value) => !value)} aria-expanded={mobileFiltersOpen} aria-label="Open ticket filters"><Icon name={mobileFiltersOpen ? "close" : "settings"} /></button>
     <div className="toolbar"><SearchField value={search} onChange={(value) => filter(() => setSearch(value))} placeholder="Search support tickets" /><select value={status} onChange={(event) => filter(() => setStatus(event.target.value))} aria-label="Ticket status"><option value="">All statuses</option>{["open","in_progress","resolved","closed"].map((value) => <option key={value} value={value}>{value.replaceAll("_"," ")}</option>)}</select><select value={priority} onChange={(event) => filter(() => setPriority(event.target.value))} aria-label="Ticket priority"><option value="">All priorities</option>{["urgent","high","normal","low"].map((value) => <option key={value} value={value}>{value}</option>)}</select><select value={sort} onChange={(event) => filter(() => setSort(event.target.value))} aria-label="Sort tickets"><option value="newest">Newest first</option><option value="updated">Recently updated</option><option value="priority">Highest priority</option><option value="oldest">Oldest first</option></select>{selected.length ? <div className="toolbar-actions"><button className="button button-secondary button-small" disabled={busy} onClick={() => bulk("in_progress")}>Start ({selected.length})</button><button className="button button-primary button-small" disabled={busy} onClick={() => bulk("resolved")}>Resolve</button><button className="button button-secondary button-small" disabled={busy} onClick={() => bulk("closed")}>Close</button></div> : null}</div>
     <section className="card">{query.loading ? <LoadingState label="Loading support tickets…" /> : query.error ? <ErrorState message={query.error} retry={query.reload} /> : !query.data?.items.length ? <EmptyState title="No support tickets found" /> : <><div className="card-header"><div><h3>Tickets</h3><p>{query.data.unresolvedCount ?? 0} unresolved</p></div></div><div className="table-wrap"><table className="data-table"><thead><tr><th className="check-cell"><input className="row-checkbox" type="checkbox" aria-label="Select this page" checked={query.data.items.every((item) => selected.includes(item._id))} onChange={(event) => setSelected(event.target.checked ? query.data!.items.map((item) => item._id) : [])} /></th><th>Reporter</th><th>Reason</th><th>Related job</th><th>Status</th><th>Priority</th><th>Updated</th><th /></tr></thead><tbody>{query.data.items.map((item) => <tr key={item._id}><td><input className="row-checkbox" type="checkbox" checked={selected.includes(item._id)} onChange={() => toggle(item._id)} aria-label={`Select ticket from ${formatName(item.reporterId)}`} /></td><td><div className="table-primary"><strong>{formatName(item.reporterId)}</strong><small>{item.reporterId?.email}</small></div></td><td style={{ textTransform: "capitalize" }}>{item.reason.replaceAll("_"," ")}</td><td className="truncate">{item.jobId?.title ?? "—"}</td><td><StatusPill value={item.status} /></td><td><StatusPill value={item.priority} /></td><td>{formatDate(item.updatedAt, true)}</td><td><Link className="link-action" href={`/support-tickets/${item._id}`}>View <Icon name="chevron" size={15} /></Link></td></tr>)}</tbody></table></div><Pagination page={query.data.page} pageSize={query.data.pageSize} total={query.data.total} onPage={(value) => { setPage(value); setSelected([]); }} /></>}</section>
+    {!query.loading && !query.error ? <MobileTicketsCards data={query.data} selected={selected} onToggle={toggle} onPage={(value) => { setPage(value); setSelected([]); }} /> : null}
   </>;
 }

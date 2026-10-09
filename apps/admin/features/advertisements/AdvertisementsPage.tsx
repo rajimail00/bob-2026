@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, formatDate, LoadingState, PageIntro, Pagination
 import { apiFetch, queryString } from "@/lib/api-client";
 import type { Advertisement, AdvertisementMedia, Page } from "@/lib/types";
 import { useRemoteData } from "@/lib/use-remote-data";
+import { MobileAdvertisementCards } from "@/components/admin/MobileAdminCards";
 
 interface AdvertisementDraft { title: string; description: string; destinationUrl: string; audience: "all" | "free"; startsAt: string; endsAt: string; priority: number; media?: AdvertisementMedia }
 function localDate(value: Date | string) { const date = new Date(value); date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); return date.toISOString().slice(0,16); }
@@ -19,6 +20,7 @@ export function AdvertisementsPage() {
   const [draft, setDraft] = useState<AdvertisementDraft>(initialDraft());
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const path = useMemo(() => `admin/advertisements${queryString({ page, pageSize: 20, search, status })}`, [page, search, status]);
   const query = useRemoteData<Page<Advertisement>>(path);
 
@@ -54,6 +56,7 @@ export function AdvertisementsPage() {
 
   return <>
     <PageIntro title="Advertisements" description="Create and schedule promotional media shown in the BOB mobile app." action={<button className="button button-primary" onClick={() => open()}><Icon name="plus" size={17} />Create advertisement</button>} />
+    <button className={`mobile-filter-button admin-mobile-only ${mobileFiltersOpen ? "open" : ""}`} onClick={() => setMobileFiltersOpen((value) => !value)} aria-expanded={mobileFiltersOpen} aria-label="Open advertisement filters"><Icon name={mobileFiltersOpen ? "close" : "settings"} /></button>
     <div className="toolbar"><SearchField value={search} onChange={(value) => { setSearch(value); setPage(1); }} placeholder="Search advertisements" /><select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }} aria-label="Advertisement status"><option value="">All statuses</option>{["draft","scheduled","active","paused","expired","archived"].map((value) => <option value={value} key={value}>{value}</option>)}</select></div>
     <section className="card">{query.loading ? <LoadingState label="Loading advertisements…" /> : query.error ? <ErrorState message={query.error} retry={query.reload} /> : !query.data?.items.length ? <EmptyState title="No advertisements found" detail="Create the first advertisement or adjust the filters." /> : <><div className="table-wrap"><table className="data-table"><thead><tr><th>Advertisement</th><th>Audience</th><th>Status</th><th>Schedule</th><th>Priority</th><th /></tr></thead><tbody>{query.data.items.map((item) => <tr key={item._id}><td><div className="table-primary"><strong>{item.title}</strong><small>{item.media ? `${item.media.type} media` : "No media"}</small></div></td><td style={{ textTransform: "capitalize" }}>{item.audience}</td><td><StatusPill value={item.effectiveStatus ?? item.status} /></td><td><div className="table-primary"><strong>{formatDate(item.startsAt, true)}</strong><small>to {formatDate(item.endsAt, true)}</small></div></td><td>{item.priority}</td><td><div className="table-actions"><button className="button button-secondary button-small" onClick={() => open(item)}><Icon name="edit" size={14} />Edit</button>{item.status !== "active" && item.status !== "archived" ? <button className="button button-primary button-small" disabled={busy} onClick={() => action(item,"publish")}>Publish</button> : null}{item.status === "active" ? <button className="button button-secondary button-small" disabled={busy} onClick={() => action(item,"pause")}>Pause</button> : null}{item.status !== "archived" ? <button className="button button-secondary button-small" disabled={busy} onClick={() => action(item,"archive")}>Archive</button> : <button className="button button-danger button-small" disabled={busy} onClick={() => action(item,"delete")}><Icon name="trash" size={14} />Delete</button>}</div></td></tr>)}</tbody></table></div><Pagination page={query.data.page} pageSize={query.data.pageSize} total={query.data.total} onPage={setPage} /></>}</section>
     {editing ? <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setEditing(null); }}><form className="modal" onSubmit={save} role="dialog" aria-modal="true" aria-labelledby="advertisement-modal-title"><div className="modal-header"><h3 id="advertisement-modal-title">{editing === "new" ? "Create advertisement" : "Edit advertisement"}</h3><button type="button" className="icon-button" onClick={() => setEditing(null)} aria-label="Close"><Icon name="close" /></button></div><div className="modal-body form-grid">
@@ -67,5 +70,6 @@ export function AdvertisementsPage() {
       <label className="full"><span>Image or video</span><input type="file" accept="image/*,video/*" onChange={(event) => upload(event.target.files?.[0])} disabled={uploading} /><p className="form-help">{uploading ? "Uploading…" : "Upload one image or video up to 10 MB."}</p></label>
       {draft.media ? <div className="full inline-message">Media ready: {draft.media.type} · <a href={draft.media.url} target="_blank" rel="noreferrer">Open preview</a> <button type="button" className="text-button" onClick={() => setDraft((value) => ({ ...value, media: undefined }))}>Remove</button></div> : null}
     </div><div className="modal-footer"><button type="button" className="button button-secondary" onClick={() => setEditing(null)}>Cancel</button><button className="button button-primary" disabled={busy || uploading}>{busy ? "Saving…" : "Save advertisement"}</button></div></form></div> : null}
+    {!query.loading && !query.error ? <MobileAdvertisementCards data={query.data} busy={busy} onCreate={() => open()} onEdit={open} onAction={action} onPage={setPage} /> : null}
   </>;
 }

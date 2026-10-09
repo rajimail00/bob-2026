@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState, PageIntro, SearchField } from "@/
 import { apiFetch } from "@/lib/api-client";
 import type { Category, LocalizedText } from "@/lib/types";
 import { useRemoteData } from "@/lib/use-remote-data";
+import { MobileCategoryCards } from "@/components/admin/MobileAdminCards";
 
 const emptyNames: LocalizedText = { en: "", de: "", es: "", fr: "" };
 interface CategoryDraft { slug: string; icon: string; imageUrl: string; order: number; name: LocalizedText }
@@ -77,5 +78,6 @@ export function CategoriesPage() {
       <label><span>Category image</span><input type="file" accept="image/*" onChange={(event) => upload(event.target.files?.[0])} disabled={uploading} /><p className="form-help">{uploading ? "Uploading…" : "Maximum upload size: 10 MB"}</p></label>
       {draft.imageUrl ? <div className="full"><img className="image-preview" src={draft.imageUrl} alt="Category preview" /> <button type="button" className="text-button" onClick={() => setDraft((value) => ({ ...value, imageUrl: "" }))}>Remove image</button></div> : null}
     </div><div className="modal-footer"><button type="button" className="button button-secondary" onClick={() => setEditing(null)}>Cancel</button><button className="button button-primary" disabled={busy || uploading}>{busy ? "Saving…" : "Save category"}</button></div></form></div> : null}
+    <MobileCategoryCards items={categories.sort((a,b) => a.order - b.order)} onCreate={() => open()} onEdit={open} onDelete={remove} />
   </>;
 }

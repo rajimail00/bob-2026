@@ -1,5 +1,7 @@
 import { apiClient } from "@/lib/apiClient";
 
+const MEDIA_UPLOAD_TIMEOUT_MS = 120_000;
+
 export interface UploadedMedia {
   url: string;
   type: "photo" | "video";
@@ -29,7 +31,11 @@ export async function uploadMedia(
   // Don't set Content-Type manually — React Native's FormData needs axios/XHR to generate
   // the multipart boundary itself; a hardcoded header here strips the boundary and the
   // upload silently fails server-side.
-  const { data } = await apiClient.post<UploadedMedia>("/media", formData);
+  const { data } = await apiClient.post<UploadedMedia>("/media", formData, {
+    // Compression happens before this request. The backend then streams the
+    // upload to Cloudinary, so videos need longer than the global 15s timeout.
+    timeout: MEDIA_UPLOAD_TIMEOUT_MS,
+  });
   return data;
 }
 
@@ -41,6 +47,8 @@ export async function uploadAudio(localUri: string): Promise<{ url: string; type
   const formData = new FormData();
   formData.append("file", { uri: localUri, name: filename, type: mimeType } as unknown as Blob);
 
-  const { data } = await apiClient.post<{ url: string; type: "audio" | "video" }>("/media", formData);
+  const { data } = await apiClient.post<{ url: string; type: "audio" | "video" }>("/media", formData, {
+    timeout: MEDIA_UPLOAD_TIMEOUT_MS,
+  });
   return data;
 }

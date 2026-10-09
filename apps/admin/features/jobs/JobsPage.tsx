@@ -7,6 +7,7 @@ import type { AdminJob, ModerationStatus, Page } from "@/lib/types";
 import { useRemoteData } from "@/lib/use-remote-data";
 import { EmptyState, ErrorState, formatCurrency, formatDate, formatName, LoadingState, PageIntro, Pagination, SearchField, StatusPill } from "@/components/ui";
 import { Icon } from "@/components/Icon";
+import { MobileJobsCards } from "@/components/admin/MobileAdminCards";
 
 export function JobsPage() {
   const [search, setSearch] = useState("");
@@ -16,6 +17,7 @@ export function JobsPage() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const path = useMemo(() => `admin/jobs${queryString({ page, pageSize: 20, search, status, moderationStatus: moderation, sort })}`, [page, search, status, moderation, sort]);
   const query = useRemoteData<Page<AdminJob>>(path);
   function filter(change: () => void) { setPage(1); setSelected([]); change(); }
@@ -35,6 +37,7 @@ export function JobsPage() {
   return (
     <>
       <PageIntro title="Job Management" description="Review listings, moderate content, and inspect job activity." />
+      <button className={`mobile-filter-button admin-mobile-only ${mobileFiltersOpen ? "open" : ""}`} onClick={() => setMobileFiltersOpen((value) => !value)} aria-expanded={mobileFiltersOpen} aria-label="Open job filters"><Icon name={mobileFiltersOpen ? "close" : "settings"} /></button>
       <div className="toolbar">
         <SearchField value={search} onChange={(value) => filter(() => setSearch(value))} placeholder="Search jobs" />
         <select value={status} onChange={(event) => filter(() => setStatus(event.target.value))} aria-label="Job status"><option value="">All job statuses</option>{["draft","active","offer_pending","assigned","completed","cancelled","expired"].map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select>
@@ -45,6 +48,7 @@ export function JobsPage() {
       <section className="card">
         {query.loading ? <LoadingState label="Loading jobs…" /> : query.error ? <ErrorState message={query.error} retry={query.reload} /> : !query.data?.items.length ? <EmptyState title="No jobs found" detail="Try changing the current search or filters." /> : <><div className="table-wrap"><table className="data-table"><thead><tr><th className="check-cell"><input className="row-checkbox" type="checkbox" aria-label="Select this page" checked={query.data.items.every((job) => selected.includes(job._id))} onChange={(event) => setSelected(event.target.checked ? query.data!.items.map((job) => job._id) : [])} /></th><th>Job</th><th>Client</th><th>Status</th><th>Moderation</th><th>Budget</th><th>Scheduled</th><th /></tr></thead><tbody>{query.data.items.map((job) => <tr key={job._id}><td><input className="row-checkbox" type="checkbox" aria-label={`Select ${job.title}`} checked={selected.includes(job._id)} onChange={() => toggle(job._id)} /></td><td><div className="table-primary"><strong>{job.title}{job.isEmergency ? " · Emergency" : ""}</strong><small className="truncate">{job.address}</small></div></td><td>{formatName(job.clientId)}</td><td><StatusPill value={job.status} /></td><td><StatusPill value={job.moderationStatus} /></td><td>{formatCurrency(job.budget)}</td><td>{formatDate(job.date, true)}</td><td><Link className="link-action" href={`/jobs/${job._id}`}>View <Icon name="chevron" size={15} /></Link></td></tr>)}</tbody></table></div><Pagination page={query.data.page} pageSize={query.data.pageSize} total={query.data.total} onPage={(value) => { setPage(value); setSelected([]); }} /></>}
       </section>
+      {!query.loading && !query.error ? <MobileJobsCards data={query.data} selected={selected} onToggle={toggle} onPage={(value) => { setPage(value); setSelected([]); }} /> : null}
     </>
   );
 }

@@ -26,6 +26,7 @@ export function DashboardPage() {
   return (
     <>
       <PageIntro title="Dashboard" description="A live overview of BOB users, jobs, activity and support." action={<select value={period} onChange={(event) => setPeriod(event.target.value as AdminPeriod)} aria-label="Dashboard period"><option value="day">Today</option><option value="week">This week</option><option value="month">This month</option><option value="year">This year</option></select>} />
+      <div className="admin-mobile-period admin-mobile-only">{(["day", "week", "month", "year"] as AdminPeriod[]).map((value) => <button className={period === value ? "active" : ""} key={value} onClick={() => setPeriod(value)}>{value === "day" ? "Day" : value[0].toUpperCase() + value.slice(1)}</button>)}</div>
       {loading ? <LoadingState label="Loading dashboard…" /> : error ? <ErrorState message={error} retry={reload} /> : data ? (
         <>
           <section className="metrics-grid" aria-label="Dashboard metrics">

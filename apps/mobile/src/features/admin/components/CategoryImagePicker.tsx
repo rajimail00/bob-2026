@@ -6,6 +6,7 @@ import { XStack, YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
 import { Text } from "@/components/ui/Text";
 import { uploadMedia } from "@/features/media/api/media.api";
+import { compressMedia } from "@/features/media/utils/compressMedia";
 import { getApiErrorMessage } from "@/lib/apiClient";
 import { useTranslation } from "react-i18next";
 
@@ -40,13 +41,17 @@ export function CategoryImagePicker({
       });
       const asset = result.canceled ? undefined : result.assets[0];
       if (!asset) return;
-      if (asset.fileSize && asset.fileSize > MAX_FILE_BYTES) {
+      setIsUploading(true);
+      const prepared = await compressMedia(asset, "photo");
+      if (prepared.fileSize > MAX_FILE_BYTES) {
         setError(t("mediaPicker.fileTooLarge"));
         return;
       }
 
-      setIsUploading(true);
-      const uploaded = await uploadMedia(asset.uri, "photo");
+      const uploaded = await uploadMedia(prepared.uri, "photo", {
+        name: prepared.name,
+        mimeType: prepared.mimeType,
+      });
       onChange(uploaded.url);
     } catch (uploadError) {
       setError(getApiErrorMessage(uploadError, t("admin.categories.imageUploadError")));
@@ -64,7 +69,10 @@ export function CategoryImagePicker({
         style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
       >
         <YStack
-          height={178}
+          width="100%"
+          maxWidth={280}
+          aspectRatio={1}
+          alignSelf="center"
           borderRadius="$lg"
           overflow="hidden"
           backgroundColor="$neutral100"

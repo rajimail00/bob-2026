@@ -50,7 +50,7 @@ test("compresses video and returns stable MP4 upload metadata", async () => {
 
   expect(Video.compress).toHaveBeenCalledWith("content://camera/video", {
     compressionMethod: "auto",
-    maxSize: 1280,
+    maxSize: 720,
     minimumFileSizeForCompress: 0,
   });
   expect(result).toMatchObject({

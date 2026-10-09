@@ -6,8 +6,8 @@ import "@fontsource/inter/700.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "BOB Admin", template: "%s | BOB Admin" },
-  description: "Secure administration portal for BOB.",
+  title: { default: "BOB", template: "%s | BOB" },
+  description: "Find trusted local help or manage your work with BOB.",
   robots: { index: false, follow: false },
 };
 

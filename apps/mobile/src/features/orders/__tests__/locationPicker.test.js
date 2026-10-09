@@ -148,6 +148,34 @@ test("keeps the searched landmark and chooses the result nearest the phone", asy
   });
 });
 
+test("prefers a precise institution result over the native road geocoder", async () => {
+  const precisePlaceSearch = jest.fn().mockResolvedValue({
+    placeId: "medical-college",
+    coords: { lat: 8.52473, lng: 76.92861 },
+    address: "Government Medical College, Ulloor, Thiruvananthapuram, Kerala, India",
+  });
+
+  await expect(resolveAddressSearch(
+    "Medical College Ulloor, Trivandrum",
+    "Selected",
+    Location.geocodeAsync,
+    Location.reverseGeocodeAsync,
+    { lat: 8.52, lng: 76.93 },
+    precisePlaceSearch,
+    "en"
+  )).resolves.toEqual({
+    coords: { lat: 8.52473, lng: 76.92861 },
+    address: "Government Medical College, Ulloor, Thiruvananthapuram, Kerala, India",
+    reverseGeocodeFailed: false,
+  });
+  expect(precisePlaceSearch).toHaveBeenCalledWith(
+    "Medical College Ulloor, Trivandrum",
+    { lat: 8.52, lng: 76.93 },
+    "en"
+  );
+  expect(Location.geocodeAsync).not.toHaveBeenCalled();
+});
+
 test("successful address search returns coordinates and a clean reverse-geocoded address", async () => {
   Location.geocodeAsync.mockResolvedValue([{ latitude: 52.5219, longitude: 13.4132 }]);
   Location.reverseGeocodeAsync.mockResolvedValue([reverseResult]);
