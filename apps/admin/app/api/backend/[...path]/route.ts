@@ -4,7 +4,7 @@ import { decryptSession, type AdminSession } from "@/lib/session-crypto";
 import { encodedSession, SESSION_COOKIE, sessionCookieOptions, sessionSecret } from "@/lib/session";
 
 export const runtime = "nodejs";
-const allowedRoot = /^(admin(?:\/|$)|auth(?:\/|$)|jobs(?:\/|$)|applications(?:\/|$)|categories(?:\/|$)|notifications(?:\/|$)|advertisements(?:\/|$)|media(?:\/|$))/;
+const allowedRoot = /^(admin(?:\/|$)|auth(?:\/|$)|jobs(?:\/|$)|applications(?:\/|$)|categories(?:\/|$)|notifications(?:\/|$)|advertisements(?:\/|$)|media(?:\/|$)|location(?:\/|$))/;
 const mutationMethods = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
 function originAllowed(request: NextRequest) {

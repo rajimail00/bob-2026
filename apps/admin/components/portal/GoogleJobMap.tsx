@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Job } from "@/lib/portal-types";
-import { formatMoney } from "@/lib/portal-types";
+import { usePortalI18n } from "@/lib/portal-i18n";
 
 declare global { interface Window { google?: any; __bobGoogleMapsPromise?: Promise<void> } }
 
@@ -19,6 +19,7 @@ function loadGoogleMaps(key: string) {
 }
 
 export function GoogleJobMap({ jobs, userCoords }: { jobs: Job[]; userCoords: { lat: number; lng: number } | null }) {
+  const { t, money } = usePortalI18n();
   const container = useRef<HTMLDivElement>(null); const [error, setError] = useState("");
   const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   useEffect(() => {
@@ -35,9 +36,9 @@ export function GoogleJobMap({ jobs, userCoords }: { jobs: Job[]; userCoords: { 
         const marker = new window.google.maps.Marker({ map, position, title: job.title });
         const content = document.createElement("div"); content.className = "map-info";
         const title = document.createElement("strong"); title.textContent = job.title;
-        const budget = document.createElement("span"); budget.textContent = formatMoney(job.budget);
+        const budget = document.createElement("span"); budget.textContent = money(job.budget);
         const address = document.createElement("p"); address.textContent = job.address;
-        const link = document.createElement("a"); link.href = `/portal/jobs/${encodeURIComponent(job._id)}`; link.textContent = "View details";
+        const link = document.createElement("a"); link.href = `/portal/jobs/${encodeURIComponent(job._id)}`; link.textContent = t("jobDetail.viewDetails");
         content.append(title, budget, address, link);
         const info = new window.google.maps.InfoWindow({ content });
         marker.addListener("click", () => info.open({ map, anchor: marker }));
@@ -46,7 +47,7 @@ export function GoogleJobMap({ jobs, userCoords }: { jobs: Job[]; userCoords: { 
       if (userCoords) new window.google.maps.Marker({ map, position: userCoords, title: "Your location", icon: { path: window.google.maps.SymbolPath.CIRCLE, scale: 7, fillColor: "#4285F4", fillOpacity: 1, strokeColor: "#fff", strokeWeight: 3 } });
     }).catch((value) => setError(value instanceof Error ? value.message : "Google Maps could not be loaded."));
     return () => { active = false; };
-  }, [jobs, key, userCoords]);
+  }, [jobs, key, money, t, userCoords]);
   if (!key) return <div className="map-setup-state"><strong>Google Maps needs configuration</strong><p>Add a browser-restricted <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to <code>apps/admin/.env.local</code>, then restart the website.</p></div>;
   if (error) return <div className="map-setup-state error"><strong>Map unavailable</strong><p>{error}</p></div>;
   return <div ref={container} className="google-job-map" aria-label="Map of available jobs"/>;
