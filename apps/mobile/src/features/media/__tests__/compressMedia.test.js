@@ -1,6 +1,18 @@
 import { manipulateAsync } from "expo-image-manipulator";
-import { Video, getImageMetaData, getVideoMetaData } from "react-native-compressor";
+import { Video, getVideoMetaData } from "react-native-compressor";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import { getInfoAsync } from "expo-file-system/legacy";
 import { compressMedia } from "../utils/compressMedia";
+
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: { executionEnvironment: "standalone", appOwnership: null },
+  ExecutionEnvironment: { StoreClient: "storeClient" },
+}));
+
+jest.mock("expo-file-system/legacy", () => ({
+  getInfoAsync: jest.fn(),
+}));
 
 jest.mock("expo-image-manipulator", () => ({
   SaveFormat: { JPEG: "jpeg" },
@@ -15,11 +27,13 @@ jest.mock("react-native-compressor", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  Constants.executionEnvironment = "standalone";
+  Constants.appOwnership = null;
 });
 
 test("resizes and converts a camera photo to a compressed JPEG", async () => {
   manipulateAsync.mockResolvedValue({ uri: "file:///cache/compressed.jpg" });
-  getImageMetaData.mockResolvedValue({ size: 450_000 });
+  getInfoAsync.mockResolvedValue({ exists: true, size: 450_000 });
 
   const result = await compressMedia(
     { uri: "content://camera/photo", width: 4032, height: 3024 },
@@ -37,6 +51,29 @@ test("resizes and converts a camera photo to a compressed JPEG", async () => {
     mimeType: "image/jpeg",
   });
   expect(result.name).toMatch(/^bob-photo-\d+\.jpg$/);
+});
+
+test("passes through an Expo Go video without loading native compression", async () => {
+  Constants.executionEnvironment = ExecutionEnvironment.StoreClient;
+  getInfoAsync.mockResolvedValue({ exists: true, size: 2_000_000 });
+
+  const result = await compressMedia(
+    {
+      uri: "file:///cache/selected.mp4",
+      width: 1280,
+      height: 720,
+      mimeType: "video/mp4",
+      fileSize: 2_000_000,
+    },
+    "video"
+  );
+
+  expect(Video.compress).not.toHaveBeenCalled();
+  expect(result).toMatchObject({
+    uri: "file:///cache/selected.mp4",
+    fileSize: 2_000_000,
+    mimeType: "video/mp4",
+  });
 });
 
 test("compresses video and returns stable MP4 upload metadata", async () => {

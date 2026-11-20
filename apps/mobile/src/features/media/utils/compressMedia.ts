@@ -1,6 +1,7 @@
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import { getInfoAsync } from "expo-file-system/legacy";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import type { ImagePickerAsset } from "expo-image-picker";
-import { Video, getImageMetaData, getVideoMetaData } from "react-native-compressor";
 
 const MAX_IMAGE_EDGE = 1600;
 const IMAGE_QUALITY = 0.72;
@@ -16,6 +17,22 @@ export interface PreparedMedia {
   mimeType: string;
 }
 
+function isExpoGo(): boolean {
+  return Constants.executionEnvironment === ExecutionEnvironment.StoreClient
+    || Constants.appOwnership === "expo";
+}
+
+async function getFileSize(uri: string, fallback?: number): Promise<number> {
+  const info = await getInfoAsync(uri);
+  if (info.exists && typeof info.size === "number") {
+    return info.size;
+  }
+  if (typeof fallback === "number") {
+    return fallback;
+  }
+  throw new Error("Unable to determine the selected media file size.");
+}
+
 export async function compressMedia(
   asset: ImagePickerAsset,
   kind: "photo" | "video"
@@ -29,15 +46,27 @@ export async function compressMedia(
       compress: IMAGE_QUALITY,
       format: SaveFormat.JPEG,
     });
-    const metadata = await getImageMetaData(result.uri);
     return {
       uri: result.uri,
-      fileSize: metadata.size,
+      fileSize: await getFileSize(result.uri),
       name: `bob-photo-${Date.now()}.jpg`,
       mimeType: "image/jpeg",
     };
   }
 
+  // Expo Go cannot load custom native modules. Preserve the chosen video in
+  // that environment so the picker can accept files already under the API
+  // limit and reject oversized files. Native builds retain full compression.
+  if (isExpoGo()) {
+    return {
+      uri: asset.uri,
+      fileSize: await getFileSize(asset.uri, asset.fileSize),
+      name: `bob-video-${Date.now()}.mp4`,
+      mimeType: asset.mimeType || "video/mp4",
+    };
+  }
+
+  const { Video, getVideoMetaData } = require("react-native-compressor") as typeof import("react-native-compressor");
   const uri = await Video.compress(asset.uri, {
     compressionMethod: "auto",
     maxSize: MAX_VIDEO_EDGE,
