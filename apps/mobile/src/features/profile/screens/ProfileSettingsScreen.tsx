@@ -15,12 +15,10 @@ import {
   useUpdateLocale,
 } from "@/features/auth/hooks/useAuthMutations";
 import { useAuthStore } from "@/features/auth/store/authStore";
-import type { SubscriptionTier } from "@/features/auth/types/auth.types";
 import type { ProfileStackParamList } from "@/navigation/types";
 import { ProfileBackButton } from "../components/ProfileBackButton";
 import { FeedbackModal, InviteFriendsModal } from "../components/ProfileActionModals";
 import { ProfilePortrait } from "../components/ProfilePortrait";
-import { SubscriptionUpgradeModal } from "../components/SubscriptionUpgradeModal";
 
 type Props = NativeStackScreenProps<ProfileStackParamList, "ProfileSettings">;
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -35,7 +33,6 @@ export function ProfileSettingsScreen({ navigation }: Props) {
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLocale>(user?.locale ?? currentLocale);
   const [languageOpen, setLanguageOpen] = useState(false);
   const [languageError, setLanguageError] = useState<string>();
-  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
@@ -100,14 +97,6 @@ export function ProfileSettingsScreen({ navigation }: Props) {
     }
 
     await openEmail(t("profileFlow.feedbackSubject"));
-  };
-
-  const requestSubscriptionUpgrade = (tier: SubscriptionTier) => {
-    const planName = `BOB-${t(`subscriptionTiers.${tier}`)}`;
-    Alert.alert(
-      t("profileFlow.upgradeUnavailableTitle"),
-      t("profileFlow.upgradeUnavailableBody", { plan: planName }),
-    );
   };
 
   return (
@@ -192,24 +181,9 @@ export function ProfileSettingsScreen({ navigation }: Props) {
           {languageError ? <Text variant="small" color="$danger">{languageError}</Text> : null}
         </YStack>
 
-          <Card gap="$3">
-            <XStack justifyContent="space-between" alignItems="center">
-              <Text variant="label">{t("profile.subscription")}</Text>
-              <Text fontWeight="600">BOB-{t(`subscriptionTiers.${user?.subscriptionTier ?? "free"}`)}</Text>
-            </XStack>
-            <Button fullWidth onPress={() => setUpgradeModalOpen(true)}>
-              {t("profileFlow.upgradePro")}
-            </Button>
-          </Card>
         </YStack>
       </Screen>
 
-      <SubscriptionUpgradeModal
-        visible={upgradeModalOpen}
-        currentTier={user?.subscriptionTier ?? "free"}
-        onClose={() => setUpgradeModalOpen(false)}
-        onUpgrade={requestSubscriptionUpgrade}
-      />
       <InviteFriendsModal visible={inviteModalOpen} onClose={() => setInviteModalOpen(false)} />
       <FeedbackModal
         visible={feedbackModalOpen}
