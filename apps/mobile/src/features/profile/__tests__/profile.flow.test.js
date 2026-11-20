@@ -130,23 +130,12 @@ test("invite and feedback settings actions open localized functional modals", ()
   expect(modals).toContain("onRequestClose={onClose}");
 });
 
-test("subscription upgrade control lives inside its card and opens a localized selectable-plan modal", () => {
+test("settings does not expose unfinished subscription upgrade controls", () => {
   const settings = fs.readFileSync(path.join(profileScreens, "ProfileSettingsScreen.tsx"), "utf8");
-  const modal = read("features/profile/components/SubscriptionUpgradeModal.tsx");
-
-  const subscriptionCard = settings.indexOf('<Card gap="$3">');
-  const upgradeButton = settings.indexOf('onPress={() => setUpgradeModalOpen(true)}');
-  expect(subscriptionCard).toBeGreaterThan(-1);
-  expect(upgradeButton).toBeGreaterThan(subscriptionCard);
-  expect(settings).toContain("<SubscriptionUpgradeModal");
-  expect(settings).toContain("requestSubscriptionUpgrade");
-  expect(settings).toContain('t("profileFlow.upgradeUnavailableBody"');
-  expect(modal).toContain('const PLAN_OPTIONS: SubscriptionTier[] = ["free", "pro", "unlimited"]');
-  expect(modal).toContain("<Modal");
-  expect(modal).toContain('accessibilityRole="radio"');
-  expect(modal).toContain("setSelectedTier(tier)");
-  expect(modal).toContain('t("profileFlow.upgradeNow")');
-  expect(modal).toContain("onRequestClose={onClose}");
+  expect(settings).not.toContain("SubscriptionUpgradeModal");
+  expect(settings).not.toContain("upgradeModalOpen");
+  expect(settings).not.toContain("requestSubscriptionUpgrade");
+  expect(settings).not.toContain('t("profile.subscription")');
 });
 
 test("category choices are prefilled, limited to five, localized, and saved to the backend", () => {

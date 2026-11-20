@@ -248,7 +248,7 @@
     "recurrenceHeading": "How often?",
     "recurrence": { "none": "No repeat", "daily": "Daily", "weekly": "Weekly", "monthly": "Monthly" },
     "paymentHeading": "Payment method",
-    "payment": { "cash": "Cash", "paypal": "PayPal", "both": "Cash or PayPal" },
+    "payment": { "cash": "Cash", "paypal": "Online Pay", "both": "Cash or Online Pay" },
     "emergency": "This is an emergency",
     "reviewHeading": "Review",
     "paymentReview": "Payment: {{method}}",
