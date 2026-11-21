@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable } from "react-native";
 import MapView, { Marker, type Region } from "react-native-maps";
@@ -12,6 +12,7 @@ import { JobCard } from "./JobCard";
 interface JobMapViewProps {
   jobs: Job[];
   userCoords: { lat: number; lng: number } | null;
+  radiusKm: number;
   onSelectJob: (job: Job) => void;
 }
 
@@ -22,13 +23,26 @@ const DEFAULT_MAP_REGION: Region = {
   longitudeDelta: 10,
 };
 
-export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
+function regionForRadius(coords: { lat: number; lng: number }, radiusKm: number): Region {
+  const latitudeDelta = Math.max(0.02, (radiusKm * 2) / 111);
+  const latitudeRadians = (coords.lat * Math.PI) / 180;
+  const longitudeScale = Math.max(0.2, Math.cos(latitudeRadians));
+  return {
+    latitude: coords.lat,
+    longitude: coords.lng,
+    latitudeDelta,
+    longitudeDelta: latitudeDelta / longitudeScale,
+  };
+}
+
+export function JobMapView({ jobs, userCoords, radiusKm, onSelectJob }: JobMapViewProps) {
   const { t } = useTranslation();
+  const mapRef = useRef<MapView>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   const initialRegion: Region = useMemo(() => {
     if (userCoords) {
-      return { latitude: userCoords.lat, longitude: userCoords.lng, latitudeDelta: 0.08, longitudeDelta: 0.08 };
+      return regionForRadius(userCoords, radiusKm);
     }
 
     const firstJob = jobs[0];
@@ -42,13 +56,19 @@ export function JobMapView({ jobs, userCoords, onSelectJob }: JobMapViewProps) {
     }
 
     return DEFAULT_MAP_REGION;
-  }, [userCoords, jobs]);
+  }, [userCoords, radiusKm, jobs]);
+
+  useEffect(() => {
+    if (!userCoords) return;
+    mapRef.current?.animateToRegion(regionForRadius(userCoords, radiusKm), 250);
+  }, [radiusKm, userCoords]);
 
   const selectedJob = jobs.find((j) => j._id === selectedJobId) ?? null;
 
   return (
     <YStack flex={1} position="relative">
       <MapView
+        ref={mapRef}
         style={{ flex: 1 }}
         initialRegion={initialRegion}
         onPress={() => setSelectedJobId(null)}

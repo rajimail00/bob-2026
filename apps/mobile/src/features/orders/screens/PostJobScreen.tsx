@@ -51,7 +51,12 @@ import { LocationPickerMap } from "../components/LocationPickerMap";
 import { searchPrecisePlace } from "../api/location.api";
 import { MediaPicker } from "../components/MediaPicker";
 import { StepDots } from "../components/StepDots";
-import { postJobSchema, type PostJobFormValues } from "../validation/postJob.schema";
+import {
+  postJobSchema,
+  validateJobSchedule,
+  type PostJobFormValues,
+  type ScheduleValidationError,
+} from "../validation/postJob.schema";
 import {
   buildJobMutationInput,
   canSubmitRepost,
@@ -107,7 +112,9 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const initializedEditJobId = useRef<string | null>(null);
   const submitInFlight = useRef(false);
   const formScrollRef = useRef<ScrollView>(null);
-  const formFieldOffsets = useRef({ address: 0 });
+  const formFieldOffsets = useRef({ schedule: 0, address: 0, budget: 0 });
+  const formScrollOffset = useRef(0);
+  const pendingMediaScrollRestore = useRef<number | null>(null);
   const focusScrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [step, setStep] = useState(0);
@@ -119,7 +126,10 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const [datePickerMonth, setDatePickerMonth] = useState(startOfMonth(new Date()));
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [draftTime, setDraftTime] = useState(new Date());
-  const [hasSelectedRepostDate, setHasSelectedRepostDate] = useState(false);
+  const [hasSelectedDate, setHasSelectedDate] = useState(false);
+  const [hasSelectedTime, setHasSelectedTime] = useState(false);
+  const [scheduleError, setScheduleError] = useState<ScheduleValidationError | null>(null);
+  const [locationValidationError, setLocationValidationError] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const {
@@ -129,6 +139,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
     watch,
     reset,
     setValue,
+    clearErrors,
     formState: { errors },
   } = useForm<PostJobFormValues>({
     resolver: zodResolver(postJobSchema),
@@ -162,15 +173,27 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
     );
   }, []);
 
-  const scrollAddressIntoView = () => {
+  const scrollFieldIntoView = (field: keyof typeof formFieldOffsets.current) => {
     if (focusScrollTimeout.current) clearTimeout(focusScrollTimeout.current);
     focusScrollTimeout.current = setTimeout(() => {
       formScrollRef.current?.scrollTo({
-        y: Math.max(0, formFieldOffsets.current.address - 16),
+        y: Math.max(0, formFieldOffsets.current[field] - 16),
         animated: true,
       });
     }, Platform.OS === "ios" ? 250 : 300);
   };
+
+  const scrollAddressIntoView = () => scrollFieldIntoView("address");
+
+  const showScheduleError = (error: ScheduleValidationError) => {
+    setScheduleError(error);
+    scrollFieldIntoView("schedule");
+  };
+
+  const handleMediaChange = useCallback((nextMedia: UploadedMedia[]) => {
+    pendingMediaScrollRestore.current = formScrollOffset.current;
+    setMedia(nextMedia);
+  }, []);
 
   useEffect(
     () => () => {
@@ -206,7 +229,10 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
     setDraftDate(initial.values.date);
     setDraftTime(initial.values.date);
     setDatePickerMonth(startOfMonth(initial.values.date));
-    setHasSelectedRepostDate(!isRepostMode);
+    setHasSelectedDate(!isRepostMode);
+    setHasSelectedTime(!isRepostMode);
+    setScheduleError(null);
+    setLocationValidationError(false);
     initializedEditJobId.current = jobId;
   }, [isExistingJobMode, isRepostMode, jobId, jobQuery.data, reset]);
 
@@ -217,7 +243,10 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
       setPublished(false);
       setMedia([]);
       setEditLocation({ status: "loading" });
-      setHasSelectedRepostDate(false);
+      setHasSelectedDate(false);
+      setHasSelectedTime(false);
+      setScheduleError(null);
+      setLocationValidationError(false);
       submitInFlight.current = false;
       initializedEditJobId.current = null;
       reset();
@@ -234,17 +263,39 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   ];
 
   const goNext = async () => {
-    if (isRepostMode && step === 2 && !hasSelectedRepostDate) {
-      setSubmitError(t("jobReposting.chooseNewDate"));
+    if (step === 2) {
+      const scheduleValidationError = validateJobSchedule(values.date, hasSelectedDate, hasSelectedTime);
+      const locationMissing = location.status !== "granted";
+      setScheduleError(scheduleValidationError);
+      setLocationValidationError(locationMissing);
+      const fieldsValid = await trigger(STEP_FIELDS[step]);
+      if (scheduleValidationError || locationMissing || !fieldsValid) {
+        setSubmitError(null);
+        if (scheduleValidationError) scrollFieldIntoView("schedule");
+        else if (locationMissing || !values.address.trim()) scrollFieldIntoView("address");
+        else if (values.budget <= 0) scrollFieldIntoView("budget");
+        return;
+      }
+      setScheduleError(null);
+      setLocationValidationError(false);
+      setSubmitError(null);
+      setStep((s) => Math.min(s + 1, STEP_COUNT - 1));
       return;
     }
     const isValid = await trigger(STEP_FIELDS[step]);
     if (isValid) {
+      setScheduleError(null);
       setSubmitError(null);
       setStep((s) => Math.min(s + 1, STEP_COUNT - 1));
     }
   };
-  const goBack = () => setStep((s) => Math.max(s - 1, 0));
+  const goBack = () => {
+    clearErrors();
+    setSubmitError(null);
+    setScheduleError(null);
+    setLocationValidationError(false);
+    setStep((s) => Math.max(s - 1, 0));
+  };
 
   const openDatePicker = () => {
     const date = values.date;
@@ -260,22 +311,31 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
 
   const onSubmit = handleSubmit(async (formValues) => {
     setSubmitError(null);
+    const scheduleValidationError = validateJobSchedule(
+      formValues.date,
+      hasSelectedDate,
+      hasSelectedTime
+    );
+    if (scheduleValidationError) {
+      setStep(2);
+      setScheduleError(scheduleValidationError);
+      setSubmitError(null);
+      setTimeout(() => scrollFieldIntoView("schedule"), 0);
+      return;
+    }
     if (
       isRepostMode &&
-      !canSubmitRepost(hasSelectedRepostDate, repostJob.isPending)
+      !canSubmitRepost(hasSelectedDate, repostJob.isPending)
     ) {
       if (repostJob.isPending) return;
-      setSubmitError(t("jobReposting.chooseNewDate"));
+      showScheduleError("required");
       return;
     }
     if (location.status !== "granted") {
-      setSubmitError(
-        isRepostMode
-          ? t("jobReposting.error")
-          : isEditMode
-          ? t("jobEditing.updateError")
-          : t("postJob.locationRequired")
-      );
+      setStep(2);
+      setLocationValidationError(true);
+      setSubmitError(null);
+      setTimeout(() => scrollFieldIntoView("address"), 0);
       return;
     }
     if (submitInFlight.current) return;
@@ -325,6 +385,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
               setPublished(false);
               setStep(0);
               setMedia([]);
+              setHasSelectedDate(false);
+              setHasSelectedTime(false);
+              setScheduleError(null);
+              setLocationValidationError(false);
+              clearErrors();
               reset();
             }}
           >
@@ -381,6 +446,16 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
               }}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
+              onScroll={(event) => {
+                formScrollOffset.current = event.nativeEvent.contentOffset.y;
+              }}
+              scrollEventThrottle={16}
+              onContentSizeChange={() => {
+                if (pendingMediaScrollRestore.current === null) return;
+                const y = pendingMediaScrollRestore.current;
+                pendingMediaScrollRestore.current = null;
+                formScrollRef.current?.scrollTo({ y, animated: false });
+              }}
             >
           <YStack gap="$5">
             {step === 0 ? (
@@ -416,7 +491,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                 <Text variant="h3">{t("postJob.describeHeading")}</Text>
                 <YStack gap="$2">
                   <Text variant="label">{t("postJob.mediaOptional")}</Text>
-                  <MediaPicker media={media} onChange={setMedia} />
+                  <MediaPicker media={media} onChange={handleMediaChange} />
                 </YStack>
                 <View>
                   <Controller
@@ -455,15 +530,20 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
             ) : null}
 
             {step === 2 ? (
-              <YStack gap="$4">
+              <YStack
+                gap="$4"
+                onLayout={(event) => {
+                  formFieldOffsets.current.schedule = event.nativeEvent.layout.y;
+                }}
+              >
                 <Text variant="h3">{t("postJob.whenWhereHeading")}</Text>
+                {scheduleError ? (
+                  <Text variant="small" color="$danger">
+                    {t(`postJob.validation.schedule.${scheduleError}`)}
+                  </Text>
+                ) : null}
                 <YStack gap="$2">
                   <Text variant="label">{t("postJob.dateLabel")}</Text>
-                  {isRepostMode && !hasSelectedRepostDate ? (
-                    <Text variant="small" color="$danger">
-                      {t("jobReposting.chooseNewDate")}
-                    </Text>
-                  ) : null}
                   <XStack gap="$2" alignItems="center">
                     <YStack flex={1}>
                       <PillTabs
@@ -477,7 +557,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                             Date.now() + (v === "tomorrow" ? 86400000 : 3600000)
                           );
                           setValue("date", d);
-                          if (isRepostMode) setHasSelectedRepostDate(true);
+                          setHasSelectedDate(true);
+                          if (hasSelectedTime) {
+                            setScheduleError(null);
+                            setSubmitError(null);
+                          }
                         }}
                       />
                     </YStack>
@@ -496,7 +580,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                     onCancel={() => setShowDatePicker(false)}
                     onConfirm={() => {
                       setValue("date", draftDate);
-                      if (isRepostMode) setHasSelectedRepostDate(true);
+                      setHasSelectedDate(true);
+                      if (hasSelectedTime) {
+                        setScheduleError(null);
+                        setSubmitError(null);
+                      }
                       setShowDatePicker(false);
                     }}
                   />
@@ -520,6 +608,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                     onCancel={() => setShowTimePicker(false)}
                     onConfirm={() => {
                       setValue("date", mergeDateWithTime(values.date, draftTime));
+                      setHasSelectedTime(true);
+                      if (hasSelectedDate) {
+                        setScheduleError(null);
+                        setSubmitError(null);
+                      }
                       setShowTimePicker(false);
                     }}
                   />
@@ -545,6 +638,8 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                             onLocationChange={({ coords, address }) => {
                               setLocation({ status: "granted", coords });
                               field.onChange(address);
+                              setLocationValidationError(false);
+                              if (address.trim()) clearErrors("address");
                             }}
                           />
                         )}
@@ -568,6 +663,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                         {t(errors.address.message ?? "")}
                       </Text>
                     ) : null}
+                    {locationValidationError ? (
+                      <Text variant="small" color="$danger">
+                        {t("postJob.validation.location")}
+                      </Text>
+                    ) : null}
                   </YStack>
                 </View>
 
@@ -582,7 +682,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                   />
                 </YStack>
 
-                <View>
+                <View
+                  onLayout={(event) => {
+                    formFieldOffsets.current.budget = event.nativeEvent.layout.y;
+                  }}
+                >
                   <Controller
                     control={control}
                     name="budget"
@@ -591,7 +695,12 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                         label={t("postJob.budgetLabel")}
                         keyboardType="number-pad"
                         value={field.value ? String(field.value) : ""}
-                        onChangeText={(v) => field.onChange(Number(v.replace(/[^0-9]/g, "")) || 0)}
+                        onChangeText={(v) => {
+                          const nextBudget = Number(v.replace(/[^0-9]/g, "")) || 0;
+                          field.onChange(nextBudget);
+                          if (nextBudget > 0) clearErrors("budget");
+                        }}
+                        onFocus={() => scrollFieldIntoView("budget")}
                         onBlur={field.onBlur}
                         error={errors.budget ? t(errors.budget.message ?? "") : undefined}
                       />
@@ -774,7 +883,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                     }
                     disabled={
                       isRepostMode &&
-                      !canSubmitRepost(hasSelectedRepostDate, repostJob.isPending)
+                      !canSubmitRepost(hasSelectedDate, repostJob.isPending)
                     }
                     fullWidth
                   >

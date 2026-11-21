@@ -13,3 +13,16 @@ export const postJobSchema = z.object({
   paymentPreference: z.enum(["cash", "paypal", "both"]),
 });
 export type PostJobFormValues = z.infer<typeof postJobSchema>;
+
+export type ScheduleValidationError = "required";
+
+export function validateJobSchedule(
+  date: Date,
+  hasSelectedDate: boolean,
+  hasSelectedTime: boolean,
+  _nowMs: number = Date.now()
+): ScheduleValidationError | null {
+  if (!hasSelectedDate || !hasSelectedTime) return "required";
+  if (!Number.isFinite(date.getTime())) return "required";
+  return null;
+}
