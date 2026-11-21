@@ -7,6 +7,7 @@ import {
   getRepostJobDetailParams,
   getRepostJobFormState,
 } from "../utils/jobForm";
+import { validateJobSchedule } from "../validation/postJob.schema";
 
 jest.mock("@/lib/apiClient", () => ({
   apiClient: {
@@ -115,6 +116,15 @@ test("repost submission requires a selected new date and blocks while pending", 
   expect(canSubmitRepost(false, false)).toBe(false);
   expect(canSubmitRepost(true, true)).toBe(false);
   expect(canSubmitRepost(true, false)).toBe(true);
+});
+
+test("schedule validation requires explicit date and time selections", () => {
+  const now = new Date("2031-04-01T10:00:00.000Z").getTime();
+
+  expect(validateJobSchedule(new Date(now + 60_000), false, true, now)).toBe("required");
+  expect(validateJobSchedule(new Date(now + 60_000), true, false, now)).toBe("required");
+  expect(validateJobSchedule(new Date(now - 60_000), true, true, now)).toBeNull();
+  expect(validateJobSchedule(new Date(now + 60_000), true, true, now)).toBeNull();
 });
 
 test("the repost API uses POST and navigation targets the newly created job", async () => {

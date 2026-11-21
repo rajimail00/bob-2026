@@ -54,7 +54,8 @@
   "home": {
     "map": "Carte",
     "list": "Liste",
-    "searchPlaceholder": "Rechercher",
+    "searchPlaceholder": "Rechercher un lieu",
+    "submitSearch": "Rechercher un lieu",
     "emptyTitle": "Aucune mission à proximité",
     "emptyBody": "Élargissez le rayon de recherche ou effacez les filtres.",
     "errorTitle": "Impossible de charger les missions",
@@ -226,7 +227,7 @@
     "locationRequired": "Votre position est nécessaire pour publier une mission. Activez l’accès et réessayez.", "locationOff": "L’accès à la position est désactivé. Activez-le dans les réglages pour choisir l’adresse sur la carte.", "locationLoading": "Recherche de votre position…", "locationRetry": "Je l’ai activé — réessayer", "peopleNeeded": "Personnes nécessaires", "budgetLabel": "Budget (€)", "optionsHeading": "Options", "recurrenceHeading": "À quelle fréquence ?",
     "recurrence": { "none": "Aucune répétition", "daily": "Tous les jours", "weekly": "Toutes les semaines", "monthly": "Tous les mois" },
     "paymentHeading": "Mode de paiement", "payment": { "cash": "Espèces", "paypal": "Paiement en ligne", "both": "Espèces ou paiement en ligne" }, "emergency": "C’est une urgence", "reviewHeading": "Vérification", "paymentReview": "Paiement : {{method}}", "peopleCount_one": "{{count}} personne", "peopleCount_other": "{{count}} personnes", "publish": "Publier", "successTitle": "Votre mission est en ligne !", "postAnother": "Publier une autre mission",
-    "validation": { "category": "Choisissez une catégorie", "title": "Ajoutez un titre court", "description": "Ajoutez quelques détails", "address": "L’adresse est obligatoire", "date": "Choisissez une date et une heure valides", "people": "Choisissez entre 1 et 15 personnes", "budget": "Saisissez un budget" }
+    "validation": { "category": "Choisissez une catégorie", "title": "Ajoutez un titre court", "description": "Ajoutez quelques détails", "address": "Saisissez une adresse avant de continuer.", "location": "Choisissez un lieu avant de continuer.", "date": "Choisissez une date et une heure valides", "schedule": { "required": "Sélectionnez une date et une heure avant de continuer." }, "people": "Choisissez entre 1 et 15 personnes", "budget": "Saisissez un budget avant de continuer." }
   },
   "datePicker": { "previousMonth": "Mois précédent", "nextMonth": "Mois suivant", "cancel": "Annuler", "confirm": "OK", "hour": "Heure {{value}}", "minute": "Minute {{value}}" },
   "mediaPicker": {

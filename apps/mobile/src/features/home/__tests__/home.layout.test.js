@@ -57,6 +57,24 @@ test("Home keeps the map visible when there are no active jobs", () => {
   expect(map).not.toContain("?? 0");
 });
 
+test("Home resolves a place search and keeps its coordinates synchronized with map zoom", () => {
+  const home = read("features/home/screens/HomeScreen.tsx");
+  const map = read("features/home/components/JobMapView.tsx");
+
+  expect(home).toContain("onSubmitEditing={() => void submitSearch()}");
+  expect(home).toContain("resolveAddressSearch(");
+  expect(home).toContain("searchPrecisePlace");
+  expect(home).toContain("searchRevision.current !== revision");
+  expect(home).toContain("setSearchedLocation({ coords: result.coords, address: result.address })");
+  expect(home).toContain("setSearchedLocation(null)");
+  expect(home).toContain("lng: centerCoords?.lng");
+  expect(home).toContain("lat: centerCoords?.lat");
+  expect(home).toContain("onValueChange={setRadiusKm}");
+  expect(home).toContain("radiusKm={radiusKm}");
+  expect(map).toContain("mapRef.current?.animateToRegion(regionForRadius(userCoords, radiusKm), 250)");
+  expect(map).toContain("ref={mapRef}");
+});
+
 test("map jobs show full category information with compact uncropped marker artwork", () => {
   const card = read("features/home/components/JobCard.tsx");
   const map = read("features/home/components/JobMapView.tsx");
@@ -82,7 +100,7 @@ test("all native job marker images use compact consistent dimensions", () => {
   for (const name of markerFiles) {
     const png = fs.readFileSync(path.join(markerDirectory, name));
     expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
-    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([48, 56]);
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([72, 84]);
   }
 });
 

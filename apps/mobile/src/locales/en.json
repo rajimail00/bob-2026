@@ -54,7 +54,8 @@
   "home": {
     "map": "Map",
     "list": "List",
-    "searchPlaceholder": "Search",
+    "searchPlaceholder": "Search location",
+    "submitSearch": "Search location",
     "emptyTitle": "No jobs nearby yet",
     "emptyBody": "Try widening your search radius or clearing filters.",
     "errorTitle": "Couldn't load jobs",
@@ -261,10 +262,14 @@
       "category": "Choose a category",
       "title": "Add a short title",
       "description": "Add a few more details",
-      "address": "Address is required",
+      "address": "Enter an address before continuing.",
+      "location": "Choose a location before continuing.",
       "date": "Choose a valid date and time",
+      "schedule": {
+        "required": "Select a date and time before continuing."
+      },
       "people": "Choose between 1 and 15 people",
-      "budget": "Enter a budget"
+      "budget": "Enter a budget before continuing."
     }
   },
   "datePicker": {

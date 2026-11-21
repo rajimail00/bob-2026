@@ -1,10 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as ExpoLocation from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import Slider from "@react-native-community/slider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { FlatList, type ViewToken } from "react-native";
+import { ActivityIndicator, FlatList, Keyboard, type ViewToken } from "react-native";
 import { XStack, YStack } from "tamagui";
 import { Input } from "@/components/ui/Input";
 import { CustomerHeader } from "@/components/layout/CustomerHeader";
@@ -25,6 +26,12 @@ import { isGloballyVisibleJob, useCategories, useJobs } from "../hooks/useJobs";
 import { AdvertisementCard } from "@/features/advertisements/components/AdvertisementCard";
 import { useAdvertisements } from "@/features/advertisements/hooks/useAdvertisements";
 import { insertAdvertisements } from "@/features/advertisements/utils/insertAdvertisements";
+import { searchPrecisePlace } from "@/features/orders/api/location.api";
+import {
+  AddressSearchError,
+  resolveAddressSearch,
+  type Coords,
+} from "@/features/orders/components/LocationPickerMap";
 
 type Props = NativeStackScreenProps<HomeStackParamList, "HomeList">;
 type ViewMode = "map" | "list";
@@ -34,27 +41,32 @@ const MAX_RADIUS_KM = 50;
 const DEFAULT_FILTERS: JobFilters = { categoryIds: [], minBudget: 0, maxBudget: 1000, peopleNeeded: null };
 
 export function HomeScreen({ navigation }: Props) {
-  const { t } = useTranslation();
-  const [search, setSearch] = useState("");
+  const { t, i18n } = useTranslation();
+  const [searchInput, setSearchInput] = useState("");
+  const [searchedLocation, setSearchedLocation] = useState<{ coords: Coords; address: string } | null>(null);
+  const [searchErrorKey, setSearchErrorKey] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchRevision = useRef(0);
   const [viewMode, setViewMode] = useState<ViewMode>("map");
   const [radiusKm, setRadiusKm] = useState(18);
+  const [queryRadiusKm, setQueryRadiusKm] = useState(18);
   const [filters, setFilters] = useState<JobFilters>(DEFAULT_FILTERS);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [playingAdvertisementId, setPlayingAdvertisementId] = useState<string>();
   const [visibleAdvertisementIds, setVisibleAdvertisementIds] = useState<Set<string>>(() => new Set());
   const isFocused = useIsFocused();
   const { location } = useCurrentLocation();
+  const centerCoords = searchedLocation?.coords ?? (location.status === "granted" ? location.coords : null);
 
   const categoriesQuery = useCategories();
   const jobsQuery = useJobs({
-    search: search || undefined,
     categoryId: filters.categoryIds.length > 0 ? filters.categoryIds.join(",") : undefined,
     minBudget: filters.minBudget > 0 ? filters.minBudget : undefined,
     maxBudget: filters.maxBudget < 1000 ? filters.maxBudget : undefined,
     peopleNeeded: filters.peopleNeeded ?? undefined,
-    lng: location.status === "granted" ? location.coords.lng : undefined,
-    lat: location.status === "granted" ? location.coords.lat : undefined,
-    radiusKm: location.status === "granted" ? radiusKm : undefined,
+    lng: centerCoords?.lng,
+    lat: centerCoords?.lat,
+    radiusKm: centerCoords ? queryRadiusKm : undefined,
   });
   const advertisementsQuery = useAdvertisements(viewMode === "list");
 
@@ -72,6 +84,13 @@ export function HomeScreen({ navigation }: Props) {
     }
   }, [isFocused, viewMode]);
 
+  useEffect(
+    () => () => {
+      searchRevision.current += 1;
+    },
+    []
+  );
+
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
     setVisibleAdvertisementIds(new Set(viewableItems.flatMap((token) => {
       const item = token.item as ReturnType<typeof insertAdvertisements>[number];
@@ -88,8 +107,59 @@ export function HomeScreen({ navigation }: Props) {
     (filters.peopleNeeded ? 1 : 0);
 
   const getDistance = (jobCoords: [number, number]) => {
-    if (location.status !== "granted") return undefined;
-    return formatDistanceKm(distanceKm(location.coords, { lng: jobCoords[0], lat: jobCoords[1] }));
+    if (!centerCoords) return undefined;
+    return formatDistanceKm(distanceKm(centerCoords, { lng: jobCoords[0], lat: jobCoords[1] }));
+  };
+
+  const submitSearch = async () => {
+    if (!searchInput.trim()) {
+      setSearchErrorKey("locationPicker.emptySearch");
+      return;
+    }
+
+    const revision = searchRevision.current + 1;
+    searchRevision.current = revision;
+    setSearchErrorKey(null);
+    setIsSearching(true);
+    try {
+      const currentPermission = await ExpoLocation.getForegroundPermissionsAsync();
+      const permission = currentPermission.status === "granted"
+        ? currentPermission
+        : await ExpoLocation.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") {
+        if (searchRevision.current === revision) setSearchErrorKey("locationPicker.permissionDenied");
+        return;
+      }
+
+      const result = await resolveAddressSearch(
+        searchInput,
+        t("locationPicker.selected"),
+        ExpoLocation.geocodeAsync,
+        ExpoLocation.reverseGeocodeAsync,
+        centerCoords ?? undefined,
+        searchPrecisePlace,
+        i18n.language
+      );
+      if (searchRevision.current !== revision) return;
+      setSearchedLocation({ coords: result.coords, address: result.address });
+      setSearchInput(result.address);
+      setSearchErrorKey(result.reverseGeocodeFailed ? "locationPicker.reverseFailed" : null);
+      Keyboard.dismiss();
+    } catch (error) {
+      if (searchRevision.current !== revision) return;
+      const code = error instanceof AddressSearchError ? error.code : "searchFailed";
+      setSearchErrorKey(`locationPicker.${code}`);
+    } finally {
+      if (searchRevision.current === revision) setIsSearching(false);
+    }
+  };
+
+  const clearLocationSearch = () => {
+    searchRevision.current += 1;
+    setSearchInput("");
+    setSearchedLocation(null);
+    setSearchErrorKey(null);
+    setIsSearching(false);
   };
 
   return (
@@ -100,18 +170,38 @@ export function HomeScreen({ navigation }: Props) {
           <YStack flex={1}>
             <Input
               placeholder={t("home.searchPlaceholder")}
-              value={search}
-              onChangeText={setSearch}
+              value={searchInput}
+              onChangeText={(value) => {
+                setSearchInput(value);
+                setSearchErrorKey(null);
+              }}
               returnKeyType="search"
+              onSubmitEditing={() => void submitSearch()}
+              editable={!isSearching}
               rightElement={
-                search.length > 0 ? (
-                  <XStack onPress={() => setSearch("")} padding="$2" accessibilityRole="button" accessibilityLabel={t("filters.clearSearch")}>
+                searchInput.length > 0 ? (
+                  <XStack onPress={clearLocationSearch} padding="$2" accessibilityRole="button" accessibilityLabel={t("filters.clearSearch")}>
                     <Ionicons name="close-circle" size={18} color="#9AA793" />
                   </XStack>
                 ) : undefined
               }
             />
           </YStack>
+          <XStack
+            width={44}
+            height={44}
+            borderRadius={22}
+            borderWidth={1.5}
+            borderColor="$borderColor"
+            backgroundColor="$backgroundStrong"
+            alignItems="center"
+            justifyContent="center"
+            onPress={() => void submitSearch()}
+            accessibilityRole="button"
+            accessibilityLabel={t("home.submitSearch")}
+          >
+            {isSearching ? <ActivityIndicator color="#4F8266" /> : <Ionicons name="search" size={20} color="#4F8266" />}
+          </XStack>
           <XStack
             width={44}
             height={44}
@@ -128,6 +218,7 @@ export function HomeScreen({ navigation }: Props) {
             <Ionicons name="options-outline" size={20} color={activeFilterCount > 0 ? "white" : "#4F8266"} />
           </XStack>
         </XStack>
+        {searchErrorKey ? <Text variant="small" color="$danger">{t(searchErrorKey)}</Text> : null}
 
         <PillTabs
           options={[
@@ -138,7 +229,7 @@ export function HomeScreen({ navigation }: Props) {
           onChange={setViewMode}
         />
 
-        {location.status === "granted" ? (
+        {centerCoords ? (
           <XStack alignItems="center" gap="$2">
             <Ionicons name="location-outline" size={16} color="#5B6358" />
             <YStack flex={1}>
@@ -147,7 +238,11 @@ export function HomeScreen({ navigation }: Props) {
                 maximumValue={MAX_RADIUS_KM}
                 step={1}
                 value={radiusKm}
-                onSlidingComplete={setRadiusKm}
+                onValueChange={setRadiusKm}
+                onSlidingComplete={(value) => {
+                  setRadiusKm(value);
+                  setQueryRadiusKm(value);
+                }}
                 minimumTrackTintColor="#4F8266"
                 maximumTrackTintColor="#DDE3DA"
                 thumbTintColor="#4F8266"
@@ -170,7 +265,8 @@ export function HomeScreen({ navigation }: Props) {
       ) : viewMode === "map" ? (
         <JobMapView
           jobs={jobs}
-          userCoords={location.status === "granted" ? location.coords : null}
+          userCoords={centerCoords}
+          radiusKm={radiusKm}
           onSelectJob={(job) => navigation.navigate("JobDetail", { jobId: job._id })}
         />
       ) : jobs.length === 0 ? (
