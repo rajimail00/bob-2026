@@ -41,14 +41,14 @@ test("customer main screens share the branded header and account actions are ind
   expect(header).toContain("<BobLogo");
   expect(header).toContain('screen: "Notifications"');
   expect(header).toContain("<HeaderAccountMenu");
-  expect(header).toContain('mode="customer"');
+  expect(header).not.toContain('mode="customer"');
   expect(header).toContain("setAccountMenuOpen((open) => !open)");
   expect(header).not.toContain('navigation.navigate("CustomerAccount")');
   expect(root).not.toContain('name="CustomerAccount"');
   expect(types).not.toContain("CustomerAccount: undefined");
   expect(adminHeader).toContain("<BobLogo");
   expect(adminHeader).toContain("<HeaderAccountMenu");
-  expect(adminHeader).toContain('mode="admin"');
+  expect(adminHeader).not.toContain('mode="admin"');
   expect(adminHeader).not.toContain('navigation.navigate("AdminAccount")');
   expect(adminNavigator).not.toContain('name="AdminAccount"');
   expect(types).not.toContain("AdminAccount: undefined");
@@ -58,12 +58,10 @@ test("customer main screens share the branded header and account actions are ind
   }
   expect(accountMenu).toContain("useLogout");
   expect(accountMenu).toContain('t("common.logout")');
-  expect(accountMenu).toContain("useDeleteAccount");
-  expect(accountMenu).toContain('mode === "customer"');
-  expect(accountMenu).toContain('t("profile.deactivateTitle")');
+  expect(accountMenu).not.toContain("useDeleteAccount");
+  expect(accountMenu).not.toContain('t("profile.deactivateTitle")');
   expect(accountMenu).toContain("onRequestClose={onClose}");
   expect(accountMenu).toContain('testID="account-menu-backdrop"');
-  expect(accountMenu.indexOf('t("common.logout")')).toBeLessThan(accountMenu.lastIndexOf('t("profile.deactivateTitle")'));
   expect(settings).not.toContain("useLogout");
   expect(settings).not.toContain('t("common.logout")');
   expect(settings).not.toContain("useDeleteAccount");
