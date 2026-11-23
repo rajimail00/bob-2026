@@ -92,6 +92,20 @@ test("map jobs show full category information with compact uncropped marker artw
   expect(map).not.toContain("collapsable={false}");
 });
 
+test("job photos use a 16:9 cover preview with a full-image lightbox", () => {
+  const carousel = read("features/home/components/MediaCarousel.tsx");
+
+  expect(carousel).toContain("aspectRatio={16 / 9}");
+  expect(carousel).toContain('resizeMode="cover"');
+  expect(carousel).toContain('name="expand-outline"');
+  expect(carousel).toContain("setLightboxUri(item.url)");
+  expect(carousel).toContain('resizeMode="contain"');
+  expect(carousel).toContain("statusBarTranslucent");
+  expect(carousel).toContain("navigationBarTranslucent");
+  expect(carousel).toContain('edges={["top", "right", "bottom", "left"]}');
+  expect(carousel).toContain("onRequestClose={() => setLightboxUri(null)}");
+});
+
 test("all native job marker images use compact consistent dimensions", () => {
   const markerDirectory = path.join(sourceRoot, "..", "assets", "map-markers");
   const markerFiles = fs.readdirSync(markerDirectory).filter((name) => name.endsWith(".png"));

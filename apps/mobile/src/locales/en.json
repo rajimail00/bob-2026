@@ -280,6 +280,7 @@
     "hour": "Hour {{value}}",
     "minute": "Minute {{value}}"
   },
+  "mediaCarousel": { "openImage": "View full image", "closeImage": "Close full image" },
   "mediaPicker": {
     "compressionError": "Couldn't compress that file. Choose a different photo or video and try again.",
     "libraryPermission": "Photo library access is off — enable it in settings to add photos or videos.",
