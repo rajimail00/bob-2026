@@ -71,7 +71,6 @@ export function CustomerHeader({ title, showBack = false }: { title: string; sho
       </XStack>
       <HeaderAccountMenu
         visible={accountMenuOpen}
-        mode="customer"
         onClose={() => setAccountMenuOpen(false)}
       />
     </>

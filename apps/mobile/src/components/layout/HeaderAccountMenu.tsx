@@ -1,42 +1,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { XStack, YStack } from "tamagui";
 import { Text } from "@/components/ui/Text";
 import { color as colorToken } from "@/design/tokens";
-import { useDeleteAccount, useLogout } from "@/features/auth/hooks/useAuthMutations";
-import { getApiErrorMessage } from "@/lib/apiClient";
+import { useLogout } from "@/features/auth/hooks/useAuthMutations";
 
 interface HeaderAccountMenuProps {
   visible: boolean;
-  mode: "customer" | "admin";
   onClose: () => void;
 }
 
-export function HeaderAccountMenu({ visible, mode, onClose }: HeaderAccountMenuProps) {
+export function HeaderAccountMenu({ visible, onClose }: HeaderAccountMenuProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const logout = useLogout();
-  const deleteAccount = useDeleteAccount();
-  const busy = logout.isPending || deleteAccount.isPending;
-
-  const confirmAccountDeletion = () => {
-    onClose();
-    Alert.alert(t("profile.deactivateTitle"), t("profile.deactivateBody"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("profile.deactivateTitle"),
-        style: "destructive",
-        onPress: () => deleteAccount.mutate(undefined, {
-          onError: (error) => Alert.alert(
-            t("profile.deleteErrorTitle"),
-            getApiErrorMessage(error, t("profile.deleteError")),
-          ),
-        }),
-      },
-    ]);
-  };
 
   return (
     <Modal
@@ -73,23 +52,10 @@ export function HeaderAccountMenu({ visible, mode, onClose }: HeaderAccountMenuP
           <MenuAction
             label={t("common.logout")}
             icon="log-out-outline"
-            disabled={busy}
+            disabled={logout.isPending}
             loading={logout.isPending}
             onPress={() => logout.mutate(undefined, { onSettled: onClose })}
           />
-          {mode === "customer" ? (
-            <>
-              <View style={styles.divider} />
-              <MenuAction
-                label={t("profile.deactivateTitle")}
-                icon="person-remove-outline"
-                destructive
-                disabled={busy}
-                loading={deleteAccount.isPending}
-                onPress={confirmAccountDeletion}
-              />
-            </>
-          ) : null}
         </YStack>
       </View>
     </Modal>
@@ -100,13 +66,12 @@ interface MenuActionProps {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
-  destructive?: boolean;
   disabled?: boolean;
   loading?: boolean;
 }
 
-function MenuAction({ label, icon, onPress, destructive = false, disabled = false, loading = false }: MenuActionProps) {
-  const color = destructive ? colorToken.danger500 : colorToken.neutral800;
+function MenuAction({ label, icon, onPress, disabled = false, loading = false }: MenuActionProps) {
+  const color = colorToken.neutral800;
 
   return (
     <Pressable
@@ -128,9 +93,5 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.08)",
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colorToken.neutral200,
   },
 });

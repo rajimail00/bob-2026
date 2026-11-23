@@ -60,7 +60,6 @@ export function AdminHeader({ title, showBack = false }: { title: string; showBa
       </XStack>
       <HeaderAccountMenu
         visible={accountMenuOpen}
-        mode="admin"
         onClose={() => setAccountMenuOpen(false)}
       />
     </>
