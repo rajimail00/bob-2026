@@ -232,6 +232,7 @@
     "mediaOptional": "Photos & videos (optional)",
     "titleLabel": "Title",
     "descriptionLabel": "Description",
+    "descriptionOptionalLabel": "Description (optional)",
     "whenWhereHeading": "When and where?",
     "dateLabel": "Date",
     "today": "Today",

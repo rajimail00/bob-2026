@@ -112,7 +112,7 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
   const initializedEditJobId = useRef<string | null>(null);
   const submitInFlight = useRef(false);
   const formScrollRef = useRef<ScrollView>(null);
-  const formFieldOffsets = useRef({ schedule: 0, address: 0, budget: 0 });
+  const formFieldOffsets = useRef({ description: 0, schedule: 0, address: 0, budget: 0 });
   const formScrollOffset = useRef(0);
   const pendingMediaScrollRestore = useRef<number | null>(null);
   const focusScrollTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -493,7 +493,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                   <Text variant="label">{t("postJob.mediaOptional")}</Text>
                   <MediaPicker media={media} onChange={handleMediaChange} />
                 </YStack>
-                <View>
+                <View
+                  onLayout={(event) => {
+                    formFieldOffsets.current.description = event.nativeEvent.layout.y;
+                  }}
+                >
                   <Controller
                     control={control}
                     name="title"
@@ -514,10 +518,11 @@ export function PostJobScreen({ route }: PostJobScreenProps = {}) {
                     name="description"
                     render={({ field }) => (
                       <Input
-                        label={t("postJob.descriptionLabel")}
+                        label={t("postJob.descriptionOptionalLabel")}
                         value={field.value}
                         onChangeText={field.onChange}
                         onBlur={field.onBlur}
+                        onFocus={() => scrollFieldIntoView("description")}
                         multiline
                         numberOfLines={4}
                         style={{ height: 110, textAlignVertical: "top" }}

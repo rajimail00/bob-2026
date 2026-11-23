@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useState } from "react";
 import {
   Image,
@@ -22,6 +23,19 @@ interface MediaItem {
 
 interface MediaCarouselProps {
   media: MediaItem[];
+}
+
+function CarouselVideo({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri);
+
+  return (
+    <VideoView
+      player={player}
+      style={styles.previewVideo}
+      contentFit="contain"
+      nativeControls
+    />
+  );
 }
 
 /** Swipeable photo/video preview with dot indicators — used on the job detail screen and the
@@ -60,15 +74,15 @@ export function MediaCarousel({ media }: MediaCarouselProps) {
                 borderRadius={14}
                 backgroundColor="$neutral100"
               >
-                <Image source={{ uri: item.url }} resizeMode="cover" style={styles.previewImage} />
                 {item.type === "video" ? (
-                  <XStack style={styles.previewOverlay} alignItems="center" justifyContent="center">
-                    <Ionicons name="play-circle" size={48} color="white" />
-                  </XStack>
+                  <CarouselVideo uri={item.url} />
                 ) : (
-                  <XStack style={styles.expandBadge} alignItems="center" justifyContent="center">
-                    <Ionicons name="expand-outline" size={18} color="white" />
-                  </XStack>
+                  <>
+                    <Image source={{ uri: item.url }} resizeMode="cover" style={styles.previewImage} />
+                    <XStack style={styles.expandBadge} alignItems="center" justifyContent="center">
+                      <Ionicons name="expand-outline" size={18} color="white" />
+                    </XStack>
+                  </>
                 )}
               </XStack>
             );
@@ -141,9 +155,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  previewOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.15)",
+  previewVideo: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: "#111",
   },
   expandBadge: {
     position: "absolute",

@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, Image } from "react-native";
@@ -17,6 +18,19 @@ const THUMB_SIZE = 84;
 interface MediaPickerProps {
   media: UploadedMedia[];
   onChange: (media: UploadedMedia[]) => void;
+}
+
+function UploadedVideoPreview({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri);
+
+  return (
+    <VideoView
+      player={player}
+      style={{ width: 160, height: 90, borderRadius: 10, backgroundColor: "#111" }}
+      contentFit="cover"
+      nativeControls
+    />
+  );
 }
 
 function isOversized(fileSize: number | undefined): boolean {
@@ -151,16 +165,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
                 style={{ width: THUMB_SIZE, height: THUMB_SIZE, borderRadius: 10 }}
               />
             ) : (
-              <YStack
-                width={THUMB_SIZE}
-                height={THUMB_SIZE}
-                borderRadius={10}
-                backgroundColor="$neutral800"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Ionicons name="videocam" size={28} color="white" />
-              </YStack>
+              <UploadedVideoPreview uri={item.url} />
             )}
             <XStack
               position="absolute"
