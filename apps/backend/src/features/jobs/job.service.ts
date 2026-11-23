@@ -79,8 +79,8 @@ async function emitDeliveries(deliveries: NotificationDelivery[]) {
 export const jobService = {
   transitionStatus: transitionJobStatus,
 
-  list(query: ListJobsQuery) {
-    return jobRepository.list(query);
+  list(query: ListJobsQuery, excludeClientId?: string) {
+    return jobRepository.list(query, excludeClientId);
   },
 
   async getById(id: string) {

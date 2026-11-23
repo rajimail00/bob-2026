@@ -12,13 +12,15 @@ export type JobEditableUpdates = Omit<UpdateJobInput, "location"> & {
 };
 
 export const jobRepository = {
-  async list(query: ListJobsQuery) {
+  async list(query: ListJobsQuery, excludeClientId?: string) {
     const filter: Record<string, unknown> = {
       status: "active",
       moderationStatus: { $nin: ["pending", "rejected", "suspended"] },
       // Evaluate this for every request so a job disappears even before the scheduler catches up.
       date: { $gt: new Date() },
     };
+
+    if (excludeClientId) filter.clientId = { $ne: excludeClientId };
 
     if (query.categoryId) {
       const ids = query.categoryId.split(",").filter(Boolean);

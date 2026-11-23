@@ -12,7 +12,7 @@ import {
 export const jobController = {
   async list(req: Request, res: Response) {
     const query = listJobsQuerySchema.parse(req.query);
-    const result = await jobService.list(query);
+    const result = await jobService.list(query, req.auth?.userId);
     res.status(200).json(result);
   },
 

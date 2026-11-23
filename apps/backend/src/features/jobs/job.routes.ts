@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler.js";
-import { requireAuth } from "../../middleware/auth.js";
+import { optionalAuth, requireAuth } from "../../middleware/auth.js";
 import { applicationController } from "../applications/application.controller.js";
 import { messageController } from "../messages/message.controller.js";
 import { problemController } from "../problems/problem.controller.js";
@@ -9,7 +9,7 @@ import { jobController } from "./job.controller.js";
 
 export const jobRouter = Router();
 
-jobRouter.get("/", asyncHandler(jobController.list));
+jobRouter.get("/", optionalAuth, asyncHandler(jobController.list));
 jobRouter.get("/mine/posted", requireAuth, asyncHandler(jobController.listMinePosted));
 jobRouter.get("/mine/assigned", requireAuth, asyncHandler(jobController.listMineAssigned));
 jobRouter.get("/:id", asyncHandler(jobController.getById));

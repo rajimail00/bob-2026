@@ -12,15 +12,16 @@ declare global {
   }
 }
 
-export function requireAuth(
+function authenticateRequest(
   req: Request,
-  _res: Response,
-  next: NextFunction
+  next: NextFunction,
+  required: boolean
 ) {
   const header = req.headers.authorization;
 
   if (!header?.startsWith("Bearer ")) {
-    next(AppError.unauthorized(undefined, "AUTH_REQUIRED"));
+    if (required) next(AppError.unauthorized(undefined, "AUTH_REQUIRED"));
+    else next();
     return;
   }
 
@@ -64,6 +65,15 @@ export function requireAuth(
       void recordUserActivity(payload.sub).then(() => next()).catch(() => next());
     })
     .catch(next);
+}
+
+export function requireAuth(req: Request, _res: Response, next: NextFunction) {
+  authenticateRequest(req, next, true);
+}
+
+/** Adds req.auth when a valid token is supplied while preserving public access. */
+export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
+  authenticateRequest(req, next, false);
 }
 
 export function requireRole(...roles: UserRole[]) {

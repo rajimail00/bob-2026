@@ -5,8 +5,18 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 
 $mobileRoot = Split-Path -Parent $PSScriptRoot
-$fontPath = Join-Path $mobileRoot "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf"
-$glyphMapPath = Join-Path $mobileRoot "node_modules/@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/Ionicons.json"
+$workspaceRoot = Split-Path -Parent (Split-Path -Parent $mobileRoot)
+$vectorIconsRoot = @(
+  (Join-Path $mobileRoot "node_modules/@expo/vector-icons"),
+  (Join-Path $workspaceRoot "node_modules/@expo/vector-icons")
+) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+
+if (-not $vectorIconsRoot) {
+  throw "@expo/vector-icons was not found. Run npm install first."
+}
+
+$fontPath = Join-Path $vectorIconsRoot "build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf"
+$glyphMapPath = Join-Path $vectorIconsRoot "build/vendor/react-native-vector-icons/glyphmaps/Ionicons.json"
 $outputPath = Join-Path $mobileRoot "assets/map-markers"
 
 if (-not (Test-Path -LiteralPath $fontPath)) {
@@ -52,15 +62,21 @@ function New-MarkerImage {
   param(
     [Parameter(Mandatory = $true)][string]$FilePath,
     [Parameter(Mandatory = $true)][string]$FillHex,
-    [Parameter(Mandatory = $true)][int]$GlyphCode
+    [Parameter(Mandatory = $true)][int]$GlyphCode,
+    [Parameter(Mandatory = $true)][double]$Scale
   )
 
-  $bitmap = New-Object System.Drawing.Bitmap 104, 122, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+  $pixelWidth = [int][Math]::Round(104 * $Scale)
+  $pixelHeight = [int][Math]::Round(122 * $Scale)
+  $bitmap = New-Object System.Drawing.Bitmap $pixelWidth, $pixelHeight, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
   $bitmap.SetResolution(96, 96)
   $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
   $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+  $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+  $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
   $graphics.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
   $graphics.Clear([System.Drawing.Color]::Transparent)
+  $graphics.ScaleTransform($Scale, $Scale)
 
   $shadowBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(45, 0, 0, 0))
   $fillBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.ColorTranslator]::FromHtml($FillHex))
@@ -105,6 +121,14 @@ function New-MarkerImage {
   $bitmap.Dispose()
 }
 
+# React Native chooses the correct bitmap for the device density while keeping
+# every marker at the same 52 x 61 logical-point size.
+$densityVariants = @(
+  @{ Suffix = ""; Scale = 0.5 },
+  @{ Suffix = "@2x"; Scale = 1.0 },
+  @{ Suffix = "@3x"; Scale = 1.5 }
+)
+
 foreach ($category in $categories.GetEnumerator()) {
   $glyphCode = [int]$glyphMap.($category.Value)
   if ($glyphCode -le 0) {
@@ -112,10 +136,12 @@ foreach ($category in $categories.GetEnumerator()) {
   }
 
   foreach ($state in $states.GetEnumerator()) {
-    $filePath = Join-Path $outputPath "$($category.Key)-$($state.Key).png"
-    New-MarkerImage -FilePath $filePath -FillHex $state.Value -GlyphCode $glyphCode
+    foreach ($density in $densityVariants) {
+      $filePath = Join-Path $outputPath "$($category.Key)-$($state.Key)$($density.Suffix).png"
+      New-MarkerImage -FilePath $filePath -FillHex $state.Value -GlyphCode $glyphCode -Scale $density.Scale
+    }
   }
 }
 
 $privateFonts.Dispose()
-Write-Host "Generated $($categories.Count * $states.Count) category marker images in $outputPath"
+Write-Host "Generated $($categories.Count * $states.Count * $densityVariants.Count) density-aware category marker images in $outputPath"
