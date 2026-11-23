@@ -6,7 +6,7 @@ const MAX_VIDEOS = 2;
 
 const categoryIdSchema = z.string().min(1, "Choose a category");
 const titleSchema = z.string().trim().min(3).max(120);
-const descriptionSchema = z.string().trim().min(10, "Add a few more details").max(1000);
+const descriptionSchema = z.string().trim().max(1000);
 const mediaSchema = z
   .array(z.object({ url: z.string().url(), type: z.enum(["photo", "video"]) }).strict())
     .refine((items) => items.filter((m) => m.type === "photo").length <= MAX_PHOTOS, {
@@ -36,7 +36,7 @@ export const createJobSchema = z
   .object({
     categoryId: categoryIdSchema,
     title: titleSchema,
-    description: descriptionSchema,
+    description: descriptionSchema.default(""),
     media: mediaSchema.default([]),
     location: locationSchema,
     address: addressSchema,

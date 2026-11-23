@@ -12,7 +12,22 @@ test("Post Job keeps focused inputs above the Android keyboard", () => {
   expect(source).toContain('name="budget"');
   expect(source).toContain('onFocus={() => scrollFieldIntoView("budget")}');
   expect(source).toContain("formFieldOffsets.current.budget");
+  expect(source).toContain("formFieldOffsets.current.description");
+  expect(source).toContain('onFocus={() => scrollFieldIntoView("description")}');
   expect(source).toContain("onBlur={field.onBlur}");
+});
+
+test("Post Job shows playable uploaded videos and marks description optional", () => {
+  const screen = fs.readFileSync(path.join(__dirname, "../screens/PostJobScreen.tsx"), "utf8");
+  const picker = fs.readFileSync(path.join(__dirname, "../components/MediaPicker.tsx"), "utf8");
+  const schema = fs.readFileSync(path.join(__dirname, "../validation/postJob.schema.ts"), "utf8");
+
+  expect(picker).toContain('from "expo-video"');
+  expect(picker).toContain("<UploadedVideoPreview uri={item.url} />");
+  expect(picker).toContain("nativeControls");
+  expect(screen).toContain('label={t("postJob.descriptionOptionalLabel")}');
+  expect(schema).toContain('description: z.string().trim().max(1000');
+  expect(schema).not.toContain('description: z.string().trim().min(10');
 });
 
 test("When and where blocks Continue until date and time are explicitly selected", () => {

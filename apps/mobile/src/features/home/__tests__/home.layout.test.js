@@ -140,6 +140,9 @@ test("job photos use a 16:9 cover preview with a full-image lightbox", () => {
   expect(carousel).toContain("navigationBarTranslucent");
   expect(carousel).toContain('edges={["top", "right", "bottom", "left"]}');
   expect(carousel).toContain("onRequestClose={() => setLightboxUri(null)}");
+  expect(carousel).toContain('from "expo-video"');
+  expect(carousel).toContain("<CarouselVideo uri={item.url} />");
+  expect(carousel).toContain("nativeControls");
 });
 
 test("all native job marker images provide sharp consistent density variants", () => {

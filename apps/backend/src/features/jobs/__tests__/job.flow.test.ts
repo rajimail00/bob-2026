@@ -100,6 +100,24 @@ describe("jobs", () => {
     expect(res.status).toBe(400);
   });
 
+  it("allows creating a job without a description", async () => {
+    const { accessToken } = await createVerifiedClient("optional-description@example.com");
+    const response = await request(app)
+      .post("/api/v1/jobs")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .send({
+        categoryId,
+        title: "Description is optional",
+        location: { lng: 13.405, lat: 52.52 },
+        address: "Berlin",
+        date: new Date(Date.now() + 3_600_000).toISOString(),
+        budget: 50,
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.job.description).toBe("");
+  });
+
   it("returns 409 for a forbidden active -> completed transition", async () => {
     const { accessToken } = await createVerifiedClient("client-transition@example.com");
     const createRes = await request(app)
