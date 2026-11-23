@@ -16,6 +16,7 @@ import { EmptyState } from "@/components/ui/states/EmptyState";
 import { ErrorState } from "@/components/ui/states/ErrorState";
 import { LoadingState } from "@/components/ui/states/LoadingState";
 import { getApiErrorMessage } from "@/lib/apiClient";
+import { useAuthStore } from "@/features/auth/store/authStore";
 import { distanceKm, formatDistanceKm } from "@/lib/geo";
 import { useCurrentLocation } from "@/lib/useCurrentLocation";
 import type { HomeStackParamList } from "@/navigation/types";
@@ -36,7 +37,7 @@ import {
 type Props = NativeStackScreenProps<HomeStackParamList, "HomeList">;
 type ViewMode = "map" | "list";
 
-const MIN_RADIUS_KM = 1;
+const MIN_RADIUS_KM = 5;
 const MAX_RADIUS_KM = 50;
 const DEFAULT_FILTERS: JobFilters = { categoryIds: [], minBudget: 0, maxBudget: 1000, peopleNeeded: null };
 
@@ -55,6 +56,7 @@ export function HomeScreen({ navigation }: Props) {
   const [playingAdvertisementId, setPlayingAdvertisementId] = useState<string>();
   const [visibleAdvertisementIds, setVisibleAdvertisementIds] = useState<Set<string>>(() => new Set());
   const isFocused = useIsFocused();
+  const currentUserId = useAuthStore((state) => state.user?.id);
   const { location } = useCurrentLocation();
   const centerCoords = searchedLocation?.coords ?? (location.status === "granted" ? location.coords : null);
 
@@ -99,7 +101,9 @@ export function HomeScreen({ navigation }: Props) {
   }).current;
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
 
-  const jobs = (jobsQuery.data?.items ?? []).filter((job) => isGloballyVisibleJob(job));
+  const jobs = (jobsQuery.data?.items ?? []).filter(
+    (job) => isGloballyVisibleJob(job) && job.clientId !== currentUserId
+  );
   const homeListItems = insertAdvertisements(jobs, advertisementsQuery.data ?? []);
   const activeFilterCount =
     filters.categoryIds.length +
@@ -266,6 +270,7 @@ export function HomeScreen({ navigation }: Props) {
         <JobMapView
           jobs={jobs}
           userCoords={centerCoords}
+          searchedCoords={searchedLocation?.coords ?? null}
           radiusKm={radiusKm}
           onSelectJob={(job) => navigation.navigate("JobDetail", { jobId: job._id })}
         />

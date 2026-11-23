@@ -57,7 +57,7 @@ test("Home keeps the map visible when there are no active jobs", () => {
   expect(map).not.toContain("?? 0");
 });
 
-test("Home resolves a place search and keeps its coordinates synchronized with map zoom", () => {
+test("Home resolves a place search at the Post Job zoom without coupling zoom to job radius", () => {
   const home = read("features/home/screens/HomeScreen.tsx");
   const map = read("features/home/components/JobMapView.tsx");
 
@@ -70,9 +70,45 @@ test("Home resolves a place search and keeps its coordinates synchronized with m
   expect(home).toContain("lng: centerCoords?.lng");
   expect(home).toContain("lat: centerCoords?.lat");
   expect(home).toContain("onValueChange={setRadiusKm}");
+  expect(home).toContain("radiusKm: centerCoords ? queryRadiusKm : undefined");
   expect(home).toContain("radiusKm={radiusKm}");
-  expect(map).toContain("mapRef.current?.animateToRegion(regionForRadius(userCoords, radiusKm), 250)");
+  expect(home).toContain("searchedCoords={searchedLocation?.coords ?? null}");
+  expect(map).toContain("mapRef.current?.animateToRegion(regionForLocation(userCoords), 350)");
+  expect(map).toContain("latitudeDelta: 0.01");
+  expect(map).toContain("longitudeDelta: 0.01");
+  expect(map).toContain("}, [userCoords]);");
+  expect(map).not.toContain("regionForRadius");
   expect(map).toContain("ref={mapRef}");
+  expect(map).toContain("searchedCoords ? (");
+  expect(map).toContain("latitude: searchedCoords.lat, longitude: searchedCoords.lng");
+  expect(map).not.toContain("<BlurView");
+  expect(map).not.toContain('style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}');
+});
+
+test("Home map draws the live slider radius around current or searched coordinates", () => {
+  const home = read("features/home/screens/HomeScreen.tsx");
+  const map = read("features/home/components/JobMapView.tsx");
+
+  expect(map).toContain("import MapView, { Circle, Marker, type Region }");
+  expect(map).toContain("{userCoords ? (");
+  expect(map).toContain("<Circle");
+  expect(map).toContain("center={{ latitude: userCoords.lat, longitude: userCoords.lng }}");
+  expect(map).toContain("radius={radiusKm * 1000}");
+  expect(map).toContain('fillColor="rgba(79, 130, 102, 0.14)"');
+  expect(home).toContain("onValueChange={setRadiusKm}");
+  expect(home).toContain("setQueryRadiusKm(value)");
+  expect(home).toContain("radiusKm: centerCoords ? queryRadiusKm : undefined");
+  expect(home).toContain("const MIN_RADIUS_KM = 5");
+  expect(home).toContain("const MAX_RADIUS_KM = 50");
+  expect(home).toContain("minimumValue={MIN_RADIUS_KM}");
+  expect(home).toContain("maximumValue={MAX_RADIUS_KM}");
+});
+
+test("Home excludes the signed-in customer's own jobs from map and list", () => {
+  const home = read("features/home/screens/HomeScreen.tsx");
+
+  expect(home).toContain("useAuthStore((state) => state.user?.id)");
+  expect(home).toContain("job.clientId !== currentUserId");
 });
 
 test("map jobs show full category information with compact uncropped marker artwork", () => {
@@ -106,15 +142,20 @@ test("job photos use a 16:9 cover preview with a full-image lightbox", () => {
   expect(carousel).toContain("onRequestClose={() => setLightboxUri(null)}");
 });
 
-test("all native job marker images use compact consistent dimensions", () => {
+test("all native job marker images provide sharp consistent density variants", () => {
   const markerDirectory = path.join(sourceRoot, "..", "assets", "map-markers");
   const markerFiles = fs.readdirSync(markerDirectory).filter((name) => name.endsWith(".png"));
 
-  expect(markerFiles.length).toBeGreaterThan(0);
+  expect(markerFiles.length).toBe(96);
   for (const name of markerFiles) {
     const png = fs.readFileSync(path.join(markerDirectory, name));
     expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
-    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([72, 84]);
+    const expectedDimensions = name.includes("@3x")
+      ? [156, 183]
+      : name.includes("@2x")
+        ? [104, 122]
+        : [52, 61];
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual(expectedDimensions);
   }
 });
 

@@ -71,6 +71,22 @@ describe("jobs", () => {
     expect(listRes.body.total).toBe(1);
     expect(listRes.body.items[0].title).toBe("Need a dog sitter");
 
+    const ownerListRes = await request(app)
+      .get("/api/v1/jobs")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .query({ lng: 13.4, lat: 52.5, radiusKm: 18 });
+    expect(ownerListRes.status).toBe(200);
+    expect(ownerListRes.body.total).toBe(0);
+
+    const otherClient = await createVerifiedClient("other-client@example.com");
+    const otherClientListRes = await request(app)
+      .get("/api/v1/jobs")
+      .set("Authorization", `Bearer ${otherClient.accessToken}`)
+      .query({ lng: 13.4, lat: 52.5, radiusKm: 18 });
+    expect(otherClientListRes.status).toBe(200);
+    expect(otherClientListRes.body.total).toBe(1);
+    expect(otherClientListRes.body.items[0].title).toBe("Need a dog sitter");
+
     const farListRes = await request(app).get("/api/v1/jobs").query({ lng: 2.35, lat: 48.85, radiusKm: 18 });
     expect(farListRes.body.total).toBe(0);
   });
@@ -595,7 +611,7 @@ describe("jobs", () => {
     const listingResponse = await request(app).get("/api/v1/jobs").query({
       lng: 13.41,
       lat: 52.51,
-      radiusKm: 1,
+      radiusKm: 5,
       search: "Updated active",
     });
     expect(listingResponse.body.total).toBe(1);

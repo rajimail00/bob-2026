@@ -1,9 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pressable } from "react-native";
-import MapView, { Marker, type Region } from "react-native-maps";
+import MapView, { Circle, Marker, type Region } from "react-native-maps";
 import { XStack, YStack } from "tamagui";
 import { getCategoryMarkerImage } from "../constants/categoryMarkerImages";
 import type { Job } from "../types/job.types";
@@ -12,6 +10,7 @@ import { JobCard } from "./JobCard";
 interface JobMapViewProps {
   jobs: Job[];
   userCoords: { lat: number; lng: number } | null;
+  searchedCoords: { lat: number; lng: number } | null;
   radiusKm: number;
   onSelectJob: (job: Job) => void;
 }
@@ -23,26 +22,23 @@ const DEFAULT_MAP_REGION: Region = {
   longitudeDelta: 10,
 };
 
-function regionForRadius(coords: { lat: number; lng: number }, radiusKm: number): Region {
-  const latitudeDelta = Math.max(0.02, (radiusKm * 2) / 111);
-  const latitudeRadians = (coords.lat * Math.PI) / 180;
-  const longitudeScale = Math.max(0.2, Math.cos(latitudeRadians));
+function regionForLocation(coords: { lat: number; lng: number }): Region {
   return {
     latitude: coords.lat,
     longitude: coords.lng,
-    latitudeDelta,
-    longitudeDelta: latitudeDelta / longitudeScale,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
   };
 }
 
-export function JobMapView({ jobs, userCoords, radiusKm, onSelectJob }: JobMapViewProps) {
+export function JobMapView({ jobs, userCoords, searchedCoords, radiusKm, onSelectJob }: JobMapViewProps) {
   const { t } = useTranslation();
   const mapRef = useRef<MapView>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   const initialRegion: Region = useMemo(() => {
     if (userCoords) {
-      return regionForRadius(userCoords, radiusKm);
+      return regionForLocation(userCoords);
     }
 
     const firstJob = jobs[0];
@@ -56,12 +52,12 @@ export function JobMapView({ jobs, userCoords, radiusKm, onSelectJob }: JobMapVi
     }
 
     return DEFAULT_MAP_REGION;
-  }, [userCoords, radiusKm, jobs]);
+  }, [userCoords, jobs]);
 
   useEffect(() => {
     if (!userCoords) return;
-    mapRef.current?.animateToRegion(regionForRadius(userCoords, radiusKm), 250);
-  }, [radiusKm, userCoords]);
+    mapRef.current?.animateToRegion(regionForLocation(userCoords), 350);
+  }, [userCoords]);
 
   const selectedJob = jobs.find((j) => j._id === selectedJobId) ?? null;
 
@@ -74,6 +70,23 @@ export function JobMapView({ jobs, userCoords, radiusKm, onSelectJob }: JobMapVi
         onPress={() => setSelectedJobId(null)}
         toolbarEnabled={false}
       >
+        {userCoords ? (
+          <Circle
+            center={{ latitude: userCoords.lat, longitude: userCoords.lng }}
+            radius={radiusKm * 1000}
+            fillColor="rgba(79, 130, 102, 0.14)"
+            strokeColor="rgba(79, 130, 102, 0.78)"
+            strokeWidth={2}
+            zIndex={1}
+          />
+        ) : null}
+        {searchedCoords ? (
+          <Marker
+            coordinate={{ latitude: searchedCoords.lat, longitude: searchedCoords.lng }}
+            accessibilityLabel={t("locationPicker.selected")}
+            zIndex={3}
+          />
+        ) : null}
         {jobs.map((job) => {
           const isSelected = job._id === selectedJobId;
 
@@ -84,21 +97,11 @@ export function JobMapView({ jobs, userCoords, radiusKm, onSelectJob }: JobMapVi
               onPress={() => setSelectedJobId(job._id)}
               image={getCategoryMarkerImage(job.categoryId.slug, isSelected)}
               anchor={{ x: 0.5, y: 0.92 }}
+              zIndex={2}
             />
           );
         })}
       </MapView>
-
-      {selectedJob ? (
-        <Pressable
-          onPress={() => setSelectedJobId(null)}
-          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-          accessibilityRole="button"
-          accessibilityLabel={t("filters.closePreview")}
-        >
-          <BlurView intensity={35} tint="dark" style={{ flex: 1 }} />
-        </Pressable>
-      ) : null}
 
       {selectedJob ? (
         <YStack position="absolute" left="$3" right="$3" bottom="$3">
