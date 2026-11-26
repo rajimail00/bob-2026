@@ -25,6 +25,7 @@ test("the Profile tab uses a typed nested stack for the complete customer profil
 
 test("customer main screens share the branded header and account actions are independent from the Profile tab", () => {
   const header = read("components/layout/CustomerHeader.tsx");
+  const welcome = read("features/auth/screens/WelcomeScreen.tsx");
   const root = read("navigation/RootNavigator.tsx");
   const adminNavigator = read("navigation/AdminNavigator.tsx");
   const types = read("navigation/types.ts");
@@ -38,6 +39,8 @@ test("customer main screens share the branded header and account actions are ind
   const adminHeader = read("features/admin/components/AdminHeader.tsx");
 
   expect(logo).toContain('require("../../../assets/splash-icon.png")');
+  expect(welcome).toContain("PRIVACY_POLICY_URL");
+  expect(welcome).toContain("Linking.openURL");
   expect(header).toContain("<BobLogo");
   expect(header).toContain('screen: "Notifications"');
   expect(header).toContain("<HeaderAccountMenu");
@@ -59,13 +62,13 @@ test("customer main screens share the branded header and account actions are ind
   expect(accountMenu).toContain("useLogout");
   expect(accountMenu).toContain('t("common.logout")');
   expect(accountMenu).not.toContain("useDeleteAccount");
-  expect(accountMenu).not.toContain('t("profile.deactivateTitle")');
   expect(accountMenu).toContain("onRequestClose={onClose}");
   expect(accountMenu).toContain('testID="account-menu-backdrop"');
   expect(settings).not.toContain("useLogout");
   expect(settings).not.toContain('t("common.logout")');
-  expect(settings).not.toContain("useDeleteAccount");
-  expect(settings).not.toContain('t("profile.deactivateTitle")');
+  expect(settings).toContain("useDeleteAccount");
+  expect(settings).toContain('t("profile.deactivateTitle")');
+  expect(settings).toContain("PRIVACY_POLICY_URL");
 });
 
 test("profile overview uses authenticated categories and real posted and assigned jobs", () => {

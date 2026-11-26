@@ -12,9 +12,11 @@ import { getApiErrorMessage } from "@/lib/apiClient";
 import { LANGUAGE_OPTIONS, type SupportedLocale } from "@/lib/i18n";
 import {
   useCompleteWorkerProfile,
+  useDeleteAccount,
   useUpdateLocale,
 } from "@/features/auth/hooks/useAuthMutations";
 import { useAuthStore } from "@/features/auth/store/authStore";
+import { PRIVACY_POLICY_URL } from "@/lib/externalLinks";
 import type { ProfileStackParamList } from "@/navigation/types";
 import { ProfileBackButton } from "../components/ProfileBackButton";
 import { FeedbackModal, InviteFriendsModal } from "../components/ProfileActionModals";
@@ -29,6 +31,7 @@ export function ProfileSettingsScreen({ navigation }: Props) {
   const user = useAuthStore((state) => state.user);
   const updateLocale = useUpdateLocale();
   const updateWorkerProfile = useCompleteWorkerProfile();
+  const deleteAccount = useDeleteAccount();
   const currentLocale = (i18n.language?.slice(0, 2) as SupportedLocale) || "en";
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLocale>(user?.locale ?? currentLocale);
   const [languageOpen, setLanguageOpen] = useState(false);
@@ -99,6 +102,29 @@ export function ProfileSettingsScreen({ navigation }: Props) {
     await openEmail(t("profileFlow.feedbackSubject"));
   };
 
+  const openPrivacyPolicy = async () => {
+    try {
+      await Linking.openURL(PRIVACY_POLICY_URL);
+    } catch {
+      Alert.alert(t("profile.privacyPolicy"), t("profile.privacyPolicyOpenError"));
+    }
+  };
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(t("profile.deactivateTitle"), t("profile.deactivateBody"), [
+      { text: t("common.cancel"), style: "cancel" },
+      {
+        text: t("common.deleteAction"),
+        style: "destructive",
+        onPress: () => {
+          void deleteAccount.mutateAsync().catch((error) => {
+            Alert.alert(t("profile.deleteErrorTitle"), getApiErrorMessage(error, t("profile.deleteError")));
+          });
+        },
+      },
+    ]);
+  };
+
   return (
     <>
       <Screen scroll scrollBottomPadding={16} safeAreaEdges={["top", "left", "right"]}>
@@ -146,6 +172,10 @@ export function ProfileSettingsScreen({ navigation }: Props) {
             <SettingsAction icon="heart-outline" label={t("profile.feedback")} onPress={() => setFeedbackModalOpen(true)} />
             <SettingsAction icon="help-circle-outline" label={t("profile.help")} onPress={() => void openEmail(t("profileFlow.helpSubject"))} />
           </SettingsPair>
+
+          <SettingsPair>
+            <SettingsAction icon="document-text-outline" label={t("profile.privacyPolicy")} onPress={() => void openPrivacyPolicy()} />
+          </SettingsPair>
         </YStack>
 
         <YStack gap="$2">
@@ -179,6 +209,15 @@ export function ProfileSettingsScreen({ navigation }: Props) {
             </Card>
           ) : null}
           {languageError ? <Text variant="small" color="$danger">{languageError}</Text> : null}
+        </YStack>
+
+        <YStack gap="$2" paddingTop="$2">
+          <Text variant="small" color="$colorMuted" textAlign="center">
+            {t("profile.deactivateBody")}
+          </Text>
+          <Button variant="destructive" fullWidth loading={deleteAccount.isPending} onPress={confirmDeleteAccount}>
+            {t("profile.deactivateTitle")}
+          </Button>
         </YStack>
 
         </YStack>

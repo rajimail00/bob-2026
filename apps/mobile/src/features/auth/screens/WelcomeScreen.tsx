@@ -1,10 +1,12 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Linking, Pressable } from "react-native";
 import { useTranslation } from "react-i18next";
 import { YStack } from "tamagui";
 import { Button } from "@/components/ui/Button";
 import { BobLogo } from "@/components/brand/BobLogo";
 import { Screen } from "@/components/ui/Screen";
 import { Text } from "@/components/ui/Text";
+import { PRIVACY_POLICY_URL } from "@/lib/externalLinks";
 import type { AuthStackParamList } from "@/navigation/types";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Welcome">;
@@ -31,6 +33,16 @@ export function WelcomeScreen({ navigation }: Props) {
         <Button variant="outlineInverse" fullWidth onPress={() => navigation.navigate("Register")}>
           {t("auth.register")}
         </Button>
+        <Pressable
+          onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+          role="link"
+          accessibilityLabel={t("profile.privacyPolicy")}
+          style={{ alignSelf: "center", paddingVertical: 4 }}
+        >
+          <Text variant="caption" color="$primaryText" textDecorationLine="underline">
+            {t("profile.privacyPolicy")}
+          </Text>
+        </Pressable>
       </YStack>
     </Screen>
   );
