@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useTranslation } from "react-i18next";
 import { Image } from "react-native";
 import { XStack, YStack } from "tamagui";
@@ -39,6 +40,19 @@ const STATUS_TONE = {
   cancelled: "danger",
   expired: "neutral",
 } as const;
+
+function JobCardVideoThumbnail({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri);
+
+  return (
+    <VideoView
+      player={player}
+      style={{ width: "100%", height: 140, backgroundColor: "#111" }}
+      contentFit="cover"
+      nativeControls={false}
+    />
+  );
+}
 
 interface JobCardBadge {
   icon: keyof typeof Ionicons.glyphMap;
@@ -101,7 +115,11 @@ export function JobCard({ job, onPress, distance, onDelete, isDeleting, softTitl
     <Card elevated pressStyle={{ opacity: 0.9 }} onPress={onPress} accessibilityRole="button" padding={0} overflow="hidden">
       {thumbnail ? (
         <YStack position="relative">
-          <Image source={{ uri: thumbnail.url }} style={{ width: "100%", height: 140 }} />
+          {thumbnail.type === "video" ? (
+            <JobCardVideoThumbnail uri={thumbnail.url} />
+          ) : (
+            <Image source={{ uri: thumbnail.url }} style={{ width: "100%", height: 140 }} />
+          )}
           {thumbnail.type === "video" ? (
             <XStack
               position="absolute"

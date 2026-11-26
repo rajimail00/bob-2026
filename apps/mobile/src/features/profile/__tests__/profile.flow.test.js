@@ -71,6 +71,13 @@ test("customer main screens share the branded header and account actions are ind
   expect(settings).toContain("PRIVACY_POLICY_URL");
 });
 
+test("light Screen shells reset the status bar to dark icons while branded screens use light icons", () => {
+  const screen = read("components/ui/Screen.tsx");
+
+  expect(screen).toContain('from "expo-status-bar"');
+  expect(screen).toContain('<StatusBar style={background === "brand" ? "light" : "dark"} />');
+});
+
 test("profile overview uses authenticated categories and real posted and assigned jobs", () => {
   const overview = fs.readFileSync(path.join(profileScreens, "ProfileScreen.tsx"), "utf8");
 

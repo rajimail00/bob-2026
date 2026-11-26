@@ -40,6 +40,18 @@ test("When and where blocks Continue until date and time are explicitly selected
   expect(source).toContain('scrollFieldIntoView("schedule")');
 });
 
+test("time picker keeps the 12-hour clock and AM/PM controls in every app language", () => {
+  const source = fs.readFileSync(path.join(__dirname, "../screens/PostJobScreen.tsx"), "utf8");
+
+  expect(source).toContain("const HOUR_OPTIONS = Array.from({ length: 12 }");
+  expect(source).toContain("const selectedHour = getDisplayHour(selectedTime);");
+  expect(source).toContain("const clockOptions = clockMode === \"hour\"");
+  expect(source).toContain("? HOUR_OPTIONS");
+  expect(source).toContain("MERIDIEM_OPTIONS.map");
+  expect(source).not.toContain("HOUR_OPTIONS_24");
+  expect(source).not.toContain("localeUses12HourClock");
+});
+
 test("Post Job preserves media scroll position and keeps step errors local", () => {
   const source = fs.readFileSync(path.join(__dirname, "../screens/PostJobScreen.tsx"), "utf8");
 

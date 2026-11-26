@@ -72,7 +72,6 @@ const PAYMENT_OPTIONS = ["cash", "paypal", "both"] as const;
 const DATE_PICKER_BRAND_COLOR = color.brand500;
 const DATE_PICKER_DAY_SIZE = 36;
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index + 1));
-const HOUR_OPTIONS_24 = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, "0"));
 const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, "0"));
 const MERIDIEM_OPTIONS = ["AM", "PM"] as const;
 const TIME_PICKER_CLOCK_SIZE = 260;
@@ -1077,18 +1076,14 @@ function BrandTimePicker({
 }: BrandTimePickerProps) {
   const { t } = useTranslation();
   const [clockMode, setClockMode] = useState<"hour" | "minute">("hour");
-  const uses12HourClock = localeUses12HourClock(locale);
-  const selectedHour = uses12HourClock
-    ? getDisplayHour(selectedTime)
-    : String(selectedTime.getHours()).padStart(2, "0");
+  const selectedHour = getDisplayHour(selectedTime);
   const selectedMinute = String(selectedTime.getMinutes()).padStart(2, "0");
   const selectedMeridiem = getMeridiem(selectedTime);
   const clockOptions = clockMode === "hour"
-    ? (uses12HourClock ? HOUR_OPTIONS : HOUR_OPTIONS_24)
+    ? HOUR_OPTIONS
     : MINUTE_OPTIONS;
   const selectedClockValue = clockMode === "hour" ? selectedHour : selectedMinute;
   const handAngle = getClockAngle(clockMode, selectedClockValue);
-  const usesHourGrid = clockMode === "hour" && !uses12HourClock;
 
   useEffect(() => {
     if (visible) setClockMode("hour");
@@ -1131,7 +1126,7 @@ function BrandTimePicker({
                   </Pressable>
                 </XStack>
 
-                {uses12HourClock ? <YStack gap="$2" alignItems="center">
+                <YStack gap="$2" alignItems="center">
                   {MERIDIEM_OPTIONS.map((meridiem) => {
                     const isSelected = selectedMeridiem === meridiem;
                     const localizedMeridiem = getLocalizedMeridiem(locale, meridiem);
@@ -1154,40 +1149,38 @@ function BrandTimePicker({
                       </Pressable>
                     );
                   })}
-                </YStack> : null}
+                </YStack>
               </XStack>
             </YStack>
 
             <YStack padding="$4" gap="$3" alignItems="center">
-              <View style={usesHourGrid ? styles.timePickerHourGrid : styles.timePickerClockFace}>
-                {!usesHourGrid ? <View
+              <View style={styles.timePickerClockFace}>
+                <View
                   style={[
                     styles.timePickerHand,
                     {
                       transform: [{ rotate: `${handAngle}deg` }],
                     },
                   ]}
-                /> : null}
-                {!usesHourGrid ? <View style={styles.timePickerCenterDot} /> : null}
+                />
+                <View style={styles.timePickerCenterDot} />
 
                 {clockOptions.map((option) => {
                   const isSelected = selectedClockValue === option;
-                  const position = usesHourGrid ? null : getClockOptionPosition(clockMode, option);
+                  const position = getClockOptionPosition(clockMode, option);
 
                   return (
                     <Pressable
                       key={option}
                       style={[
-                        usesHourGrid ? styles.timePickerHourGridNumber : styles.timePickerNumber,
+                        styles.timePickerNumber,
                         position,
                         isSelected ? styles.timePickerNumberSelected : null,
                       ]}
                       onPress={() => {
                         if (clockMode === "hour") {
                           onSelectTime(
-                            uses12HourClock
-                              ? setTimeHour(selectedTime, option)
-                              : setTimeHour24(selectedTime, option)
+                            setTimeHour(selectedTime, option)
                           );
                           setClockMode("minute");
                         } else {
@@ -1265,16 +1258,6 @@ function setTimeHour(time: Date, hourValue: string) {
   const hour = Number(hourValue) % 12;
   updated.setHours(getMeridiem(time) === "PM" ? hour + 12 : hour);
   return updated;
-}
-
-function setTimeHour24(time: Date, hourValue: string) {
-  const updated = new Date(time);
-  updated.setHours(Number(hourValue));
-  return updated;
-}
-
-function localeUses12HourClock(locale: SupportedLocale) {
-  return new Intl.DateTimeFormat(locale, { hour: "numeric" }).resolvedOptions().hour12 ?? false;
 }
 
 function getLocalizedMeridiem(
@@ -1369,24 +1352,6 @@ const styles = StyleSheet.create({
     height: TIME_PICKER_CLOCK_SIZE,
     position: "relative",
     width: TIME_PICKER_CLOCK_SIZE,
-  },
-  timePickerHourGrid: {
-    alignContent: "center",
-    backgroundColor: color.neutral100,
-    borderRadius: 16,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    height: TIME_PICKER_CLOCK_SIZE,
-    justifyContent: "center",
-    padding: 10,
-    width: TIME_PICKER_CLOCK_SIZE,
-  },
-  timePickerHourGridNumber: {
-    alignItems: "center",
-    borderRadius: 20,
-    height: 40,
-    justifyContent: "center",
-    width: "25%",
   },
   timePickerHand: {
     backgroundColor: color.brand500,

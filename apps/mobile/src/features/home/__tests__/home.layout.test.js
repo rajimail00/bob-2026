@@ -145,6 +145,16 @@ test("job photos use a 16:9 cover preview with a full-image lightbox", () => {
   expect(carousel).toContain("nativeControls");
 });
 
+test("job cards use a native video view for video attachment previews", () => {
+  const card = read("features/home/components/JobCard.tsx");
+
+  expect(card).toContain('from "expo-video"');
+  expect(card).toContain("function JobCardVideoThumbnail");
+  expect(card).toContain('<JobCardVideoThumbnail uri={thumbnail.url} />');
+  expect(card).toContain('contentFit="cover"');
+  expect(card).toContain("nativeControls={false}");
+});
+
 test("all native job marker images provide sharp consistent density variants", () => {
   const markerDirectory = path.join(sourceRoot, "..", "assets", "map-markers");
   const markerFiles = fs.readdirSync(markerDirectory).filter((name) => name.endsWith(".png"));

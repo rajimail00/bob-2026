@@ -6,6 +6,7 @@ import {
   ScrollView,
   type TextInput,
 } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 import { YStack } from "tamagui";
 import { KeyboardScrollContext } from "./KeyboardScrollContext";
@@ -67,6 +68,7 @@ export function Screen({
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={safeAreaEdges}>
+      <StatusBar style={background === "brand" ? "light" : "dark"} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
