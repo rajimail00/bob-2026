@@ -30,6 +30,19 @@ test("Post Job shows playable uploaded videos and marks description optional", (
   expect(schema).not.toContain('description: z.string().trim().min(10');
 });
 
+test("Post Job limits job videos to 15 seconds and reports processing progress", () => {
+  const picker = fs.readFileSync(path.join(__dirname, "../components/MediaPicker.tsx"), "utf8");
+  const compression = fs.readFileSync(path.join(__dirname, "../../media/utils/compressMedia.ts"), "utf8");
+
+  expect(picker).toContain("const MAX_VIDEO_DURATION_SECONDS = 15");
+  expect(picker).toContain("maxDuration: MAX_VIDEO_DURATION_SECONDS");
+  expect(picker).toContain("maxFileSize: MAX_FILE_BYTES");
+  expect(picker).toContain("VIDEO_TOO_LONG");
+  expect(picker).toContain('setUploadStage("compressing")');
+  expect(picker).toContain('setUploadStage("uploading")');
+  expect(compression).toContain("onVideoCompressionProgress");
+});
+
 test("When and where blocks Continue until date and time are explicitly selected", () => {
   const source = fs.readFileSync(path.join(__dirname, "../screens/PostJobScreen.tsx"), "utf8");
 

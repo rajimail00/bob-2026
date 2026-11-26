@@ -14,7 +14,8 @@ export interface UploadedMedia {
 export async function uploadMedia(
   localUri: string,
   kind: "photo" | "video",
-  file?: { name: string; mimeType: string }
+  file?: { name: string; mimeType: string },
+  onProgress?: (progress: number) => void,
 ): Promise<UploadedMedia> {
   // Camera providers often return content:// URIs without a useful filename or
   // extension. Always give multipart a safe, explicit media identity.
@@ -35,6 +36,9 @@ export async function uploadMedia(
     // Compression happens before this request. The backend then streams the
     // upload to Cloudinary, so videos need longer than the global 15s timeout.
     timeout: MEDIA_UPLOAD_TIMEOUT_MS,
+    onUploadProgress: (event) => {
+      if (event.total) onProgress?.(Math.round((event.loaded / event.total) * 100));
+    },
   });
   return data;
 }

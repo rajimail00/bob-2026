@@ -17,7 +17,7 @@ if (isCloudinaryConfigured) {
 export type UploadResourceType = "image" | "video";
 
 /** Streams a memory buffer (from multer) straight to Cloudinary — no temp files on disk. */
-export function uploadBuffer(buffer: Buffer, resourceType: UploadResourceType): Promise<{ url: string }> {
+export function uploadBuffer(buffer: Buffer, resourceType: UploadResourceType): Promise<{ url: string; duration?: number; publicId: string }> {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       { folder: "bob/jobs", resource_type: resourceType },
@@ -26,11 +26,18 @@ export function uploadBuffer(buffer: Buffer, resourceType: UploadResourceType): 
           reject(error ?? new Error("Cloudinary upload returned no result"));
           return;
         }
-        resolve({ url: result.secure_url });
+        resolve({ url: result.secure_url, duration: result.duration, publicId: result.public_id });
       }
     );
     stream.end(buffer);
   });
+}
+
+export async function deleteCloudinaryAsset(publicId: string, resourceType: UploadResourceType): Promise<void> {
+  const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType, invalidate: true });
+  if (result.result !== "ok" && result.result !== "not found") {
+    throw new Error(`Cloudinary could not delete asset: ${publicId}`);
+  }
 }
 
 
@@ -112,14 +119,5 @@ export async function deleteCloudinaryAssetByUrl(
     );
   }
 
-  const result = await cloudinary.uploader.destroy(asset.publicId, {
-    resource_type: asset.resourceType,
-    invalidate: true,
-  });
-
-  if (result.result !== "ok" && result.result !== "not found") {
-    throw new Error(
-      `Cloudinary could not delete asset: ${asset.publicId}`
-    );
-  }
+  await deleteCloudinaryAsset(asset.publicId, asset.resourceType);
 }

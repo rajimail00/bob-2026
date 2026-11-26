@@ -37,6 +37,14 @@
           "microphonePermission": "BOB uses your microphone to record video for the job you're posting."
         }
       ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "BOB uses your camera to record a short video for the job you're posting.",
+          "microphonePermission": "BOB uses your microphone to record sound with a job video.",
+          "recordAudioAndroid": true
+        }
+      ],
       "react-native-compressor",
       "expo-video"
     ],

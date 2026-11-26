@@ -15,6 +15,7 @@ export interface PreparedMedia {
   fileSize: number;
   name: string;
   mimeType: string;
+  duration?: number;
 }
 
 function isExpoGo(): boolean {
@@ -35,7 +36,8 @@ async function getFileSize(uri: string, fallback?: number): Promise<number> {
 
 export async function compressMedia(
   asset: ImagePickerAsset,
-  kind: "photo" | "video"
+  kind: "photo" | "video",
+  onVideoCompressionProgress?: (progress: number) => void,
 ): Promise<PreparedMedia> {
   if (kind === "photo") {
     const largestEdge = Math.max(asset.width || 0, asset.height || 0);
@@ -63,6 +65,7 @@ export async function compressMedia(
       fileSize: await getFileSize(asset.uri, asset.fileSize),
       name: `bob-video-${Date.now()}.mp4`,
       mimeType: asset.mimeType || "video/mp4",
+      duration: asset.duration ? asset.duration / 1000 : undefined,
     };
   }
 
@@ -71,12 +74,13 @@ export async function compressMedia(
     compressionMethod: "auto",
     maxSize: MAX_VIDEO_EDGE,
     minimumFileSizeForCompress: 0,
-  });
+  }, onVideoCompressionProgress);
   const metadata = await getVideoMetaData(uri);
   return {
     uri,
     fileSize: metadata.size,
     name: `bob-video-${Date.now()}.mp4`,
     mimeType: "video/mp4",
+    duration: metadata.duration,
   };
 }

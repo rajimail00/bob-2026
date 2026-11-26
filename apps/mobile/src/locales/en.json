@@ -293,7 +293,17 @@
     "photoGallery": "Photo from gallery ({{count}}/{{max}})",
     "videoGallery": "Video from gallery ({{count}}/{{max}})",
     "camera": "Use camera",
-    "limits": "Up to {{photos}} photos and {{videos}} videos, 10MB each. Gallery is recommended."
+    "recordVideo": "Record video",
+    "limits": "Up to {{photos}} photos and {{videos}} videos, 10MB each. Videos can be up to {{seconds}} seconds.",
+    "videoTooLong": "Choose a video that is {{seconds}} seconds or shorter.",
+    "compressing": "Compressing video… {{progress}}%",
+    "uploading": "Uploading… {{progress}}%",
+    "closeRecorder": "Close video recorder",
+    "recordingLimit": "Maximum {{seconds}} seconds",
+    "recording": "Recording — stops automatically at {{seconds}} seconds.",
+    "recordReady": "Tap the button to start recording.",
+    "startRecording": "Start video recording",
+    "stopRecording": "Stop video recording"
   },
   "locationPicker": {
     "selected": "Selected location",
@@ -497,6 +507,7 @@
     "MESSAGE_FORBIDDEN": "You're not part of this conversation.",
     "REVIEW_DUPLICATE": "You've already reviewed this job.",
     "MEDIA_TOO_LARGE": "The selected file is too large.",
+    "VIDEO_TOO_LONG": "Choose a video that is 15 seconds or shorter.",
     "MEDIA_UNSUPPORTED": "This file type is not supported.",
     "ACCOUNT_DELETE_FORBIDDEN": "Only an active account can be deleted."
   }
