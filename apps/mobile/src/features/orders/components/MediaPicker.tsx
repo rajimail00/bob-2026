@@ -67,6 +67,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
   const [recorderVisible, setRecorderVisible] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const isRecordingRef = useRef(false);
   const [recordedSeconds, setRecordedSeconds] = useState(0);
 
   const photoCount = media.filter((m) => m.type === "photo").length;
@@ -172,21 +173,29 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
 
   const stopVideoRecording = async () => {
     clearRecordingTimers();
-    if (!cameraRef.current) return;
+    if (!cameraRef.current || !isRecordingRef.current) return;
+    isRecordingRef.current = false;
     setIsRecording(false);
-    await cameraRef.current?.stopRecording();
+    cameraRef.current.stopRecording();
   };
 
   const startVideoRecording = async () => {
     if (!cameraRef.current || !cameraReady || isRecording) return;
     setError(null);
+    isRecordingRef.current = true;
     setIsRecording(true);
     setRecordedSeconds(0);
     countdownInterval.current = setInterval(() => setRecordedSeconds((previous) => Math.min(previous + 1, MAX_VIDEO_DURATION_SECONDS)), 1000);
     autoStopTimeout.current = setTimeout(() => { void stopVideoRecording(); }, MAX_VIDEO_DURATION_MS);
 
     try {
-      const recorded = await cameraRef.current.recordAsync({ maxDuration: MAX_VIDEO_DURATION_SECONDS, maxFileSize: MAX_FILE_BYTES });
+      let recorded;
+      try {
+        recorded = await cameraRef.current.recordAsync({ maxDuration: MAX_VIDEO_DURATION_SECONDS, maxFileSize: MAX_FILE_BYTES });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        return;
+      }
       if (!recorded?.uri) return;
       clearRecordingTimers();
       setIsRecording(false);
@@ -197,6 +206,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
       showError(err);
     } finally {
       clearRecordingTimers();
+      isRecordingRef.current = false;
       setIsRecording(false);
       setRecorderVisible(false);
       setUploadStage(null);
@@ -238,7 +248,7 @@ export function MediaPicker({ media, onChange }: MediaPickerProps) {
 
       <Modal visible={recorderVisible} animationType="slide" onRequestClose={closeRecorder} statusBarTranslucent>
         <View style={styles.recorder}>
-          <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" videoQuality="480p" onCameraReady={() => setCameraReady(true)} />
+          <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} mode="video" facing="back" videoQuality="480p" onCameraReady={() => setCameraReady(true)} />
           <View style={styles.recorderHeader}>
             <Pressable onPress={closeRecorder} disabled={isRecording} accessibilityRole="button" accessibilityLabel={t("mediaPicker.closeRecorder")} style={styles.closeButton}><Ionicons name="close" size={28} color="#FFFFFF" /></Pressable>
             <Text color="#FFFFFF" fontWeight="700">{t("mediaPicker.recordingLimit", { seconds: MAX_VIDEO_DURATION_SECONDS })}</Text>
